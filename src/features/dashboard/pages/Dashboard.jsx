@@ -54,8 +54,8 @@ export default function Dashboard() {
   if (error) return <ErrorState title="Could not load the dashboard" message={getApiErrorMessage(error)} onRetry={load} />
 
   return (
-    <div className="stack">
-      <PageHeader title="Dashboard" description="Snapshot of visas, tours, partners and customers." />
+    <div className="stack bg-background">
+      <PageHeader title="Dashboard" />
       <OverviewCards overview={data.overview} />
       <div className="grid grid--2">
         <VisaOverview data={data.visaTrend} />
