@@ -52,64 +52,16 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="header__right" ref={wrapRef}>
-        <div className="header__menu-wrap">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Notifications"
-            onClick={() => setOpenMenu((menu) => (menu === 'notifications' ? null : 'notifications'))}
-          >
-            🔔
-            {unreadCount > 0 ? <span className="badge-dot">{unreadCount}</span> : null}
-          </button>
-
-          {openMenu === 'notifications' ? (
-            <div className="menu">
-              <div className="menu__header">
-                <span>Notifications</span>
-                {unreadCount > 0 ? (
-                  <button type="button" className="menu__item" style={{ width: 'auto' }} onClick={() => markAllRead()}>
-                    Mark all read
-                  </button>
-                ) : null}
-              </div>
-              <ul className="menu__list">
-                {visibleNotifications.length === 0 ? (
-                  <li className="menu__item muted">No notifications yet.</li>
-                ) : (
-                  visibleNotifications.map((notification) => (
-                    <li key={notification.id} className="menu__item" style={{ cursor: 'default' }}>
-                      <div className="row" style={{ alignItems: 'flex-start' }}>
-                        <span aria-hidden>{NOTIFICATION_ICONS[notification.type] ?? '🔔'}</span>
-                        <div>
-                          <p className="strong">{notification.title}</p>
-                          <p className="muted small">{notification.body}</p>
-                          <p className="muted small">{formatRelativeTime(notification.createdAt)}</p>
-                        </div>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-              <div className="menu__footer">
-                <Link to={APP_ROUTES.NOTIFICATIONS} onClick={() => setOpenMenu(null)}>
-                  View all notifications
-                </Link>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
         <div className="header__user-wrap">
           <button
             type="button"
             className="header__user-btn"
             onClick={() => setOpenMenu((menu) => (menu === 'user' ? null : 'user'))}
           >
-            <span className="avatar">{initials(user?.name)}</span>
+            <span className="avatar">{initials(user?.name ?? 'ABL Travel')}</span>
             <span>
-              <p>{user?.name}</p>
-              <p className="muted">{ROLE_LABELS[user?.role] ?? titleCase(user?.role)}</p>
+              <p className="strong">{user?.name ?? 'Admin'}</p>
+              <p className="muted small" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>ABL Travel</p>
             </span>
           </button>
 

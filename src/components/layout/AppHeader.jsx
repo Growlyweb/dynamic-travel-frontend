@@ -22,6 +22,7 @@ import {
 
 import { useAuth } from '@/hooks/useAuth'
 import { useNotifications } from '@/context/NotificationContext'
+import { useCurrency } from '@/context/CurrencyContext'
 import { APP_ROUTES } from '@/utils/constants'
 import { ROLE_LABELS } from '@/utils/roles'
 import { formatRelativeTime, initials, titleCase } from '@/utils/formatters'
@@ -36,6 +37,7 @@ const NOTIFICATION_ICONS = {
 export default function AppHeader() {
   const { user, logout } = useAuth()
   const { notifications, unreadCount, markAllRead } = useNotifications()
+  const { currency, setCurrency, SUPPORTED_CURRENCIES } = useCurrency()
   const [notifOpen, setNotifOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -46,6 +48,7 @@ export default function AppHeader() {
 
   const visibleNotifications = notifications.slice(0, 4)
   const roleLabel = ROLE_LABELS[user?.role] ?? titleCase(user?.role)
+  const selectedCurrency = SUPPORTED_CURRENCIES.find((c) => c.code === currency)
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
@@ -64,74 +67,16 @@ export default function AppHeader() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Notifications */}
-        <Popover open={notifOpen} onOpenChange={setNotifOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
-              <Bell className="size-5" />
-              {unreadCount > 0 && (
-                <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center rounded-full px-1 text-[10px]">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-
-          <PopoverContent align="end" className="w-80 p-0">
-            <div className="flex items-center justify-between border-b px-4 py-3">
-              <span className="text-sm font-semibold">Notifications</span>
-              {unreadCount > 0 && (
-                <Button variant="link" size="sm" className="h-auto p-0" onClick={() => markAllRead()}>
-                  Mark all read
-                </Button>
-              )}
-            </div>
-
-            <ScrollArea className="max-h-80">
-              {visibleNotifications.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  No notifications yet.
-                </p>
-              ) : (
-                <ul className="divide-y">
-                  {visibleNotifications.map((n) => (
-                    <li key={n.id} className="flex gap-3 px-4 py-3">
-                      <span aria-hidden className="mt-0.5">
-                        {NOTIFICATION_ICONS[n.type] ?? '🔔'}
-                      </span>
-                      <div className="min-w-0 space-y-0.5">
-                        <p className="text-sm font-medium leading-snug">{n.title}</p>
-                        <p className="text-xs text-muted-foreground">{n.body}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatRelativeTime(n.createdAt)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </ScrollArea>
-
-            <div className="border-t p-2 text-center">
-              <Button asChild variant="ghost" size="sm" className="w-full">
-                <Link to={APP_ROUTES.NOTIFICATIONS} onClick={() => setNotifOpen(false)}>
-                  View all notifications
-                </Link>
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* User menu */}
+        {/* User Profile Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-10 gap-2 px-2">
               <Avatar className="size-8">
-                <AvatarFallback>{initials(user?.name)}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-white font-bold">{initials(user?.name ?? 'ABL Travel')}</AvatarFallback>
               </Avatar>
               <div className="hidden text-left text-sm leading-tight md:grid">
-                <span className="font-medium">{user?.name}</span>
-                <span className="text-xs text-muted-foreground">{roleLabel}</span>
+                <span className="font-semibold text-foreground">{user?.name ?? 'Admin'}</span>
+                <span className="text-xs font-medium text-primary">ABL Travel</span>
               </div>
               <ChevronsUpDown className="hidden size-4 text-muted-foreground md:block" />
             </Button>
@@ -139,8 +84,8 @@ export default function AppHeader() {
 
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-medium">{user?.name}</p>
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
+              <p className="text-sm font-semibold">{user?.name ?? 'Admin'}</p>
+              <p className="text-xs font-medium text-primary">ABL Travel</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 

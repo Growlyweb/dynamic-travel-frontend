@@ -59,12 +59,11 @@ export default function AppSidebar() {
               className="gap-2.5 bg-transparent!"
               render={<Link to={APP_ROUTES.DASHBOARD} />}
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Compass className="size-4" />
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent">
+                <img src="/favicon_io/favicon-32x32.png" alt="ABL Travel Logo" className="size-7 object-contain" />
               </div>
               <div className="flex flex-col items-start leading-tight">
-                <span className="text-base font-semibold text-nowrap">Dashboard</span>
-                <span className="text-xs font-light text-nowrap">Operations console</span>
+                <span className="text-base font-bold text-nowrap tracking-tight">ABL Travel</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

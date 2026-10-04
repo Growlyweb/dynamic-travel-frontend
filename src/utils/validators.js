@@ -3,7 +3,7 @@ export function isEmail(value) {
 }
 
 export function isPhone(value) {
-  return /^\+?[\d\s-]{7,15}$/.test(String(value ?? '').trim())
+  return /^\+?[\d\s-]{7,18}$/.test(String(value ?? '').trim())
 }
 
 export function isStrongPassword(value) {

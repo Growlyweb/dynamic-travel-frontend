@@ -44,6 +44,7 @@ export const APP_ROUTES = {
   TOURS: '/tours',
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
+  TOUR_CUSTOM_BUILDER: '/tours/custom/builder',
   TOUR_DETAILS: (id) => `/tours/${id}`,
   TOUR_EDIT: (id) => `/tours/${id}/edit`,
 

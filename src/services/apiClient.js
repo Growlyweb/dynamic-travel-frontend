@@ -69,7 +69,9 @@ async function request(path, { method = 'GET', body, params, headers, signal } =
  *   get:  (id) => withMock(findDemo(id), () => apiClient.get(`/users/${id}`))
  */
 export function withMock(demo, requestFn) {
-  if (!config.enableMocks) return requestFn()
+  // Call sites that pass only a demo builder (e.g. withMockList) have no real
+  // request to fall back to, so they keep serving demo data when mocks are off.
+  if (!config.enableMocks && typeof requestFn === 'function') return requestFn()
   return sleep(150).then(() => (typeof demo === 'function' ? demo() : JSON.parse(JSON.stringify(demo))))
 }
 

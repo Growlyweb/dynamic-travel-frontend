@@ -14,13 +14,16 @@ export default function Sidebar({ onNavigate }) {
   return (
     <aside className="sidebar">
       {/* Sidebar Top Brand */}
-      <div className="sidebar__brand">
-        <span className="sidebar__logo" aria-hidden>
-          🧭
-        </span>
+      <div className="sidebar__brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <img
+          src="/favicon_io/favicon-32x32.png"
+          alt="ABL Travel Logo"
+          style={{ width: 28, height: 28, objectFit: 'contain' }}
+        />
         <div>
-          <p className="sidebar__title">Travel Dashboard</p>
-          <p className="sidebar__subtitle">Operations console</p>
+          <p className="sidebar__title" style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
+            ABL Travel
+          </p>
         </div>
       </div>
 

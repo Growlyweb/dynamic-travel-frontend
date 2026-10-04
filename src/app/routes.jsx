@@ -28,6 +28,7 @@ const TourDetails = lazy(() => import('../features/tours/pages/TourDetails'))
 const CreateTour = lazy(() => import('../features/tours/pages/CreateTour'))
 const EditTour = lazy(() => import('../features/tours/pages/EditTour'))
 const CustomTours = lazy(() => import('../features/tours/pages/CustomTours'))
+const CustomTourBuilder = lazy(() => import('../features/tours/pages/CustomTourBuilder'))
 
 const Partners = lazy(() => import('../features/b2b/pages/Partners'))
 const PartnerDetails = lazy(() => import('../features/b2b/pages/PartnerDetails'))
@@ -97,6 +98,7 @@ export function AppRoutes() {
           <Route path="tours" element={<RequirePermission permission="tours.view"><TourPackages /></RequirePermission>} />
           <Route path="tours/new" element={<RequirePermission permission="tours.edit"><CreateTour /></RequirePermission>} />
           <Route path="tours/custom" element={<RequirePermission permission="tours.view"><CustomTours /></RequirePermission>} />
+          <Route path="tours/custom/builder" element={<RequirePermission permission="tours.view"><CustomTourBuilder /></RequirePermission>} />
           <Route path="tours/:id" element={<RequirePermission permission="tours.view"><TourDetails /></RequirePermission>} />
           <Route path="tours/:id/edit" element={<RequirePermission permission="tours.edit"><EditTour /></RequirePermission>} />
 
