@@ -10,6 +10,7 @@ import { useDebounce } from '../../../hooks/useDebounce'
 import { usePagination } from '../../../hooks/usePagination'
 import { APP_ROUTES, VISA_STATUSES } from '../../../utils/constants'
 import { titleCase } from '../../../utils/formatters'
+import NewVisaTable from '../components/NewVisaTable'
 
 export default function VisaApplications() {
   const navigate = useNavigate()
@@ -58,7 +59,7 @@ export default function VisaApplications() {
           <Input
             label="Search"
             type="search"
-            placeholder="Reference, applicant, country…"
+            placeholder="Passport, applicant, country…"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -70,13 +71,14 @@ export default function VisaApplications() {
             options={VISA_STATUSES.map((value) => ({ value, label: titleCase(value) }))}
           />
         </div>
-        <VisaTable
+        <NewVisaTable/>
+        {/* <VisaTable
           rows={rows}
           loading={loading}
           error={error}
           onRetry={load}
           onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
-        />
+        /> */}
         <TablePagination
           page={page}
           pageSize={pageSize}

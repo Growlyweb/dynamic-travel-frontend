@@ -5,6 +5,7 @@ import Loader from '../components/common/Loader'
 import { APP_ROUTES } from '../utils/constants'
 import { useAuth } from '../hooks/useAuth'
 import { usePermission } from '../hooks/usePermission'
+import NewVisaCountries from '@/features/visa/pages/NewVisaCountries'
 
 const Login = lazy(() => import('../features/auth/pages/Login'))
 const ForgotPassword = lazy(() => import('../features/auth/pages/ForgotPassword'))
@@ -92,7 +93,7 @@ export function AppRoutes() {
           <Route path="visa/applications" element={<RequirePermission permission="visa.view"><VisaApplications /></RequirePermission>} />
           <Route path="visa/applications/:id" element={<RequirePermission permission="visa.view"><VisaApplicationDetails /></RequirePermission>} />
           <Route path="visa/checklist" element={<RequirePermission permission="visa.view"><VisaChecklist /></RequirePermission>} />
-          <Route path="visa/countries" element={<RequirePermission permission="visa.view"><VisaCountries /></RequirePermission>} />
+          <Route path="visa/countries" element={<RequirePermission permission="visa.view"><NewVisaCountries /></RequirePermission>} />
           <Route path="visa/status" element={<RequirePermission permission="visa.view"><VisaStatus /></RequirePermission>} />
 
           <Route path="tours" element={<RequirePermission permission="tours.view"><TourPackages /></RequirePermission>} />
