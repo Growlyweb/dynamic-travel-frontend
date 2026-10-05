@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -8,18 +8,33 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Field, FieldGroup } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus } from "lucide-react"
+} from "@/components/ui/dialog";
+import { Field, FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
 
 export function AddCountryDialogue() {
   return (
-    <Dialog>
+    <Dialog disablePointerDismissal>
       <form>
-        <DialogTrigger render={<Button size="lg"><Plus/>Add Country</Button>} />
-        <DialogContent className="sm:max-w-sm">
+        <DialogTrigger
+          render={
+            <Button size="lg">
+              <Plus />
+              Add Country
+            </Button>
+          }
+        />
+        <DialogContent
+          className="sm:max-w-sm"
+          onInteractOutside={(e) => {
+            e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Edit profile</DialogTitle>
             <DialogDescription>
@@ -44,5 +59,5 @@ export function AddCountryDialogue() {
         </DialogContent>
       </form>
     </Dialog>
-  )
+  );
 }
