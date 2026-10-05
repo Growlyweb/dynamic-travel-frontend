@@ -54,9 +54,16 @@ export default function AppHeader() {
   const [notifOpen, setNotifOpen] = useState(false);
   const navigate = useNavigate();
 
+  const [loggingOut, setLoggingOut] = useState(false);
+
   async function handleLogout() {
-    await logout();
-    navigate(APP_ROUTES.LOGIN, { replace: true });
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      navigate(APP_ROUTES.LOGIN, { replace: true });
+    }
   }
 
   const visibleNotifications = notifications.slice(0, 4);
@@ -84,32 +91,32 @@ export default function AppHeader() {
       <div className="ml-auto flex items-center gap-2">
         {/* User Profile Menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="ghost" className="h-10 gap-2 px-2" />}
-          >
-            <Avatar className="size-8">
-              <AvatarFallback className="bg-primary text-white font-bold">
-                {initials(user?.name ?? "ABL Travel")}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden text-left text-sm leading-tight md:grid">
-              <span className="font-semibold text-foreground">
-                {user?.name ?? "Admin"}
-              </span>
-              <span className="text-xs font-medium text-primary">
-                ABL Travel
-              </span>
-            </div>
-            <ChevronsUpDown className="hidden size-4 text-muted-foreground md:block" />
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-10 gap-2 px-2">
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary text-white font-bold">
+                  {initials(user?.name ?? "ABL Travel")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden text-left text-sm leading-tight md:grid">
+                <span className="font-semibold text-foreground">
+                  {user?.name ?? "Admin"}
+                </span>
+                <span className="text-xs font-medium text-primary">
+                  {roleLabel}
+                </span>
+              </div>
+              <ChevronsUpDown className="hidden size-4 text-muted-foreground md:block" />
+            </Button>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-normal">
-                <p className="text-sm font-semibold">{user?.name ?? "Admin"}</p>
-                <p className="text-xs font-medium text-primary">ABL Travel</p>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
+            <DropdownMenuLabel className="font-normal">
+              <p className="text-sm font-semibold">{user?.name ?? "Admin"}</p>
+              <p className="text-xs font-medium text-primary">
+                {roleLabel} · ABL Travel
+              </p>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
@@ -129,8 +136,14 @@ export default function AppHeader() {
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout} variant="destructive">
-              <LogOut /> Log out
+            <DropdownMenuItem
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="cursor-pointer"
+              variant="destructive"
+            >
+              <LogOut />
+              {loggingOut ? "Signing out…" : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

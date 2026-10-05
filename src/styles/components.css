@@ -2,14 +2,22 @@
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   padding: 20px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #dde3ee;
 }
 
 .card__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-text);
   margin-bottom: 14px;
 }
 
@@ -476,16 +484,35 @@ select.field__control {
   vertical-align: middle;
 }
 
+.table tbody tr {
+  transition: background 0.15s ease;
+}
+
 .table tbody tr:last-child td {
   border-bottom: none;
 }
 
 .table tbody tr:hover {
-  background: #fafbfe;
+  background: #f6f9fe;
 }
 
 .table__row--clickable {
   cursor: pointer;
+}
+
+/* Premium table variant (Visa module) */
+.table-premium .table th {
+  padding: 14px 18px;
+  background: #f8fafd;
+}
+.table-premium .table td {
+  padding: 16px 18px;
+}
+.table-premium .table tbody tr {
+  transition: background 0.15s ease;
+}
+.table-premium .table tbody tr:hover {
+  background: #f2f7fe;
 }
 
 .table-loading {
@@ -539,13 +566,19 @@ select.field__control {
   align-items: flex-start;
 }
 
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
 .stat-card__icon {
   width: 44px;
   height: 44px;
   display: grid;
   place-items: center;
   font-size: 20px;
-  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  background: linear-gradient(180deg, var(--color-primary-soft), #f0f7ff);
+  border: 1px solid #dbeafe;
   border-radius: var(--radius-md);
   flex-shrink: 0;
 }
@@ -553,12 +586,14 @@ select.field__control {
 .stat-card__label {
   color: var(--color-text-muted);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .stat-card__value {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.15;
   margin: 2px 0;
 }
 
@@ -958,9 +993,10 @@ select.field__control {
 }
 
 .page-header__title {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .page-header__description {
@@ -1038,19 +1074,101 @@ select.field__control {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(1200px 600px at 10% -10%, #e0e7ff 0%, transparent 60%),
-    radial-gradient(1000px 500px at 110% 110%, #ede9fe 0%, transparent 55%), var(--color-bg);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f8f6ff 50%, #f0f8ff 100%);
+}
+
+/* Decorative animated blobs */
+.auth-screen__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: blob-drift 8s ease-in-out infinite alternate;
+}
+
+.auth-screen__blob--1 {
+  width: 520px;
+  height: 420px;
+  top: -120px;
+  left: -140px;
+  background: radial-gradient(circle, #c7d7fb 0%, #dbeafe 60%, transparent 100%);
+  animation-delay: 0s;
+}
+
+.auth-screen__blob--2 {
+  width: 480px;
+  height: 380px;
+  bottom: -100px;
+  right: -120px;
+  background: radial-gradient(circle, #ddd6fe 0%, #ede9fe 60%, transparent 100%);
+  animation-delay: -4s;
+}
+
+@keyframes blob-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(20px, 15px) scale(1.06); }
 }
 
 .auth-screen__card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 28px;
+  gap: 20px;
+  padding: 36px 32px;
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 4px 6px -1px rgb(16 24 40 / 0.04),
+    0 20px 60px -8px rgb(8 121 232 / 0.12),
+    0 0 0 1px rgb(8 121 232 / 0.04) !important;
 }
 
+.auth-screen__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.auth-screen__logo-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #0879E8 0%, #0664c4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgb(8 121 232 / 0.3);
+}
+
+.auth-screen__logo-img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.auth-screen__heading {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.auth-screen__subheading {
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* Legacy fallback */
 .auth-screen__brand h1 {
   font-size: 20px;
   margin-top: 8px;
@@ -1067,13 +1185,76 @@ select.field__control {
 .auth-screen__links {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 13px;
+}
+
+.auth-link {
+  color: var(--color-primary);
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.auth-link:hover {
+  color: var(--color-primary-strong);
+  text-decoration: underline;
 }
 
 .auth-screen__form {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Login role selector (Admin / Staff) */
+.login-roles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.login-role {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.login-role:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.login-role.is-active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px rgb(8 121 232 / 0.12);
+}
+
+.login-role__icon {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.login-role__title {
+  display: block;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+
+.login-role__hint {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
 /* ---------- Feature specifics ---------- */
@@ -1449,8 +1630,24 @@ select.field__control {
 
 .tc__price-block {
   display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tc__price-main {
+  display: flex;
   align-items: baseline;
   gap: 4px;
+}
+
+.tc__b2b {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: 4px;
+  padding: 1px 7px;
+  align-self: flex-start;
 }
 
 .tc__price {

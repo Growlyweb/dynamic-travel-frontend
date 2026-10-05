@@ -192,8 +192,15 @@ export default function TourCard({ tour, onDelete }) {
         {/* Row 4 — price + status */}
         <div className="tc__footer">
           <div className="tc__price-block">
-            <span className="tc__price">{formatTourPrice(tour)}</span>
-            <span className="tc__per">/ Person</span>
+            <div className="tc__price-main">
+              <span className="tc__price">{formatTourPrice(tour)}</span>
+              <span className="tc__per">/ Person</span>
+            </div>
+            {tour.b2bPrice != null && tour.b2bPrice !== '' ? (
+              <span className="tc__b2b" title="B2B / agent price">
+                B2B: {formatTourPrice(tour, 'b2b')}
+              </span>
+            ) : null}
           </div>
           <TourStatusBadge status={tour.status} />
         </div>

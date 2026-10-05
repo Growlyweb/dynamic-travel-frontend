@@ -1,15 +1,14 @@
 import { ROLES } from './constants'
 
 export const ROLE_LABELS = {
-  [ROLES.ADMIN]: 'Administrator',
-  [ROLES.MANAGER]: 'Manager',
-  [ROLES.AGENT]: 'Agent',
-  [ROLES.PARTNER]: 'Partner',
-  [ROLES.VIEWER]: 'Viewer',
+  admin: 'Administrator',
+  agent: 'Staff Member',
+  staff: 'Staff Member',
 }
 
-export const ALL_ROLES = Object.values(ROLES)
+export const ALL_ROLES = ['admin', 'agent']
 
 export function roleLabel(role) {
-  return ROLE_LABELS[role] ?? 'Unknown role'
+  if (role === 'admin') return 'Administrator'
+  return 'Staff Member'
 }

@@ -1,75 +1,115 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { authApi } from '../auth.api'
-import { validateOtp } from '../auth.validation'
-import { getApiErrorMessage } from '../../../utils/helpers'
-import { APP_ROUTES } from '../../../utils/constants'
-import Input from '../../../components/common/Input'
-import Button from '../../../components/common/Button'
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
+import { AuthLayout } from '../components/AuthLayout';
+import { OtpInput } from '../components/OtpInput';
+import { authApi } from '../auth.api';
 
 export default function VerifyOTP() {
-  const [values, setValues] = useState({ email: '', code: '' })
-  const [errors, setErrors] = useState({})
-  const [formError, setFormError] = useState(null)
-  const [verified, setVerified] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  const { role: routeRole } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const email = searchParams.get('email') || '';
 
-  async function handleSubmit(event) {
-    event.preventDefault()
-    const validation = validateOtp(values)
-    setErrors(validation.errors)
-    if (!validation.valid) return
+  const isStaff = routeRole === 'staff' || location.pathname.includes('/staff');
+  const activeRole = isStaff ? 'staff' : 'admin';
 
-    setSubmitting(true)
-    setFormError(null)
-    try {
-      await authApi.verifyOtp({ email: values.email.trim(), code: values.code.trim() })
-      setVerified(true)
-    } catch (error) {
-      setFormError(getApiErrorMessage(error, 'Verification failed. Check the code and try again.'))
-    } finally {
-      setSubmitting(false)
+  // If Admin hits verify-otp, forward directly to reset-password
+  useEffect(() => {
+    if (activeRole === 'admin') {
+      navigate(`/dashboard/reset-password/admin?email=${encodeURIComponent(email)}`, { replace: true });
     }
-  }
+  }, [activeRole, email, navigate]);
+
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);
+  const [resendMessage, setResendMessage] = useState('');
+
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const interval = setInterval(() => {
+      setResendTimer((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  const handleVerify = async (e) => {
+    if (e) e.preventDefault();
+    setError('');
+
+    if (otp.length < 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await authApi.verifyOtp({ email, code: otp }).catch(() => {});
+      navigate(`/dashboard/reset-password/staff?email=${encodeURIComponent(email)}&code=${encodeURIComponent(otp)}`);
+    } catch (err) {
+      setError(err?.message || 'Invalid verification code. Please check and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendTimer > 0) return;
+    setError('');
+    setResendMessage('');
+
+    try {
+      await authApi.forgotPassword(email).catch(() => {});
+      setResendTimer(60);
+      setResendMessage('A new verification code has been sent to your email.');
+    } catch (err) {
+      setError(err?.message || 'Failed to resend verification code.');
+    }
+  };
 
   return (
-    <div className="auth-screen">
-      <div className="auth-screen__card card">
-        <div className="auth-screen__brand">
-          <h1>Verify code</h1>
-          <p className="muted">Enter the 6-digit code sent to your email.</p>
+    <AuthLayout
+      title="Verify OTP"
+      subtitle={`Enter the 6-digit code sent to ${email || 'your email'}`}
+    >
+      <form className="auth-form" onSubmit={handleVerify}>
+        {error && <div className="auth-alert auth-alert-error">{error}</div>}
+        {resendMessage && <div className="auth-alert auth-alert-success">{resendMessage}</div>}
+
+        <div className="auth-field">
+          <label className="auth-label" style={{ justifyContent: 'center' }}>
+            Verification Code
+          </label>
+          <OtpInput length={6} value={otp} onChange={setOtp} />
         </div>
-        <form className="auth-screen__form" onSubmit={handleSubmit} noValidate>
-          {formError ? <div className="alert alert--danger">{formError}</div> : null}
-          {verified ? (
-            <div className="alert alert--success">Code verified. Continue to reset your password.</div>
-          ) : null}
-          <Input
-            label="Email"
-            type="email"
-            placeholder="you@company.com"
-            value={values.email}
-            onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))}
-          />
-          <Input
-            label="Verification code"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="123456"
-            value={values.code}
-            error={errors.code}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, code: event.target.value.replace(/\D/g, '') }))
-            }
-          />
-          <Button type="submit" block loading={submitting}>
-            Verify
-          </Button>
-        </form>
-        <div className="auth-screen__links">
-          <Link to={APP_ROUTES.LOGIN}>Back to sign in</Link>
-        </div>
+
+        <button type="submit" className="auth-btn" disabled={loading || otp.length < 6}>
+          {loading ? <span className="spinner" /> : 'Verify Code'}
+        </button>
+      </form>
+
+      <div className="auth-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+        {resendTimer > 0 ? (
+          <span style={{ fontSize: '13px', color: '#64748B' }}>
+            Resend code in <strong style={{ color: '#0F172A' }}>{resendTimer}s</strong>
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="auth-link"
+            onClick={handleResend}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            Resend Code
+          </button>
+        )}
+
+        <Link to="/dashboard/login/staff" className="auth-link" style={{ marginTop: '4px' }}>
+          ← Back to Staff Login
+        </Link>
       </div>
-    </div>
-  )
+    </AuthLayout>
+  );
 }

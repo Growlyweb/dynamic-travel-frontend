@@ -6,7 +6,6 @@ import { APP_ROUTES } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import NewVisaCountries from "@/features/visa/pages/NewVisaCountries";
-import VisaApplicationsTable from "@/components/new-tables/shadcn-table";
 
 const Login = lazy(() => import("../features/auth/pages/Login"));
 const ForgotPassword = lazy(
@@ -22,7 +21,11 @@ const Dashboard = lazy(() => import("../features/dashboard/pages/Dashboard"));
 const Users = lazy(() => import("../features/users/pages/Users"));
 const UserDetails = lazy(() => import("../features/users/pages/UserDetails"));
 const UserEdit = lazy(() => import("../features/users/pages/UserEdit"));
+const RolesPermissions = lazy(
+  () => import("../features/users/pages/RolesPermissions"),
+);
 
+const VisaDashboard = lazy(() => import("../features/visa/pages/VisaDashboard"));
 const VisaApplications = lazy(
   () => import("../features/visa/pages/VisaApplications"),
 );
@@ -32,10 +35,20 @@ const VisaApplicationDetails = lazy(
 const VisaChecklist = lazy(
   () => import("../features/visa/pages/VisaChecklist"),
 );
-const VisaCountries = lazy(
-  () => import("../features/visa/pages/VisaCountries"),
-);
 const VisaStatus = lazy(() => import("../features/visa/pages/VisaStatus"));
+const VisaStatuses = lazy(() => import("../features/visa/pages/VisaStatuses"));
+const VisaTypes = lazy(() => import("../features/visa/pages/VisaTypes"));
+const VisaPricing = lazy(() => import("../features/visa/pages/VisaPricing"));
+const VisaQuotations = lazy(
+  () => import("../features/visa/pages/VisaQuotations"),
+);
+const VisaPassportOperations = lazy(
+  () => import("../features/visa/pages/VisaPassportOperations"),
+);
+const SmsTemplates = lazy(
+  () => import("../features/visa/pages/SmsTemplates"),
+);
+const SmsLogs = lazy(() => import("../features/visa/pages/SmsLogs"));
 
 const TourPackages = lazy(() => import("../features/tours/pages/TourPackages"));
 const TourDetails = lazy(() => import("../features/tours/pages/TourDetails"));
@@ -67,6 +80,16 @@ const CustomerDetails = lazy(
   () => import("../features/b2c/pages/CustomerDetails"),
 );
 
+const MembershipPlans = lazy(
+  () => import("../features/membership/pages/MembershipPlans"),
+);
+const MembershipMembers = lazy(
+  () => import("../features/membership/pages/MembershipMembers"),
+);
+const MembershipReports = lazy(
+  () => import("../features/membership/pages/MembershipReports"),
+);
+
 const Documents = lazy(() => import("../features/documents/pages/Documents"));
 const DocumentDetails = lazy(
   () => import("../features/documents/pages/DocumentDetails"),
@@ -87,7 +110,7 @@ function RequireAuth({ children }) {
   if (!isAuthenticated) {
     return (
       <Navigate
-        to={APP_ROUTES.LOGIN}
+        to={APP_ROUTES.LOGIN_ADMIN}
         replace
         state={{ from: location.pathname }}
       />
@@ -110,10 +133,22 @@ export function AppRoutes() {
           path="/"
           element={<Navigate to={APP_ROUTES.DASHBOARD} replace />}
         />
-        <Route path={APP_ROUTES.LOGIN} element={<Login />} />
-        <Route path={APP_ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
-        <Route path={APP_ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
-        <Route path={APP_ROUTES.VERIFY_OTP} element={<VerifyOTP />} />
+        <Route path="/dashboard/login/admin" element={<Login />} />
+        <Route path="/dashboard/login/staff" element={<Login />} />
+        <Route path="/login/:role" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/dashboard/login/admin" replace />} />
+
+        <Route path="/dashboard/forgot-password/:role" element={<ForgotPassword />} />
+        <Route path="/forgot-password/:role" element={<ForgotPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        <Route path="/dashboard/verify-otp/:role" element={<VerifyOTP />} />
+        <Route path="/verify-otp/:role" element={<VerifyOTP />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
+
+        <Route path="/dashboard/reset-password/:role" element={<ResetPassword />} />
+        <Route path="/reset-password/:role" element={<ResetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           element={
@@ -148,7 +183,23 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+          <Route
+            path="roles"
+            element={
+              <RequirePermission permission="users.view">
+                <RolesPermissions />
+              </RequirePermission>
+            }
+          />
 
+          <Route
+            path="visa"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaDashboard />
+              </RequirePermission>
+            }
+          />
           <Route
             path="visa/applications"
             element={
@@ -186,6 +237,62 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="visa.view">
                 <VisaStatus />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/statuses"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaStatuses />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/types"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaTypes />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/pricing"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaPricing />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/quotations"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaQuotations />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/passports"
+            element={
+              <RequirePermission permission="visa.view">
+                <VisaPassportOperations />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/sms/templates"
+            element={
+              <RequirePermission permission="visa.view">
+                <SmsTemplates />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/sms/logs"
+            element={
+              <RequirePermission permission="visa.view">
+                <SmsLogs />
               </RequirePermission>
             }
           />
@@ -309,6 +416,31 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="b2c.view">
                 <CustomerDetails />
+              </RequirePermission>
+            }
+          />
+
+          <Route
+            path="membership/plans"
+            element={
+              <RequirePermission permission="memberships.view">
+                <MembershipPlans />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="membership/members"
+            element={
+              <RequirePermission permission="memberships.view">
+                <MembershipMembers />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="membership/reports"
+            element={
+              <RequirePermission permission="memberships.view">
+                <MembershipReports />
               </RequirePermission>
             }
           />
