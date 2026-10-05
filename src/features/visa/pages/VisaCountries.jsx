@@ -1,30 +1,34 @@
-import { useCallback, useEffect, useState } from 'react'
-import PageHeader from '../../../components/layout/PageHeader'
-import DataTable from '../../../components/tables/DataTable'
-import Button from '../../../components/common/Button'
-import Badge from '../../../components/common/Badge'
-import { visaApi } from '../visa.api'
+import { useCallback, useEffect, useState } from "react";
+import PageHeader from "../../../components/layout/PageHeader";
+import DataTable from "../../../components/tables/DataTable";
+import Button from "../../../components/common/Button";
+import Badge from "../../../components/common/Badge";
+import { visaApi } from "../visa.api";
 
 export default function VisaCountries() {
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await visaApi.listCountries()
-      setRows(result.items ?? [])
+      const result = await visaApi.listCountries();
+      setRows(result.items ?? []);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    load()
-  }, [load])
+    load();
+  }, [load]);
 
   function toggleActive(row) {
-    setRows((current) => current.map((item) => (item.id === row.id ? { ...item, active: !item.active } : item)))
+    setRows((current) =>
+      current.map((item) =>
+        item.id === row.id ? { ...item, active: !item.active } : item,
+      ),
+    );
   }
 
   return (
@@ -32,10 +36,10 @@ export default function VisaCountries() {
       <PageHeader
         title="Visa countries"
         description="Destinations the agency currently supports."
-        breadcrumbs={[{ label: 'Visa' }, { label: 'Countries' }]}
+        breadcrumbs={[{ label: "Visa" }, { label: "Countries" }]}
       />
       <div className="card">
-        <DataTable
+        {/* <DataTable
           loading={loading}
           data={rows}
           emptyTitle="No countries configured"
@@ -60,8 +64,8 @@ export default function VisaCountries() {
               ),
             },
           ]}
-        />
+        /> */}
       </div>
     </div>
-  )
+  );
 }
