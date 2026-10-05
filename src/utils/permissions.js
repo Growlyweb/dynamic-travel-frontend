@@ -8,6 +8,8 @@ export const PERMISSIONS = {
   B2B_VIEW: 'b2b.view',
   B2B_MANAGE: 'b2b.manage',
   B2C_VIEW: 'b2c.view',
+  MEMBERSHIPS_VIEW: 'memberships.view',
+  MEMBERSHIPS_EDIT: 'memberships.edit',
   DOCUMENTS_VIEW: 'documents.view',
   DOCUMENTS_MANAGE: 'documents.manage',
   REPORTS_VIEW: 'reports.view',
@@ -27,13 +29,15 @@ export const ROLE_PERMISSIONS = {
     'b2b.view',
     'b2b.manage',
     'b2c.view',
+    'memberships.view',
+    'memberships.edit',
     'documents.view',
     'documents.manage',
     'reports.view',
   ],
-  agent: ['visa.view', 'visa.edit', 'tours.view', 'b2c.view', 'documents.view'],
+  agent: ['visa.view', 'visa.edit', 'tours.view', 'b2c.view', 'memberships.view', 'documents.view'],
   partner: ['tours.view', 'b2b.view', 'documents.view'],
-  viewer: ['visa.view', 'tours.view', 'b2b.view', 'b2c.view', 'documents.view', 'reports.view'],
+  viewer: ['visa.view', 'tours.view', 'b2b.view', 'b2c.view', 'memberships.view', 'documents.view', 'reports.view'],
 }
 
 export function hasPermission(user, permission) {

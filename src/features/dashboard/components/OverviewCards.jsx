@@ -1,4 +1,5 @@
 import StatCard from '../../../components/charts/StatCard'
+import { Banknote, Luggage, Stamp, UserRound } from 'lucide-react'
 import { formatCurrency, formatNumber } from '../../../utils/formatters'
 
 export default function OverviewCards({ overview = {} }) {
@@ -8,7 +9,7 @@ export default function OverviewCards({ overview = {} }) {
       value: formatNumber(overview.totalVisaApplications ?? 0),
       delta: overview.visaDelta,
       deltaDirection: 'up',
-      icon: '🛂',
+      icon: <Stamp size={20} aria-hidden />,
       hint: 'vs last month',
     },
     {
@@ -16,7 +17,7 @@ export default function OverviewCards({ overview = {} }) {
       value: formatNumber(overview.activeTours ?? 0),
       delta: overview.tourDelta,
       deltaDirection: 'up',
-      icon: '🧳',
+      icon: <Luggage size={20} aria-hidden />,
       hint: 'vs last month',
     },
     {
@@ -24,7 +25,7 @@ export default function OverviewCards({ overview = {} }) {
       value: formatNumber(overview.totalCustomers ?? 0),
       delta: overview.customerDelta,
       deltaDirection: 'up',
-      icon: '🧍',
+      icon: <UserRound size={20} aria-hidden />,
       hint: 'vs last month',
     },
     {
@@ -32,7 +33,7 @@ export default function OverviewCards({ overview = {} }) {
       value: formatCurrency(overview.revenueThisMonth ?? 0),
       delta: overview.revenueDelta,
       deltaDirection: 'up',
-      icon: '💰',
+      icon: <Banknote size={20} aria-hidden />,
       hint: 'vs last month',
     },
   ]

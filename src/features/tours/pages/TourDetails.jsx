@@ -7,10 +7,10 @@ import Button from '../../../components/common/Button'
 import TourStatusBadge from '../components/TourStatusBadge'
 import { toursApi } from '../tours.api'
 import { APP_ROUTES } from '../../../utils/constants'
-import { formatCurrency } from '../../../utils/formatters'
+import { useCurrency } from '../../../context/CurrencyContext'
 import { getApiErrorMessage } from '../../../utils/helpers'
 import { config } from '../../../app/config'
-import { useCurrency } from '../../../context/CurrencyContext'
+import { downloadPdf, formatDurationNights, padDay } from '../../../utils/itineraryPdf'
 
 function CoverImage({ tour }) {
   const [failed, setFailed] = useState(false)
@@ -150,13 +150,24 @@ export default function TourDetails() {
       infoBar: [
         ['Country', tour.destination],
         ['Duration', formatDurationNights(tour.durationDays)],
-        ['Price', formatCurrency(tour.price)],
+        ['B2C Price', formatTourPrice(tour)],
       ],
       title: tour.name,
       footerLabel: `${tour.name} — tour package`,
       blocks: [
         { bar: 'Tour Details' },
         ...(tour.description ? [{ lines: [tour.description] }] : []),
+        ...(tour.b2bPrice != null
+          ? [
+              { bar: 'Pricing' },
+              {
+                rows: [
+                  ['B2C price per person (retail)', formatTourPrice(tour)],
+                  ['B2B price per person (agent)', formatTourPrice(tour, 'b2b')],
+                ],
+              },
+            ]
+          : []),
         ...(tour.itinerary ?? []).map((item) => ({
           day: `Day ${padDay(item.day)}: ${item.title}`,
           lines: item.description ? [item.description] : [],
@@ -198,8 +209,12 @@ export default function TourDetails() {
         <CoverImage tour={tour} />
         <dl className="detail-list mt-4">
           <div>
-            <dt>Price per person</dt>
+            <dt>B2C price / person</dt>
             <dd>{formatTourPrice(tour)}</dd>
+          </div>
+          <div>
+            <dt>B2B price / person</dt>
+            <dd>{tour.b2bPrice != null && tour.b2bPrice !== '' ? formatTourPrice(tour, 'b2b') : '—'}</dd>
           </div>
           <div>
             <dt>Duration</dt>

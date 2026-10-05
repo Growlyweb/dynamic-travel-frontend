@@ -1,10 +1,11 @@
 import DataTable from '../../../components/tables/DataTable'
 import TableActions from '../../../components/tables/TableActions'
 import ErrorState from '../../../components/common/ErrorState'
+import Badge from '../../../components/common/Badge'
 import { formatDate, formatCurrency, initials } from '../../../utils/formatters'
 import { getApiErrorMessage } from '../../../utils/helpers'
 
-export default function CustomerTable({ rows, loading, error, onRetry, onView }) {
+export default function CustomerTable({ rows, memberIds, loading, error, onRetry, onView }) {
   if (error) {
     return <ErrorState title="Could not load customers" message={getApiErrorMessage(error)} onRetry={onRetry} />
   }
@@ -22,7 +23,9 @@ export default function CustomerTable({ rows, loading, error, onRetry, onView })
             <div className="cell-user">
               <span className="avatar avatar--sm">{initials(row.name)}</span>
               <div>
-                <p className="strong">{row.name}</p>
+                <p className="strong">
+                  {row.name} {memberIds?.has?.(row.id) ? <Badge tone="primary">Member</Badge> : null}
+                </p>
                 <p className="muted small">{row.email}</p>
               </div>
             </div>

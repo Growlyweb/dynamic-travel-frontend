@@ -76,7 +76,7 @@ export default function AppHeader() {
               </Avatar>
               <div className="hidden text-left text-sm leading-tight md:grid">
                 <span className="font-semibold text-foreground">{user?.name ?? 'Admin'}</span>
-                <span className="text-xs font-medium text-primary">ABL Travel</span>
+                <span className="text-xs font-medium text-primary">{roleLabel}</span>
               </div>
               <ChevronsUpDown className="hidden size-4 text-muted-foreground md:block" />
             </Button>
@@ -85,7 +85,9 @@ export default function AppHeader() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <p className="text-sm font-semibold">{user?.name ?? 'Admin'}</p>
-              <p className="text-xs font-medium text-primary">ABL Travel</p>
+              <p className="text-xs font-medium text-primary">
+                {roleLabel} · ABL Travel
+              </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 

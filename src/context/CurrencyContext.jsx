@@ -27,9 +27,12 @@ export function CurrencyProvider({ children }) {
     return amountInUsd * rate
   }
 
-  function formatTourPrice(tour) {
+  // tier: 'b2c' (public price) | 'b2b' (agent/partner price). Missing B2B
+  // price falls back to the B2C price so a card never renders 0.
+  function formatTourPrice(tour, tier = 'b2c') {
     if (!tour) return '—'
-    const rawPrice = Number(tour?.price) || 0
+    const b2cPrice = Number(tour?.price) || 0
+    const rawPrice = tier === 'b2b' ? Number(tour?.b2bPrice ?? b2cPrice) || 0 : b2cPrice
     const currCode = (tour?.priceCurrency || tour?.currency || (rawPrice > 3000 ? 'BDT' : 'USD')).toUpperCase()
 
     if (currCode === 'BDT') {

@@ -1,21 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from '../../../components/common/Button'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import { TOUR_STATUSES } from '../../../utils/constants'
 import { titleCase } from '../../../utils/formatters'
 import { validateRequired } from '../../../utils/validators'
+import { categoriesApi, DEFAULT_CATEGORIES } from '../categories.api'
+import { getApiErrorMessage } from '../../../utils/helpers'
 
-const SEGMENT_OPTIONS = [
-  { value: 'Beach & Resort', label: 'Beach & Resort' },
-  { value: 'Adventure & Trekking', label: 'Adventure & Trekking' },
-  { value: 'Honeymoon & Romantic', label: 'Honeymoon & Romantic' },
-  { value: 'Family Special', label: 'Family Special' },
-  { value: 'Cultural & Heritage', label: 'Cultural & Heritage' },
-  { value: 'Luxury & Wellness', label: 'Luxury & Wellness' },
-  { value: 'City Break', label: 'City Break' },
-  { value: 'Custom Group', label: 'Custom Group Tour' },
-]
+const NEW_CATEGORY_VALUE = '__create_new__'
 
 const CURRENCY_OPTIONS = [
   { value: 'BDT', label: 'BDT (Bangladeshi Taka)' },
@@ -24,12 +17,13 @@ const CURRENCY_OPTIONS = [
 
 const EMPTY_VALUES = {
   name: '',
-  segment: 'Beach & Resort',
+  segment: DEFAULT_CATEGORIES[0].name,
   country: '',
   destination: '',
   durationDays: '3',
   priceCurrency: 'BDT',
   price: '',
+  b2bPrice: '',
   seats: '15',
   description: '',
   coverImage: '',
@@ -46,6 +40,8 @@ function normalizeValues(values) {
   return {
     ...EMPTY_VALUES,
     ...values,
+    price: values?.price == null ? '' : String(values.price),
+    b2bPrice: values?.b2bPrice == null ? '' : String(values.b2bPrice),
     gallery: Array.isArray(values?.gallery) ? values.gallery.filter(Boolean) : [],
     included: Array.isArray(values?.included) ? values.included.filter(Boolean) : [],
     excluded: Array.isArray(values?.excluded) ? values.excluded.filter(Boolean) : [],
@@ -280,17 +276,91 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
   const [values, setValues] = useState(() => normalizeValues(initialValues))
   const [errors, setErrors] = useState({})
 
+  // Dynamic categories — seeded with defaults, replaced by whatever the
+  // API returns so the admin's own categories show up in the dropdown.
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
+  const [newCategory, setNewCategory] = useState('')
+  const [categoryError, setCategoryError] = useState(null)
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [segmentBackup, setSegmentBackup] = useState('')
+
+  useEffect(() => {
+    let active = true
+    categoriesApi
+      .list({ pageSize: 100 })
+      .then((result) => {
+        if (active && Array.isArray(result?.items) && result.items.length) {
+          setCategories(result.items.map((item) => ({ id: item.id, name: item.name })))
+        }
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
   function update(name, value) {
     setValues((current) => ({ ...current, [name]: value }))
   }
 
+  function handleSegmentChange(event) {
+    const value = event.target.value
+    if (value === NEW_CATEGORY_VALUE) {
+      setSegmentBackup(values.segment)
+      setCategoryError(null)
+      update('segment', NEW_CATEGORY_VALUE)
+      return
+    }
+    update('segment', value)
+  }
+
+  async function handleAddCategory() {
+    const name = newCategory.trim()
+    if (!name) {
+      setCategoryError('Category name is required.')
+      return
+    }
+    if (categories.some((category) => category.name.toLowerCase() === name.toLowerCase())) {
+      setCategoryError('This category already exists.')
+      return
+    }
+    setAddingCategory(true)
+    setCategoryError(null)
+    try {
+      const record = await categoriesApi.create({ name })
+      setCategories((current) =>
+        current.some((category) => category.id === record.id)
+          ? current
+          : [...current, { id: record.id, name: record.name }],
+      )
+      update('segment', record.name)
+      setNewCategory('')
+    } catch (error) {
+      setCategoryError(getApiErrorMessage(error))
+    } finally {
+      setAddingCategory(false)
+    }
+  }
+
+  function handleCancelCategory() {
+    update('segment', segmentBackup || categories[0]?.name || '')
+    setNewCategory('')
+    setCategoryError(null)
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
+
+    const b2bPriceNum = values.b2bPrice === '' ? null : Number(values.b2bPrice)
     const validation = validateRequired(values, [
       { name: 'name', label: 'Package title' },
       { name: 'destination', label: 'Destination' },
       { name: 'price', label: 'Price' },
     ])
+    if (b2bPriceNum != null && b2bPriceNum > Number(values.price)) {
+      validation.errors.b2bPrice = 'B2B price cannot be higher than the B2C price.'
+      validation.valid = false
+    }
     setErrors(validation.errors)
     if (!validation.valid) return
 
@@ -320,10 +390,22 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
       durationDays: Number(values.durationDays) || 1,
       priceCurrency: values.priceCurrency,
       price: Number(values.price) || 0,
+      b2bPrice: b2bPriceNum === null ? null : Number(values.b2bPrice) || 0,
       seats: Number(values.seats) || 0,
       status: values.status,
     })
   }
+
+  // Keep legacy/renamed segment values visible in the dropdown.
+  const categoryOptions = categories.map((category) => ({ value: category.name, label: category.name }))
+  if (
+    values.segment &&
+    values.segment !== NEW_CATEGORY_VALUE &&
+    !categories.some((category) => category.name === values.segment)
+  ) {
+    categoryOptions.unshift({ value: values.segment, label: values.segment })
+  }
+  const currencySymbol = values.priceCurrency === 'USD' ? '$' : 'BDT'
 
   const durationNum = Number(values.durationDays) || 1
   const nightsNum = durationNum > 1 ? durationNum - 1 : 0
@@ -353,8 +435,8 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
         <Select
           label="Segment / Category"
           value={values.segment}
-          options={SEGMENT_OPTIONS}
-          onChange={(event) => update('segment', event.target.value)}
+          options={[...categoryOptions, { value: NEW_CATEGORY_VALUE, label: '+ Create new category…' }]}
+          onChange={handleSegmentChange}
         />
 
         <Input
@@ -372,6 +454,50 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
           onChange={(event) => update('destination', event.target.value)}
         />
       </div>
+
+      {values.segment === NEW_CATEGORY_VALUE ? (
+        <div
+          style={{
+            padding: 14,
+            background: 'var(--color-bg)',
+            border: '1px dashed var(--color-border)',
+            borderRadius: 'var(--radius-sm)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <label className="field__label" style={{ marginBottom: 0, fontSize: 13, fontWeight: 600 }}>
+            New category
+          </label>
+          <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+            <Input
+              className="flex-1"
+              value={newCategory}
+              error={categoryError}
+              autoFocus
+              placeholder="e.g. Safari & Wildlife"
+              aria-label="New category name"
+              onChange={(event) => setNewCategory(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  handleAddCategory()
+                }
+              }}
+            />
+            <Button size="sm" type="button" loading={addingCategory} onClick={handleAddCategory}>
+              Add
+            </Button>
+            <Button variant="ghost" size="sm" type="button" onClick={handleCancelCategory}>
+              Cancel
+            </Button>
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Saved to your category list and reusable for every package.
+          </p>
+        </div>
+      ) : null}
 
       {/* Pricing & Duration */}
       <div className="grid grid--3" style={{ gap: 12 }}>
@@ -396,23 +522,35 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
         />
 
         <Input
-          label={`Price per Person (${values.priceCurrency === 'USD' ? '$' : 'BDT'})`}
-          type="number"
-          min="0"
-          value={values.price}
-          error={errors.price}
-          placeholder={values.priceCurrency === 'USD' ? '120' : '12500'}
-          onChange={(event) => update('price', event.target.value)}
-        />
-      </div>
-
-      <div className="grid grid--2" style={{ gap: 12 }}>
-        <Input
           label="Available Seats"
           type="number"
           min="0"
           value={values.seats}
           onChange={(event) => update('seats', event.target.value)}
+        />
+      </div>
+
+      <div className="grid grid--3" style={{ gap: 12 }}>
+        <Input
+          label={`B2C Price / Person (${currencySymbol})`}
+          type="number"
+          min="0"
+          value={values.price}
+          error={errors.price}
+          hint="Public price shown to retail customers."
+          placeholder={currencySymbol === 'USD' ? '120' : '12500'}
+          onChange={(event) => update('price', event.target.value)}
+        />
+
+        <Input
+          label={`B2B Price / Person (${currencySymbol})`}
+          type="number"
+          min="0"
+          value={values.b2bPrice}
+          error={errors.b2bPrice}
+          hint="Agent & partner price. Leave empty to use the B2C price."
+          placeholder={currencySymbol === 'USD' ? '95' : '10000'}
+          onChange={(event) => update('b2bPrice', event.target.value)}
         />
 
         <Select

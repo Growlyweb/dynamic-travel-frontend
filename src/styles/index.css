@@ -108,7 +108,8 @@ img {
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Soft neutral dashboard canvas — white cards sit on this (travel SaaS look). */
+  --background: #f6f7fb;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
