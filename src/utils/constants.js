@@ -36,6 +36,8 @@ import {
 
 export const APP_ROUTES = {
   LOGIN: '/login',
+  LOGIN_ADMIN: '/dashboard/login/admin',
+  LOGIN_STAFF: '/dashboard/login/staff',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   VERIFY_OTP: '/verify-otp',

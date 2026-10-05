@@ -110,7 +110,7 @@ function RequireAuth({ children }) {
   if (!isAuthenticated) {
     return (
       <Navigate
-        to={APP_ROUTES.LOGIN}
+        to={APP_ROUTES.LOGIN_ADMIN}
         replace
         state={{ from: location.pathname }}
       />
@@ -133,10 +133,22 @@ export function AppRoutes() {
           path="/"
           element={<Navigate to={APP_ROUTES.DASHBOARD} replace />}
         />
-        <Route path={APP_ROUTES.LOGIN} element={<Login />} />
-        <Route path={APP_ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
-        <Route path={APP_ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
-        <Route path={APP_ROUTES.VERIFY_OTP} element={<VerifyOTP />} />
+        <Route path="/dashboard/login/admin" element={<Login />} />
+        <Route path="/dashboard/login/staff" element={<Login />} />
+        <Route path="/login/:role" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/dashboard/login/admin" replace />} />
+
+        <Route path="/dashboard/forgot-password/:role" element={<ForgotPassword />} />
+        <Route path="/forgot-password/:role" element={<ForgotPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        <Route path="/dashboard/verify-otp/:role" element={<VerifyOTP />} />
+        <Route path="/verify-otp/:role" element={<VerifyOTP />} />
+        <Route path="/verify-otp" element={<VerifyOTP />} />
+
+        <Route path="/dashboard/reset-password/:role" element={<ResetPassword />} />
+        <Route path="/reset-password/:role" element={<ResetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route
           element={

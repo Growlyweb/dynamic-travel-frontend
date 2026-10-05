@@ -41,9 +41,16 @@ export default function AppHeader() {
   const [notifOpen, setNotifOpen] = useState(false)
   const navigate = useNavigate()
 
+  const [loggingOut, setLoggingOut] = useState(false)
+
   async function handleLogout() {
-    await logout()
-    navigate(APP_ROUTES.LOGIN, { replace: true })
+    setLoggingOut(true)
+    try {
+      await logout()
+    } finally {
+      setLoggingOut(false)
+      navigate(APP_ROUTES.LOGIN, { replace: true })
+    }
   }
 
   const visibleNotifications = notifications.slice(0, 4)
@@ -108,8 +115,13 @@ export default function AppHeader() {
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout} variant="destructive">
-              <LogOut /> Log out
+            <DropdownMenuItem
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="cursor-pointer"
+              variant="destructive"
+            >
+              <LogOut />{loggingOut ? 'Signing out…' : 'Log out'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

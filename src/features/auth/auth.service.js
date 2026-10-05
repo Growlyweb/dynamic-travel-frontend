@@ -40,7 +40,7 @@ export const authService = {
   },
 
   async logout() {
-    if (!config.enableMocks) await authApi.logout().catch(() => {})
+    if (!config.enableMocks) await authApi.logout().catch(() => { })
   },
 
   async getProfile() {

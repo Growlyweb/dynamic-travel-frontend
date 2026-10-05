@@ -1,6 +1,6 @@
 // src/components/layout/Sidebar.jsx
-import { Link, NavLink, useMatch } from 'react-router-dom'
-import { Compass } from 'lucide-react'
+import { Link, NavLink, useMatch, useNavigate } from 'react-router-dom'
+import { Compass, LogOut } from 'lucide-react'
 
 import {
   Sidebar,
@@ -47,7 +47,13 @@ function NavItem({ item }) {
 
 export default function AppSidebar() {
   const { can } = usePermission()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await logout()
+    navigate(APP_ROUTES.LOGIN, { replace: true })
+  }
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -95,16 +101,25 @@ export default function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="pointer-events-none">
+            <SidebarMenuButton size="lg" className="group pr-2">
               <Avatar className="size-8 rounded-lg">
                 <AvatarFallback className="rounded-lg text-xs">{initials(user?.name)}</AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left leading-tight">
+              <div className="grid flex-1 text-left leading-tight min-w-0">
                 <span className="truncate text-sm font-medium">{user?.name ?? 'Signed out'}</span>
                 <span className="truncate text-xs text-muted-foreground">
                   {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                aria-label="Log out"
+                title="Log out"
+                className="ml-auto flex-shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+              >
+                <LogOut className="size-4" />
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

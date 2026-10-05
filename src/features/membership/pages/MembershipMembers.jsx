@@ -33,6 +33,7 @@ export default function MembershipMembers() {
   const [cancelReason, setCancelReason] = useState('')
   const [extending, setExtending] = useState(null)
   const [extendDays, setExtendDays] = useState('7')
+  const [deletingMember, setDeletingMember] = useState(null)
   const [actionSaving, setActionSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
 
@@ -93,6 +94,21 @@ export default function MembershipMembers() {
       await load()
     } catch (extendError) {
       setActionError(extendError?.message ?? 'Could not extend the membership.')
+    } finally {
+      setActionSaving(false)
+    }
+  }
+
+  async function handleDeleteMember() {
+    if (!deletingMember) return
+    setActionSaving(true)
+    setActionError(null)
+    try {
+      await membershipApi.deleteMembership(deletingMember.id)
+      setDeletingMember(null)
+      await load()
+    } catch (err) {
+      setActionError(err?.message ?? 'Could not delete the membership.')
     } finally {
       setActionSaving(false)
     }
@@ -221,9 +237,10 @@ export default function MembershipMembers() {
                   {row.status === 'active' ? (
                     <>
                       <Button size="sm" variant="ghost" onClick={() => { setExtending(row); setExtendDays('7') }}>Extend</Button>
-                      <Button size="sm" variant="danger" onClick={() => { setCancelling(row); setCancelReason('') }}>Cancel</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setCancelling(row); setCancelReason('') }}>Cancel</Button>
                     </>
                   ) : null}
+                  <Button size="sm" variant="danger" onClick={() => setDeletingMember(row)}>Delete</Button>
                 </span>
               ),
             },
@@ -303,6 +320,25 @@ export default function MembershipMembers() {
           hint="Added to the current expiry date."
         />
         {actionError ? <p className="alert alert--danger" role="alert">{actionError}</p> : null}
+      </Modal>
+
+      {/* Delete Membership Confirmation Modal */}
+      <Modal
+        open={Boolean(deletingMember)}
+        onClose={() => setDeletingMember(null)}
+        title="Delete membership"
+        description={deletingMember ? `Are you sure you want to delete the membership for ${deletingMember.customerName}?` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeletingMember(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDeleteMember} loading={actionSaving}>Delete membership</Button>
+          </>
+        }
+      >
+        <p className="muted small" style={{ margin: 0 }}>
+          Deleting this membership will permanently remove this record from the database.
+        </p>
+        {actionError ? <p className="alert alert--danger" role="alert" style={{ marginTop: 12 }}>{actionError}</p> : null}
       </Modal>
     </div>
   )

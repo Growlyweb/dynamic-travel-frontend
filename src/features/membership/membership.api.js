@@ -156,6 +156,14 @@ export const membershipApi = {
       },
       () => apiClient.patch(`/membership-plans/${id}/toggle`),
     ),
+  deletePlan: (id) =>
+    withMock(
+      () => {
+        plansStore = plansStore.filter((plan) => plan.id !== id)
+        return { success: true, id }
+      },
+      () => apiClient.delete(`/membership-plans/${id}`),
+    ),
 
   /* ── Memberships ── */
   listMemberships: (params = {}) =>
@@ -262,6 +270,14 @@ export const membershipApi = {
         return clone(withEffectiveStatus(membershipsStore.find((membership) => membership.id === id)))
       },
       () => apiClient.patch(`/memberships/${id}/extend`, { days: extraDays }),
+    ),
+  deleteMembership: (id) =>
+    withMock(
+      () => {
+        membershipsStore = membershipsStore.filter((membership) => membership.id !== id)
+        return { success: true, id }
+      },
+      () => apiClient.delete(`/memberships/${id}`),
     ),
   listCustomerMemberships: (customerId) =>
     withMock(

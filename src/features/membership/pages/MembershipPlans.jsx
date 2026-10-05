@@ -43,6 +43,8 @@ export default function MembershipPlans() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [deletingPlan, setDeletingPlan] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const [values, setValues] = useState(EMPTY_VALUES)
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -117,6 +119,18 @@ export default function MembershipPlans() {
     }
   }
 
+  async function handleConfirmDelete() {
+    if (!deletingPlan) return
+    setDeleting(true)
+    try {
+      await membershipApi.deletePlan(deletingPlan.id)
+      setDeletingPlan(null)
+      await load()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   async function toggleActive(plan) {
     await membershipApi.togglePlan(plan.id)
     await load()
@@ -126,7 +140,6 @@ export default function MembershipPlans() {
     <div className="stack">
       <PageHeader
         title="Membership plans"
-        description="The product B2C customers buy. Deactivate instead of deleting — old memberships keep their own snapshot of the plan."
         breadcrumbs={[{ label: 'Membership' }, { label: 'Plans' }]}
         actions={<Button onClick={openCreate}>+ Add plan</Button>}
       />
@@ -144,8 +157,6 @@ export default function MembershipPlans() {
               render: (row) => (
                 <span>
                   <span className="strong">{row.name}</span>
-                  <br />
-                  <span className="muted small">{row.description}</span>
                 </span>
               ),
             },
@@ -179,6 +190,7 @@ export default function MembershipPlans() {
               render: (row) => (
                 <span className="table-actions">
                   <Button size="sm" variant="ghost" onClick={() => openEdit(row)}>Edit</Button>
+                  <Button size="sm" variant="danger" onClick={() => setDeletingPlan(row)}>Delete</Button>
                 </span>
               ),
             },
@@ -186,6 +198,7 @@ export default function MembershipPlans() {
         />
       </div>
 
+      {/* Edit / Create Modal */}
       <Modal
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -289,7 +302,24 @@ export default function MembershipPlans() {
           </label>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={Boolean(deletingPlan)}
+        onClose={() => setDeletingPlan(null)}
+        title="Delete membership plan"
+        description={deletingPlan ? `Are you sure you want to delete the plan "${deletingPlan.name}"? This action cannot be undone.` : undefined}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeletingPlan(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleConfirmDelete} loading={deleting}>Delete plan</Button>
+          </>
+        }
+      >
+        <p className="muted small" style={{ margin: 0 }}>
+          Deleting this plan will permanently remove it from the available membership plans.
+        </p>
+      </Modal>
     </div>
   )
 }
-

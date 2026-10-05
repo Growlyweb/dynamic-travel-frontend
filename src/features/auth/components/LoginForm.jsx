@@ -33,7 +33,13 @@ export default function LoginForm() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [values, setValues] = useState({ role: 'admin', email: '', password: '', remember: true })
+  const defaultRole = LOGIN_ROLES[0]
+  const [values, setValues] = useState({
+    role: defaultRole.value,
+    email: defaultRole.email,
+    password: defaultRole.password,
+    remember: true,
+  })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)

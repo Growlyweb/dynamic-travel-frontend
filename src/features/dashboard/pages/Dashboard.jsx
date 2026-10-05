@@ -9,8 +9,10 @@ import RecentApplications from '../components/RecentApplications'
 import RecentActivities from '../components/RecentActivities'
 import { dashboardApi } from '../../dashboard/dashboard.api'
 import { getApiErrorMessage } from '../../../utils/helpers'
+import { usePermission } from '../../../hooks/usePermission'
 
 export default function Dashboard() {
+  const { can } = usePermission()
   const [data, setData] = useState({
     overview: {},
     visaTrend: [],
@@ -53,16 +55,25 @@ export default function Dashboard() {
   if (loading) return <Loader fullPage label="Loading dashboard…" />
   if (error) return <ErrorState title="Could not load the dashboard" message={getApiErrorMessage(error)} onRetry={load} />
 
+  const showVisa = can('visa.view')
+  const showTours = can('tours.view')
+
   return (
     <div className="stack bg-background">
       <PageHeader title="Dashboard" />
+      
+      {/* Overview Cards filter inside according to permissions */}
       <OverviewCards overview={data.overview} />
+
+      {(showVisa || showTours) && (
+        <div className="grid grid--2">
+          {showVisa && <VisaOverview data={data.visaTrend} />}
+          {showTours && <TourOverview data={data.tourTrend} />}
+        </div>
+      )}
+
       <div className="grid grid--2">
-        <VisaOverview data={data.visaTrend} />
-        <TourOverview data={data.tourTrend} />
-      </div>
-      <div className="grid grid--2">
-        <RecentApplications items={data.recentApplications} />
+        {showVisa && <RecentApplications items={data.recentApplications} />}
         <RecentActivities items={data.recentActivities} />
       </div>
     </div>
