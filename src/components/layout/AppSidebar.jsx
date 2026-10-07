@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Building2,
   ChevronDown,
   ChevronsUpDown,
   Circle,
@@ -52,7 +51,6 @@ import { cn } from '@/utils/helpers'
 
 const SECTION_ICONS = {
   Overview: LayoutDashboard,
-  Vendors: Building2,
   Visa: Stamp,
   Tours: Luggage,
   'Partners · B2B': Handshake,

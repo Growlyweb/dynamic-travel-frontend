@@ -18,14 +18,6 @@ const VerifyOTP = lazy(() => import("../features/auth/pages/VerifyOTP"));
 
 const Dashboard = lazy(() => import("../features/dashboard/pages/Dashboard"));
 
-const VendorDashboard = lazy(() => import("../features/vendors/pages/VendorDashboard"));
-const VendorList = lazy(() => import("../features/vendors/pages/VendorList"));
-const VendorDetails = lazy(() => import("../features/vendors/pages/VendorDetails"));
-const VendorServices = lazy(() => import("../features/vendors/pages/VendorServices"));
-const VendorBills = lazy(() => import("../features/vendors/pages/VendorBills"));
-const VendorPayments = lazy(() => import("../features/vendors/pages/VendorPayments"));
-const VendorMarketing = lazy(() => import("../features/vendors/pages/VendorMarketing"));
-
 const Users = lazy(() => import("../features/users/pages/Users"));
 const UserDetails = lazy(() => import("../features/users/pages/UserDetails"));
 const UserEdit = lazy(() => import("../features/users/pages/UserEdit"));
@@ -166,15 +158,6 @@ export function AppRoutes() {
           }
         >
           <Route path="dashboard" element={<Dashboard />} />
-
-          {/* Vendor Management & Marketing Module */}
-          <Route path="vendors" element={<VendorDashboard />} />
-          <Route path="vendors/list" element={<VendorList />} />
-          <Route path="vendors/services" element={<VendorServices />} />
-          <Route path="vendors/bills" element={<VendorBills />} />
-          <Route path="vendors/payments" element={<VendorPayments />} />
-          <Route path="vendors/marketing" element={<VendorMarketing />} />
-          <Route path="vendors/:id" element={<VendorDetails />} />
 
           <Route
             path="users"
