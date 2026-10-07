@@ -32,6 +32,7 @@ import {
   UserCog,
   UserRound,
   Users,
+  Send,
 } from 'lucide-react'
 
 export const APP_ROUTES = {
@@ -43,6 +44,14 @@ export const APP_ROUTES = {
   VERIFY_OTP: '/verify-otp',
 
   DASHBOARD: '/dashboard',
+
+  VENDORS: '/vendors',
+  VENDOR_LIST: '/vendors/list',
+  VENDOR_DETAILS: (id) => `/vendors/${id}`,
+  VENDOR_SERVICES: '/vendors/services',
+  VENDOR_BILLS: '/vendors/bills',
+  VENDOR_PAYMENTS: '/vendors/payments',
+  VENDOR_MARKETING: '/vendors/marketing',
 
   USERS: '/users',
   USER_DETAILS: (id) => `/users/${id}`,
@@ -100,6 +109,17 @@ export const NAV_SECTIONS = [
   {
     label: 'Overview',
     items: [{ to: APP_ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, end: true }],
+  },
+  {
+    label: 'Vendors',
+    items: [
+      { to: APP_ROUTES.VENDORS, label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: APP_ROUTES.VENDOR_LIST, label: 'Vendor list', icon: Building2 },
+      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Services & Passports', icon: Layers },
+      { to: APP_ROUTES.VENDOR_BILLS, label: 'Bills', icon: ReceiptText },
+      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Payments', icon: CreditCard },
+      { to: APP_ROUTES.VENDOR_MARKETING, label: 'Marketing', icon: Send },
+    ],
   },
   {
     label: 'Visa',
