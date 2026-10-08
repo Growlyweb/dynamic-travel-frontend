@@ -90,6 +90,22 @@ const MembershipReports = lazy(
   () => import("../features/membership/pages/MembershipReports"),
 );
 
+const VendorDashboard = lazy(
+  () => import("../features/vendors/pages/VendorDashboard"),
+);
+const VendorList = lazy(() => import("../features/vendors/pages/VendorList"));
+const VendorForm = lazy(() => import("../features/vendors/pages/VendorForm"));
+const VendorServices = lazy(
+  () => import("../features/vendors/pages/VendorServices"),
+);
+const VendorBills = lazy(() => import("../features/vendors/pages/VendorBills"));
+const VendorPayments = lazy(
+  () => import("../features/vendors/pages/VendorPayments"),
+);
+const VendorDetail = lazy(
+  () => import("../features/vendors/pages/VendorDetail"),
+);
+
 const Documents = lazy(() => import("../features/documents/pages/Documents"));
 const DocumentDetails = lazy(
   () => import("../features/documents/pages/DocumentDetails"),
@@ -444,6 +460,16 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+
+          {/* Vendors */}
+          <Route path="vendors/dashboard" element={<VendorDashboard />} />
+          <Route path="vendors" element={<VendorList />} />
+          <Route path="vendors/new" element={<VendorForm />} />
+          <Route path="vendors/services" element={<VendorServices />} />
+          <Route path="vendors/bills" element={<VendorBills />} />
+          <Route path="vendors/payments" element={<VendorPayments />} />
+          <Route path="vendors/:id" element={<VendorDetail />} />
+          <Route path="vendors/:id/edit" element={<VendorForm />} />
 
           <Route
             path="documents"

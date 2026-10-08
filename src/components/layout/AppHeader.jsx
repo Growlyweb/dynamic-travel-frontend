@@ -111,40 +111,41 @@ export default function AppHeader() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <p className="text-sm font-semibold">{user?.name ?? "Admin"}</p>
-              <p className="text-xs font-medium text-primary">
-                {roleLabel} · ABL Travel
-              </p>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="font-normal">
+                <p className="text-sm font-semibold">{user?.name ?? "Admin"}</p>
+                <p className="text-xs font-medium text-primary">
+                  {roleLabel} · ABL Travel
+                </p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              render={<Link to={APP_ROUTES.SETTINGS_PROFILE} />}
-            >
-              <User /> Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={<Link to={APP_ROUTES.SETTINGS_GENERAL} />}
-            >
-              <Settings /> Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              render={<Link to={APP_ROUTES.SETTINGS_SECURITY} />}
-            >
-              <ShieldCheck /> Security
-            </DropdownMenuItem>
+              <DropdownMenuItem
+                render={<Link to={APP_ROUTES.SETTINGS_PROFILE} />}
+              >
+                <User /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={<Link to={APP_ROUTES.SETTINGS_GENERAL} />}
+              >
+                <Settings /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={<Link to={APP_ROUTES.SETTINGS_SECURITY} />}
+              >
+                <ShieldCheck /> Security
+              </DropdownMenuItem>
 
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="cursor-pointer"
-              variant="destructive"
-            >
-              <LogOut />
-              {loggingOut ? "Signing out…" : "Log out"}
-            </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="cursor-pointer"
+                variant="destructive"
+              >
+                <LogOut />
+                {loggingOut ? "Signing out…" : "Log out"}
+              </DropdownMenuItem></DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

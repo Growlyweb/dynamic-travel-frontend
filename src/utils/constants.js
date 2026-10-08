@@ -85,6 +85,15 @@ export const APP_ROUTES = {
   MEMBERSHIP_MEMBERS: '/membership/members',
   MEMBERSHIP_REPORTS: '/membership/reports',
 
+  VENDORS_DASHBOARD: '/vendors/dashboard',
+  VENDORS: '/vendors',
+  VENDOR_CREATE: '/vendors/new',
+  VENDOR_SERVICES: '/vendors/services',
+  VENDOR_BILLS: '/vendors/bills',
+  VENDOR_PAYMENTS: '/vendors/payments',
+  VENDOR_DETAILS: (id) => `/vendors/${id}`,
+  VENDOR_EDIT: (id) => `/vendors/${id}/edit`,
+
   DOCUMENTS: '/documents',
   DOCUMENT_DETAILS: (id) => `/documents/${id}`,
 
@@ -146,6 +155,17 @@ export const NAV_SECTIONS = [
       { to: APP_ROUTES.MEMBERSHIP_PLANS, label: 'Plans', icon: CreditCard, permission: 'memberships.view' },
       { to: APP_ROUTES.MEMBERSHIP_MEMBERS, label: 'Members', icon: BadgePercent, permission: 'memberships.view' },
       { to: APP_ROUTES.MEMBERSHIP_REPORTS, label: 'Reports', icon: ChartLine, permission: 'memberships.view' },
+    ],
+  },
+  {
+    label: 'Vendors',
+    items: [
+      { to: APP_ROUTES.VENDORS_DASHBOARD, label: 'Vendor Dashboard', icon: LayoutDashboard },
+      { to: APP_ROUTES.VENDORS, label: 'Vendors', icon: Building2, end: true },
+      { to: APP_ROUTES.VENDOR_CREATE, label: 'Add Vendor', icon: PenLine },
+      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Vendor Services', icon: Layers },
+      { to: APP_ROUTES.VENDOR_BILLS, label: 'Vendor Bills', icon: ReceiptText },
+      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Vendor Payments', icon: CreditCard },
     ],
   },
   {

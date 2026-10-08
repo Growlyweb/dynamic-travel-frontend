@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
+  BadgePercent,
+  Building2,
   ChevronDown,
   ChevronsUpDown,
   Circle,
@@ -56,6 +58,7 @@ const SECTION_ICONS = {
   'Partners · B2B': Handshake,
   'Customers · B2C': UserRound,
   Membership: CreditCard,
+  Vendors: Building2,
   Administration: UserCog,
 }
 
@@ -194,7 +197,7 @@ export default function AppSidebar({ onNavigate }) {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
       {/* Brand Header */}
-      <SidebarHeader className="p-2 border-b border-sidebar-border/40">
+      <SidebarHeader className="p-2 border-b border-sidebar-border/40 bg-white">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -228,7 +231,7 @@ export default function AppSidebar({ onNavigate }) {
       </SidebarHeader>
 
       {/* Nav Content with Collapsible Sections (Account moved to profile bottom) */}
-      <SidebarContent className="group-data-[collapsible=icon]:overflow-y-auto p-2">
+      <SidebarContent className="group-data-[collapsible=icon]:overflow-y-auto p-2 bg-white">
         <SidebarMenu className="gap-1.5">
           {mainNavSections.map((section) => (
             <CollapsibleNavSection
@@ -242,40 +245,36 @@ export default function AppSidebar({ onNavigate }) {
       </SidebarContent>
 
       {/* Footer Profile with Account Dropdown Menu */}
-      <SidebarFooter className="p-2 border-t border-sidebar-border/60">
+      <SidebarFooter className="w-full p-2 border-t border-sidebar-border/60 bg-white">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <SidebarMenuButton
-                    size="lg"
-                    className={cn(
-                      'w-full h-12 px-2.5 rounded-xl cursor-pointer transition-colors',
-                      'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                      'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
-                      'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-0!',
-                      isAccountActive && 'bg-sidebar-accent/70 font-semibold'
-                    )}
-                  />
-                }
-              >
-                <div className="flex items-center gap-3 w-full min-w-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-                  <Avatar className="size-8.5 rounded-lg shrink-0 border border-sidebar-border/50">
-                    <AvatarFallback className="rounded-lg text-xs font-bold bg-primary text-primary-foreground">
-                      {initials(user?.name ?? 'ABL')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left leading-tight min-w-0 group-data-[collapsible=icon]:hidden">
-                    <span className="truncate text-[13.5px] font-semibold text-sidebar-foreground">
-                      {user?.name ?? 'Signed out'}
-                    </span>
-                    <span className="truncate text-[11.5px] text-muted-foreground">
-                      {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
-                    </span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                </div>
+              <DropdownMenuTrigger asChild className="w-full">
+                <SidebarMenuButton
+                  size="lg"
+                  className={cn(
+                    'w-full! h-12 px-2.5 rounded-xl cursor-pointer transition-colors',
+                    'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    'data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground',
+                    'group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:p-0!',
+                    isAccountActive && 'bg-sidebar-accent/70 font-semibold'
+                  )}>
+                  <div className="flex items-center gap-3 w-full min-w-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+                    <Avatar className="size-8.5 rounded-lg shrink-0 border border-sidebar-border/50">
+                      <AvatarFallback className="rounded-lg text-xs font-bold bg-primary text-primary-foreground">
+                        {initials(user?.name ?? 'ABL')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-y-1 text-left leading-tight min-w-0 group-data-[collapsible=icon]:hidden">
+                      <span className="truncate text-[13.5px] font-semibold text-sidebar-foreground">
+                        {user?.name ?? 'Signed out'}
+                      </span>
+                      <span className="truncate text-[11.5px] text-muted-foreground">
+                        {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
+                      </span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+                  </div></SidebarMenuButton>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
@@ -286,19 +285,19 @@ export default function AppSidebar({ onNavigate }) {
               >
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="p-2 font-normal">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <Avatar className="size-9 rounded-lg shrink-0 border border-border/40">
                         <AvatarFallback className="rounded-lg text-xs font-bold bg-primary text-primary-foreground">
                           {initials(user?.name ?? 'ABL')}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="grid flex-1 text-left leading-tight min-w-0">
+                      <div className="flex flex-col text-left leading-tight min-w-0">
                         <span className="truncate text-sm font-semibold text-foreground">
                           {user?.name ?? 'Signed out'}
                         </span>
-                        <span className="truncate text-xs font-medium text-primary">
+                        {/* <span className="pt-1 truncate text-xs font-medium text-primary">
                           {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
-                        </span>
+                        </span> */}
                         <span className="truncate text-[11px] text-muted-foreground">
                           {user?.email ?? 'ABL Travel Portal'}
                         </span>
