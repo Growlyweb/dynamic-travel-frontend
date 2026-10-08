@@ -121,7 +121,7 @@ function CollapsibleNavSection({ section, can, onNavigate }) {
               )}
             />
           )}
-          <span className="truncate group-data-[collapsible=icon]:hidden">{section.label}</span>
+          <span className={cn("truncate group-data-[collapsible=icon]:hidden", hasActiveItem ? 'text-primary' : 'text-sidebar-foreground/70')}>{section.label}</span>
         </div>
         <ChevronDown
           className={cn(

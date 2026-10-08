@@ -156,7 +156,7 @@ export default function VendorForm() {
         ]}
         actions={
           <Link to="/vendors">
-            <Button variant="outline" size="sm" className="text-xs gap-1.5 h-9">
+            <Button variant="outline" size="sm" className="text-xs gap-1.5 h-9 bg-white">
               <ArrowLeft className="size-3.5" /> Return to Vendor List
             </Button>
           </Link>

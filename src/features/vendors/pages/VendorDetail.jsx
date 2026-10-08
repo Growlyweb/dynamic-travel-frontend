@@ -139,7 +139,7 @@ export default function VendorDetail() {
         actions={
           <div className="flex items-center gap-2">
             <Link to="/vendors">
-              <Button variant="outline" size="sm" className="text-xs gap-1.5 h-9">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 h-9 bg-white">
                 <ArrowLeft className="size-3.5" /> All Vendors
               </Button>
             </Link>
@@ -147,7 +147,7 @@ export default function VendorDetail() {
               variant="outline"
               size="sm"
               onClick={() => setBillModalOpen(true)}
-              className="text-xs gap-1.5 h-9"
+              className="text-xs gap-1.5 h-9 bg-white"
             >
               <Receipt className="size-3.5 text-amber-600" /> Add Bill
             </Button>
@@ -155,7 +155,7 @@ export default function VendorDetail() {
               variant="outline"
               size="sm"
               onClick={() => setPaymentModalOpen(true)}
-              className="text-xs gap-1.5 h-9"
+              className="text-xs gap-1.5 h-9  bg-white"
             >
               <CreditCard className="size-3.5 text-emerald-600" /> Add Payment
             </Button>
@@ -187,7 +187,7 @@ export default function VendorDetail() {
       {/* 4.6 Header Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Total Billed */}
-        <div className="bg-surface border border-border rounded-xl p-4.5 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Total Billed</span>
             <span className="p-2 rounded-lg bg-amber-50 text-amber-600 border border-amber-200/60 dark:bg-amber-950/40">
@@ -203,7 +203,7 @@ export default function VendorDetail() {
         </div>
 
         {/* Total Paid */}
-        <div className="bg-surface border border-border rounded-xl p-4.5 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Total Paid</span>
             <span className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 dark:bg-emerald-950/40">
@@ -219,7 +219,7 @@ export default function VendorDetail() {
         </div>
 
         {/* Total Due */}
-        <div className="bg-surface border border-border rounded-xl p-4.5 shadow-xs">
+        <div className="bg-white border border-border rounded-xl p-4.5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Current Total Due</span>
             <DueBadge amount={vendor.totalDue} />
@@ -230,8 +230,8 @@ export default function VendorDetail() {
               vendor.totalDue > 0
                 ? 'text-rose-600'
                 : vendor.totalDue < 0
-                ? 'text-blue-600'
-                : 'text-emerald-600'
+                  ? 'text-blue-600'
+                  : 'text-emerald-600'
             )}
           >
             ৳{formatNumber(Math.abs(vendor.totalDue))}
@@ -240,8 +240,8 @@ export default function VendorDetail() {
             {vendor.totalDue > 0
               ? 'Outstanding balance payable'
               : vendor.totalDue < 0
-              ? 'Advance deposit with vendor'
-              : 'Account balanced & settled'}
+                ? 'Advance deposit with vendor'
+                : 'Account balanced & settled'}
           </p>
         </div>
       </div>
@@ -293,7 +293,7 @@ export default function VendorDetail() {
 
       {/* Tab 1: Segment Due Table */}
       {activeTab === 'segments' && (
-        <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden">
+        <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-sm text-foreground">Segment Breakdown</h3>
@@ -366,7 +366,7 @@ export default function VendorDetail() {
 
       {/* Tab 2: Ledger Table with Running Balance */}
       {activeTab === 'ledger' && (
-        <div className="bg-surface border border-border rounded-xl shadow-xs overflow-hidden">
+        <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
           <div className="p-4 border-b border-border flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-sm text-foreground">Vendor Statement / Running Ledger</h3>
@@ -418,8 +418,8 @@ export default function VendorDetail() {
                             row.type === 'bill'
                               ? 'bg-amber-50 text-amber-700 border border-amber-200/60 dark:bg-amber-950/40'
                               : row.type === 'payment'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 dark:bg-emerald-950/40'
+                                : 'bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40'
                           )}
                         >
                           {row.type}
@@ -474,7 +474,7 @@ export default function VendorDetail() {
 
       {/* Tab 3: Profile Card */}
       {activeTab === 'profile' && (
-        <div className="bg-surface border border-border rounded-xl p-6 shadow-xs space-y-6">
+        <div className="bg-white border border-border rounded-xl p-6 shadow-xs space-y-6">
           <div className="flex items-center justify-between border-b border-border/80 pb-4">
             <div>
               <h3 className="font-semibold text-base text-foreground">Vendor Profile & Terms</h3>

@@ -88,7 +88,7 @@ export default function VendorServices() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Vendor Services & Segments"
+        title="Vendor Services"
         description="Configure product categories (Air Ticket, Visa, Tour, Umrah, Hotel) dynamically."
         breadcrumbs={[
           { label: 'Vendors', to: '/vendors' },
