@@ -34,7 +34,7 @@ export default function PartnerDocuments() {
     <div className="stack">
       <PageHeader
         title="Partner documents"
-        description="Licenses, certificates and policies uploaded by partners."
+        // description="Licenses, certificates and policies uploaded by partners."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Documents' }]}
       />
       <div className="card">

@@ -34,7 +34,7 @@ export default function PickupRequests() {
     <div className="stack">
       <PageHeader
         title="Pickup requests"
-        description="Airport and hotel pickups requested by partners."
+        // description="Airport and hotel pickups requested by partners."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Pickup requests' }]}
       />
       <div className="card">

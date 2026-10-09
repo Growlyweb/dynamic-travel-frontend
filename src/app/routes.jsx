@@ -249,7 +249,7 @@ export function AppRoutes() {
             }
           />
           <Route
-            path="visa/status"
+            path="visa/status-board"
             element={
               <RequirePermission permission="visa.view">
                 <VisaStatus />

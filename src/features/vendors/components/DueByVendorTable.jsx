@@ -43,10 +43,10 @@ export default function DueByVendorTable({
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base text-foreground">Table A: Due by Vendor</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h3 className="font-semibold text-base text-foreground">Due by Vendor</h3>
+          {/* <p className="text-xs text-muted-foreground mt-0.5">
             Overview of outstanding dues per vendor (Sorted highest due first)
-          </p>
+          </p> */}
         </div>
         <Button
           type="button"

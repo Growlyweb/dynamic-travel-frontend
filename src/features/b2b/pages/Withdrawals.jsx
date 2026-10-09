@@ -50,7 +50,7 @@ export default function Withdrawals() {
     <div className="stack">
       <PageHeader
         title="Withdrawal requests"
-        description="Partner payout requests and their status."
+        // description="Partner payout requests and their status."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Withdrawals' }]}
       />
       <div className="card">

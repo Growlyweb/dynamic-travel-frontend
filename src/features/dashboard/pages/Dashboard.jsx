@@ -61,7 +61,7 @@ export default function Dashboard() {
   return (
     <div className="stack bg-background">
       <PageHeader title="Dashboard" />
-      
+
       {/* Overview Cards filter inside according to permissions */}
       <OverviewCards overview={data.overview} />
 

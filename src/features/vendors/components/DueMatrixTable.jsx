@@ -40,10 +40,10 @@ export default function DueMatrixTable({
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base text-foreground">Table C: Vendor × Segment Matrix</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h3 className="font-semibold text-base text-foreground">Vendor × Segment Matrix</h3>
+          {/* <p className="text-xs text-muted-foreground mt-0.5">
             Cross-tabulation showing exact outstanding dues for every vendor and segment pair
-          </p>
+          </p> */}
         </div>
         <Button
           type="button"

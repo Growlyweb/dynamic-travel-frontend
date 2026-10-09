@@ -49,7 +49,7 @@ export default function Partners() {
     <div className="stack">
       <PageHeader
         title="Partners"
-        description="B2B agencies reselling your tours and visa services."
+        // description="B2B agencies reselling your tours and visa services."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Partners' }]}
       />
       <div className="card stack">

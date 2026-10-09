@@ -57,7 +57,7 @@ export const APP_ROUTES = {
   VISA_PRICING: '/visa/pricing',
   VISA_CHECKLIST: '/visa/checklist',
   VISA_STATUSES: '/visa/statuses',
-  VISA_STATUS: '/visa/status',
+  VISA_STATUS: '/visa/status-board',
   VISA_QUOTATIONS: '/visa/quotations',
   VISA_PASSPORT_OPERATIONS: '/visa/passports',
   VISA_SMS_TEMPLATES: '/visa/sms/templates',

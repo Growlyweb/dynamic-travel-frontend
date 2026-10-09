@@ -49,7 +49,7 @@ export default function Customers() {
     <div className="stack">
       <PageHeader
         title="Customers"
-        description="Direct travelers booking through your channels."
+        // description="Direct travelers booking through your channels."
         breadcrumbs={[{ label: 'Customers · B2C' }, { label: 'Customers' }]}
       />
       <div className="card stack">

@@ -44,7 +44,7 @@ export default function PartnerApplications() {
     <div className="stack">
       <PageHeader
         title="Partner applications"
-        description="Agencies that applied to join your partner program."
+        // description="Agencies that applied to join your partner program."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Applications' }]}
       />
       <div className="card">

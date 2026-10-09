@@ -44,10 +44,10 @@ export default function DueBySegmentTable({
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-base text-foreground">Table B: Due by Segment</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h3 className="font-semibold text-base text-foreground">Due by Segment</h3>
+          {/* <p className="text-xs text-muted-foreground mt-0.5">
             Click any segment row to view vendors providing that service
-          </p>
+          </p> */}
         </div>
         <Button
           type="button"

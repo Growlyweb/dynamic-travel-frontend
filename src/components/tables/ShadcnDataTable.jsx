@@ -52,9 +52,7 @@ export function StatusSelect({ value, options, onChange, label }) {
     <Select value={value} onValueChange={(v) => v && onChange?.(v)}>
       <SelectTrigger
         aria-label={label}
-        className={`h-7 w-auto min-w-32 rounded-full border-0 px-2.5 text-xs font-medium ${
-          toneClasses[current?.tone ?? "neutral"]
-        }`}
+        className={`h-7 w-auto min-w-32 rounded-full border-0 px-2.5 text-xs font-medium ${toneClasses[current?.tone ?? "neutral"]}`}
       >
         <SelectValue />
       </SelectTrigger>

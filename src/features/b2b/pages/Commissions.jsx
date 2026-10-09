@@ -36,7 +36,7 @@ export default function Commissions() {
     <div className="stack">
       <PageHeader
         title="Commissions"
-        description="Partner earnings per booking."
+        // description="Partner earnings per booking."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Commissions' }]}
       />
       <CommissionSummary summary={{ totalEarned: earned + paid, outstanding: earned, paidOut: paid, averageRate: '6–8%' }} />

@@ -125,7 +125,7 @@ export default function VisaQuotations() {
                 <span>
                   <span className="strong">{row.partner}</span>
                   <br />
-                  <span className="muted small">{row.clientName}</span>
+                  {/* <span className="muted small">{row.clientName}</span> */}
                 </span>
               ),
             },
