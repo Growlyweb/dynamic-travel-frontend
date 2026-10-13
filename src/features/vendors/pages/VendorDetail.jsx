@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import ExportMenu from '@/components/common/ExportMenu'
 import {
   Receipt,
   CreditCard,
@@ -23,10 +24,16 @@ import {
   Phone,
   Mail,
   MapPin,
-  Download,
+  ShieldCheck,
 } from 'lucide-react'
 
-import { vendorApi, exportToCsv } from '../vendor.api'
+import {
+  vendorApi,
+  exportToCsv,
+  exportToExcel,
+  printVendorStatement,
+  printReportDocument,
+} from '../vendor.api'
 import DueBadge from '../components/DueBadge'
 import BillModal from '../components/BillModal'
 import PaymentModal from '../components/PaymentModal'
@@ -51,6 +58,7 @@ export default function VendorDetail() {
   // Modals
   const [billModalOpen, setBillModalOpen] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [paymentIsAdvance, setPaymentIsAdvance] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -81,7 +89,44 @@ export default function VendorDetail() {
     loadData()
   }, [loadData])
 
-  const handleExportLedger = () => {
+  const handleExportLedgerPdf = () => {
+    printVendorStatement({
+      vendor,
+      ledger,
+      segmentDue,
+    })
+  }
+
+  const handleExportLedgerExcel = () => {
+    exportToExcel(`${vendor?.name || 'Vendor'}_Statement_Ledger`, {
+      title: `Vendor Running Statement - ${vendor?.name}`,
+      subtitle: `Vendor Code: ${vendor?.vendorCode} | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['Date', 'Type', 'Reference', 'Service / Description', 'Billed [Debit] (BDT)', 'Paid [Credit] (BDT)', 'Running Balance (BDT)'],
+      rows: ledger.map((r) => [
+        formatDate(r.date),
+        String(r.type).toUpperCase(),
+        r.ref || '—',
+        `${r.serviceName || ''} - ${r.description || ''}`,
+        Number(r.billed) || 0,
+        Number(r.paid) || 0,
+        Number(r.balance) || 0,
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed Amount', value: `BDT ${formatNumber(vendor?.totalBilled)}` },
+        { label: 'Total Paid / Advance', value: `BDT ${formatNumber(vendor?.totalPaid)}` },
+        { label: 'Net Payable Balance', value: `BDT ${formatNumber(vendor?.totalDue)}` },
+      ],
+      metadata: {
+        'Vendor Name': vendor?.name,
+        'Code': vendor?.vendorCode,
+        'Contact Person': vendor?.contactPerson || '—',
+        'Phone': vendor?.phone || '—',
+        'Total Ledger Records': ledger.length,
+      },
+    })
+  }
+
+  const handleExportLedgerCsv = () => {
     const headers = [
       { label: 'Date', key: (r) => formatDate(r.date) },
       { label: 'Type', key: (r) => String(r.type).toUpperCase() },
@@ -94,7 +139,51 @@ export default function VendorDetail() {
     exportToCsv(`${vendor?.name || 'Vendor'}_Ledger`, headers, ledger)
   }
 
-  const handleExportSegments = () => {
+  const handleExportSegmentsPdf = () => {
+    printReportDocument({
+      title: `Vendor Segment Breakdown - ${vendor?.name}`,
+      subtitle: `Service Category Dues | Code: ${vendor?.vendorCode}`,
+      headers: ['SL', 'Service / Segment', 'Total Billed (BDT)', 'Total Paid (BDT)', 'Due (BDT)'],
+      rows: segmentDue.map((row, idx) => [
+        idx + 1,
+        row.serviceName,
+        formatNumber(row.billed),
+        formatNumber(row.paid),
+        formatNumber(row.due),
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed', value: `BDT ${formatNumber(vendor?.totalBilled)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(vendor?.totalPaid)}` },
+        { label: 'Total Due', value: `BDT ${formatNumber(vendor?.totalDue)}` },
+      ],
+    })
+  }
+
+  const handleExportSegmentsExcel = () => {
+    exportToExcel(`${vendor?.name || 'Vendor'}_Segment_Dues`, {
+      title: `Vendor Segment Breakdown - ${vendor?.name}`,
+      subtitle: `Code: ${vendor?.vendorCode} | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Service / Segment', 'Total Billed (BDT)', 'Total Paid (BDT)', 'Due (BDT)'],
+      rows: segmentDue.map((row, idx) => [
+        idx + 1,
+        row.serviceName,
+        Number(row.billed) || 0,
+        Number(row.paid) || 0,
+        Number(row.due) || 0,
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed', value: `BDT ${formatNumber(vendor?.totalBilled)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(vendor?.totalPaid)}` },
+        { label: 'Total Due', value: `BDT ${formatNumber(vendor?.totalDue)}` },
+      ],
+      metadata: {
+        'Vendor Name': vendor?.name,
+        'Code': vendor?.vendorCode,
+      },
+    })
+  }
+
+  const handleExportSegmentsCsv = () => {
     const headers = [
       { label: 'Service', key: 'serviceName' },
       { label: 'Total Billed (BDT)', key: 'billed' },
@@ -143,6 +232,12 @@ export default function VendorDetail() {
                 <ArrowLeft className="size-3.5" /> All Vendors
               </Button>
             </Link>
+            <ExportMenu
+              label="Export Statement"
+              onExportPdf={handleExportLedgerPdf}
+              onExportExcel={handleExportLedgerExcel}
+              onExportCsv={handleExportLedgerCsv}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -154,8 +249,22 @@ export default function VendorDetail() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPaymentModalOpen(true)}
-              className="text-xs gap-1.5 h-9  bg-white"
+              onClick={() => {
+                setPaymentIsAdvance(true)
+                setPaymentModalOpen(true)
+              }}
+              className="text-xs gap-1.5 h-9 bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+            >
+              <ShieldCheck className="size-3.5 text-blue-600" /> Pay Advance
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPaymentIsAdvance(false)
+                setPaymentModalOpen(true)
+              }}
+              className="text-xs gap-1.5 h-9 bg-white"
             >
               <CreditCard className="size-3.5 text-emerald-600" /> Add Payment
             </Button>
@@ -301,15 +410,12 @@ export default function VendorDetail() {
                 Billed, paid, and outstanding dues grouped per service category
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExportSegments}
-              className="text-xs gap-1.5 h-8"
-            >
-              <Download className="size-3.5 text-muted-foreground" /> Export
-            </Button>
+            <ExportMenu
+              label="Export Segments"
+              onExportPdf={handleExportSegmentsPdf}
+              onExportExcel={handleExportSegmentsExcel}
+              onExportCsv={handleExportSegmentsCsv}
+            />
           </div>
 
           <div className="relative w-full overflow-x-auto">
@@ -374,15 +480,12 @@ export default function VendorDetail() {
                 Bills and payments mixed chronologically with running account balance
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExportLedger}
-              className="text-xs gap-1.5 h-8"
-            >
-              <Download className="size-3.5 text-muted-foreground" /> Export Ledger
-            </Button>
+            <ExportMenu
+              label="Export Ledger"
+              onExportPdf={handleExportLedgerPdf}
+              onExportExcel={handleExportLedgerExcel}
+              onExportCsv={handleExportLedgerCsv}
+            />
           </div>
 
           <div className="relative w-full overflow-x-auto">
@@ -614,6 +717,7 @@ export default function VendorDetail() {
         bills={bills}
         payments={payments}
         initialVendorId={vendor.id}
+        initialIsAdvance={paymentIsAdvance}
       />
     </div>
   )

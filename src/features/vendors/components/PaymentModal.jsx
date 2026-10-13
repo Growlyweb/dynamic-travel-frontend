@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import Modal from '@/components/common/Modal'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, CreditCard, Sparkles } from 'lucide-react'
 import { formatNumber } from '@/utils/formatters'
+import { cn } from '@/utils/helpers'
 import { calculateVendorSegmentDue } from '../vendor.api'
 
 export default function PaymentModal({
@@ -15,7 +16,9 @@ export default function PaymentModal({
   bills = [],
   payments = [],
   initialVendorId,
+  initialIsAdvance = false,
 }) {
+  const [isAdvance, setIsAdvance] = useState(false)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().slice(0, 10),
     vendorId: '',
@@ -24,6 +27,7 @@ export default function PaymentModal({
     method: 'bank',
     account: '',
     amount: '',
+    advancePurpose: '',
     note: '',
   })
   const [errors, setErrors] = useState({})
@@ -32,6 +36,7 @@ export default function PaymentModal({
   // Initialize or reset form
   useEffect(() => {
     if (payment) {
+      setIsAdvance(Boolean(payment.isAdvance))
       setFormData({
         date: payment.date || new Date().toISOString().slice(0, 10),
         vendorId: payment.vendorId || '',
@@ -40,9 +45,11 @@ export default function PaymentModal({
         method: payment.method || 'bank',
         account: payment.account || '',
         amount: payment.amount || '',
+        advancePurpose: payment.advancePurpose || '',
         note: payment.note || '',
       })
     } else {
+      setIsAdvance(Boolean(initialIsAdvance))
       setFormData({
         date: new Date().toISOString().slice(0, 10),
         vendorId: initialVendorId || (vendors[0]?.id || ''),
@@ -51,11 +58,12 @@ export default function PaymentModal({
         method: 'bank',
         account: '',
         amount: '',
+        advancePurpose: '',
         note: '',
       })
     }
     setErrors({})
-  }, [payment, open, initialVendorId, vendors])
+  }, [payment, open, initialVendorId, initialIsAdvance, vendors])
 
   const availableVendors = useMemo(() => {
     return vendors.filter((v) => v.isActive || v.id === formData.vendorId)
@@ -101,7 +109,7 @@ export default function PaymentModal({
   }, [formData.vendorId, formData.serviceId, bills, payments, payment])
 
   const isExcessAdvance =
-    Number(formData.amount) > 0 && Number(formData.amount) > currentSegmentDue
+    !isAdvance && Number(formData.amount) > 0 && Number(formData.amount) > currentSegmentDue
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -133,6 +141,9 @@ export default function PaymentModal({
       await onSave({
         ...formData,
         amount: numAmount,
+        isAdvance,
+        paymentType: isAdvance ? 'advance' : 'regular',
+        billId: isAdvance ? null : formData.billId || null,
       })
       onClose()
     } catch (err) {
@@ -142,12 +153,24 @@ export default function PaymentModal({
     }
   }
 
+  const modalTitle = payment
+    ? payment.isAdvance
+      ? `Edit Advance Payment (${payment.voucherNo})`
+      : `Edit Payment (${payment.voucherNo})`
+    : isAdvance
+    ? 'Record Vendor Advance Payment'
+    : 'Record Vendor Payment'
+
+  const modalDesc = isAdvance
+    ? 'Deposit an advance payment to vendor account to credit their ledger for future bills.'
+    : 'Record an outbound payment to a vendor against a specific service segment.'
+
   return (
     <Modal
       open={open}
       onClose={saving ? undefined : onClose}
-      title={payment ? `Edit Payment (${payment.voucherNo})` : 'Record Vendor Payment'}
-      description="Record an outbound payment to a vendor against a specific service segment."
+      title={modalTitle}
+      description={modalDesc}
       size="md"
       footer={
         <div className="flex items-center justify-end gap-2 w-full">
@@ -163,9 +186,20 @@ export default function PaymentModal({
             type="submit"
             form="payment-form"
             disabled={saving}
-            className="bg-primary text-white hover:bg-primary-strong"
+            className={cn(
+              'text-white',
+              isAdvance
+                ? 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-primary hover:bg-primary-strong'
+            )}
           >
-            {saving ? 'Saving...' : payment ? 'Update Payment' : 'Record Payment'}
+            {saving
+              ? 'Saving...'
+              : payment
+              ? 'Update Payment'
+              : isAdvance
+              ? 'Record Advance Payment'
+              : 'Record Payment'}
           </Button>
         </div>
       }
@@ -174,6 +208,54 @@ export default function PaymentModal({
         {errors.form && (
           <div className="p-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
             {errors.form}
+          </div>
+        )}
+
+        {/* Payment Type Selector: Regular Payment vs Advance Payment */}
+        <div className="p-1 rounded-xl bg-muted/60 border border-border flex gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setIsAdvance(false)
+            }}
+            className={cn(
+              'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              !isAdvance
+                ? 'bg-white text-foreground shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <CreditCard className="size-3.5" />
+            <span>Regular Bill Payment</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsAdvance(true)
+              setFormData((prev) => ({ ...prev, billId: '' }))
+            }}
+            className={cn(
+              'flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              isAdvance
+                ? 'bg-blue-600 text-white shadow-xs font-bold'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <ArrowUpRight className="size-3.5" />
+            <span>Advance Payment / Deposit</span>
+          </button>
+        </div>
+
+        {/* Advance mode info callout */}
+        {isAdvance && (
+          <div className="p-3 bg-blue-50 border border-blue-200/80 rounded-xl flex items-start gap-2.5 text-xs text-blue-900 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40">
+            <Sparkles className="size-4 shrink-0 text-blue-600 mt-0.5" />
+            <div>
+              <p className="font-semibold">Advance Payment to Vendor</p>
+              <p className="mt-0.5 text-blue-800 dark:text-blue-200">
+                This payment will be recorded as an advance credit on the supplier account. It is not attached to any unpaid bill and will automatically offset future bills.
+              </p>
+            </div>
           </div>
         )}
 
@@ -260,24 +342,39 @@ export default function PaymentModal({
             {errors.date && <p className="text-xs text-rose-500 mt-1">{errors.date}</p>}
           </div>
 
-          {/* Optional Bill Link */}
-          <div>
-            <label className="block text-xs font-medium text-foreground mb-1">
-              Link to Bill (Optional)
-            </label>
-            <select
-              value={formData.billId}
-              onChange={(e) => handleChange('billId', e.target.value)}
-              className="w-full h-9 px-3 text-sm rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">General payment (No specific bill)</option>
-              {relevantBills.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.billNo} — ৳{formatNumber(b.amount)} ({b.invoiceRef || b.date})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Link to Bill (Only in Regular Mode) or Advance Purpose */}
+          {!isAdvance ? (
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">
+                Link to Bill (Optional)
+              </label>
+              <select
+                value={formData.billId}
+                onChange={(e) => handleChange('billId', e.target.value)}
+                className="w-full h-9 px-3 text-sm rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">General payment (No specific bill)</option>
+                {relevantBills.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.billNo} — ৳${formatNumber(b.amount)} ({b.invoiceRef || b.date})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">
+                Advance Purpose / Reference
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Booking Deposit / PNR Ref..."
+                value={formData.advancePurpose || ''}
+                onChange={(e) => handleChange('advancePurpose', e.target.value)}
+                className="w-full h-9 px-3 text-sm rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -316,7 +413,7 @@ export default function PaymentModal({
         {/* Amount */}
         <div>
           <label className="block text-xs font-medium text-foreground mb-1">
-            Amount (BDT) <span className="text-rose-500">*</span>
+            {isAdvance ? 'Advance Amount (BDT)' : 'Amount (BDT)'} <span className="text-rose-500">*</span>
           </label>
           <div className="relative">
             <span className="absolute left-3 top-2 text-sm text-muted-foreground font-semibold">
@@ -335,7 +432,7 @@ export default function PaymentModal({
           {errors.amount && <p className="text-xs text-rose-500 mt-1">{errors.amount}</p>}
         </div>
 
-        {/* Advance Warning Callout (Section 4.5 & 11) */}
+        {/* Advance Warning Callout for Regular Payments */}
         {isExcessAdvance && (
           <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-lg flex items-start gap-2.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40">
             <AlertTriangle className="size-4 shrink-0 text-amber-600 mt-0.5" />
@@ -344,7 +441,7 @@ export default function PaymentModal({
               <p className="mt-0.5">
                 Payment amount (৳{formatNumber(formData.amount)}) is greater than the current due
                 for this segment (৳{formatNumber(currentSegmentDue)}). The excess of ৳
-                {formatNumber(Number(formData.amount) - currentSegmentDue)} will become an Advance.
+                {formatNumber(Number(formData.amount) - currentSegmentDue)} will automatically become an Advance credit.
               </p>
             </div>
           </div>
@@ -357,7 +454,7 @@ export default function PaymentModal({
           </label>
           <textarea
             rows={2}
-            placeholder="Payment remarks or reference..."
+            placeholder={isAdvance ? 'Advance payment note, reference or purpose...' : 'Payment remarks or reference...'}
             value={formData.note}
             onChange={(e) => handleChange('note', e.target.value)}
             className="w-full p-2.5 text-sm rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"

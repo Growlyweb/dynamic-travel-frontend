@@ -314,7 +314,7 @@ export function AppRoutes() {
           />
 
           <Route
-            path="tours"
+            path="tours/packages"
             element={
               <RequirePermission permission="tours.view">
                 <TourPackages />

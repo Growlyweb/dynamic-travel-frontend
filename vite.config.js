@@ -14,5 +14,6 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    allowedHosts: ['chambers-proven-twiki-stocks.trycloudflare.com', "https://abltravel.netlify.app"]
   },
 })

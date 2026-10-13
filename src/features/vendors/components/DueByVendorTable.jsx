@@ -9,17 +9,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Eye, PlusCircle, Download } from 'lucide-react'
+import ExportMenu from '@/components/common/ExportMenu'
+import { Eye, PlusCircle } from 'lucide-react'
 import DueBadge from './DueBadge'
 import { formatNumber } from '@/utils/formatters'
-import { exportToCsv } from '../vendor.api'
+import { exportToCsv, exportToExcel, printReportDocument } from '../vendor.api'
 
 export default function DueByVendorTable({
   data = [],
   onAddPayment,
   loading = false,
 }) {
-  const handleExport = () => {
+  const totalOpening = data.reduce((sum, r) => sum + (Number(r.opening) || 0), 0)
+  const totalBilled = data.reduce((sum, r) => sum + (Number(r.billed) || 0), 0)
+  const totalPaid = data.reduce((sum, r) => sum + (Number(r.paid) || 0), 0)
+  const totalDue = data.reduce((sum, r) => sum + (Number(r.due) || 0), 0)
+
+  const handleExportCsv = () => {
     const headers = [
       { label: 'SL', key: 'sl' },
       { label: 'Vendor Code', key: 'vendorCode' },
@@ -33,30 +39,69 @@ export default function DueByVendorTable({
     exportToCsv('Vendor_Due_Summary', headers, data)
   }
 
-  // Totals calculation
-  const totalOpening = data.reduce((sum, r) => sum + (Number(r.opening) || 0), 0)
-  const totalBilled = data.reduce((sum, r) => sum + (Number(r.billed) || 0), 0)
-  const totalPaid = data.reduce((sum, r) => sum + (Number(r.paid) || 0), 0)
-  const totalDue = data.reduce((sum, r) => sum + (Number(r.due) || 0), 0)
+  const handleExportExcel = () => {
+    exportToExcel('Vendor_Due_Summary', {
+      title: 'Vendor Outstanding Dues Summary',
+      subtitle: `Payable & Outstanding Balances | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Vendor Code', 'Vendor Name', 'Services', 'Opening (BDT)', 'Billed (BDT)', 'Paid (BDT)', 'Total Due (BDT)'],
+      rows: data.map((r) => [
+        r.sl,
+        r.vendorCode,
+        r.vendor,
+        (r.services || []).join(', '),
+        Number(r.opening) || 0,
+        Number(r.billed) || 0,
+        Number(r.paid) || 0,
+        Number(r.due) || 0,
+      ]),
+      summaryTotals: [
+        { label: 'Total Opening Dues', value: `BDT ${formatNumber(totalOpening)}` },
+        { label: 'Total Billed Amount', value: `BDT ${formatNumber(totalBilled)}` },
+        { label: 'Total Paid / Advance', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Net Outstanding Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+      metadata: {
+        'Total Vendors': data.length,
+      },
+    })
+  }
+
+  const handleExportPdf = () => {
+    printReportDocument({
+      title: 'Vendor Outstanding Dues Summary',
+      subtitle: `Statement of Supplier Balances | Date: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Code', 'Vendor Name', 'Services', 'Opening (BDT)', 'Billed (BDT)', 'Paid (BDT)', 'Total Due (BDT)'],
+      rows: data.map((r) => [
+        r.sl,
+        r.vendorCode,
+        r.vendor,
+        (r.services || []).join(', '),
+        r.opening ? formatNumber(r.opening) : '—',
+        formatNumber(r.billed),
+        formatNumber(r.paid),
+        formatNumber(r.due),
+      ]),
+      summaryTotals: [
+        { label: 'Total Opening Dues', value: `BDT ${formatNumber(totalOpening)}` },
+        { label: 'Total Billed', value: `BDT ${formatNumber(totalBilled)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Net Total Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+    })
+  }
 
   return (
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base text-foreground">Due by Vendor</h3>
-          {/* <p className="text-xs text-muted-foreground mt-0.5">
-            Overview of outstanding dues per vendor (Sorted highest due first)
-          </p> */}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          className="text-xs gap-1.5 h-8"
-        >
-          <Download className="size-3.5 text-muted-foreground" /> Export Excel
-        </Button>
+        <ExportMenu
+          label="Export Dues"
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+          onExportCsv={handleExportCsv}
+        />
       </div>
 
       <div className="relative w-full overflow-x-auto">

@@ -63,7 +63,7 @@ export const APP_ROUTES = {
   VISA_SMS_TEMPLATES: '/visa/sms/templates',
   VISA_SMS_LOGS: '/visa/sms/logs',
 
-  TOURS: '/tours',
+  TOURS: '/tours/packages',
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
   TOUR_CUSTOM_BUILDER: '/tours/custom/builder',

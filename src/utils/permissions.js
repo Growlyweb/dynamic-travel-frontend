@@ -118,7 +118,9 @@ export function hasPermission(user, permission) {
   if (!permission) return true
 
   // Admin role has full access to everything
-  if (user.role === 'admin') return true
+  if (user.role === 'admin' || (Array.isArray(user.roles) && user.roles.includes('admin'))) {
+    return true
+  }
 
   // Staff / Agent role uses dynamic staff permissions controlled from admin panel
   const staffPermissions = getStaffPermissions()

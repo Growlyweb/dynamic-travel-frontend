@@ -5,6 +5,17 @@
  * Formula: Due = Opening Due + Total Bills - Total Payments
  */
 
+import {
+  exportToCsv as engineExportToCsv,
+  exportToExcel,
+  printPaymentVoucher,
+  printInvoice,
+  printVendorStatement,
+  printReportDocument,
+  numberToWords,
+  COMPANY_INFO,
+} from '@/utils/exportEngine'
+
 const STORAGE_KEYS = {
   SERVICES: 'abl_vendor_services_v1',
   VENDORS: 'abl_vendors_v1',
@@ -177,6 +188,22 @@ const DEFAULT_PAYMENTS = [
     amount: 200000,
     note: 'Full settlement against INV-ST-301',
     createdAt: '2026-10-07T11:45:00.000Z',
+  },
+  {
+    id: 'pay_5',
+    voucherNo: 'VP-00005',
+    date: '2026-10-08',
+    vendorId: 'vnd_1',
+    serviceId: 'srv_hotel',
+    billId: null,
+    method: 'bank',
+    account: 'Standard Chartered AC 44102',
+    amount: 75000,
+    isAdvance: true,
+    paymentType: 'advance',
+    advancePurpose: 'Hotel Booking Advance for Group Tour Nov-2026',
+    note: 'Advance deposit for hotel room block',
+    createdAt: '2026-10-08T10:30:00.000Z',
   },
 ]
 
@@ -728,12 +755,20 @@ export const vendorApi = {
     if (params.to) {
       payments = payments.filter((p) => p.date <= params.to)
     }
+    if (params.type === 'advance') {
+      payments = payments.filter((p) => Boolean(p.isAdvance))
+    } else if (params.type === 'regular') {
+      payments = payments.filter((p) => !p.isAdvance)
+    }
 
     const enriched = payments.map((p) => {
       const vendor = vendors.find((v) => v.id === p.vendorId)
       const service = services.find((s) => s.id === p.serviceId)
       return {
         ...p,
+        isAdvance: Boolean(p.isAdvance),
+        paymentType: p.paymentType || (p.isAdvance ? 'advance' : 'regular'),
+        advancePurpose: p.advancePurpose || '',
         vendorName: vendor ? vendor.name : 'Unknown Vendor',
         vendorCode: vendor ? vendor.vendorCode : '',
         serviceName: service ? service.name : 'Unknown Service',
@@ -764,7 +799,8 @@ export const vendorApi = {
 
     // Check current due for that vendor and segment for warning validation
     const { due: currentDue } = calculateVendorSegmentDue(data.vendorId, data.serviceId, bills, payments)
-    const isAdvance = amount > currentDue
+    const isExcess = amount > currentDue
+    const isAdvance = Boolean(data.isAdvance || isExcess)
 
     const newPayment = {
       id: `pay_${Date.now().toString(36)}`,
@@ -772,12 +808,15 @@ export const vendorApi = {
       date: data.date || new Date().toISOString().slice(0, 10),
       vendorId: data.vendorId,
       serviceId: data.serviceId,
-      billId: data.billId || null,
+      billId: data.isAdvance ? null : (data.billId || null),
       method: data.method || 'bank',
       account: (data.account || '').trim(),
       amount,
       document: data.document || '',
       note: (data.note || '').trim(),
+      isAdvance,
+      paymentType: data.isAdvance ? 'advance' : (isExcess ? 'advance_settlement' : 'regular'),
+      advancePurpose: (data.advancePurpose || '').trim(),
       createdAt: new Date().toISOString(),
     }
 
@@ -786,7 +825,7 @@ export const vendorApi = {
     return {
       success: true,
       data: newPayment,
-      warning: isAdvance
+      warning: isExcess && !data.isAdvance
         ? `Payment amount exceeds current due of ৳${currentDue.toLocaleString()}. The excess of ৳${(amount - currentDue).toLocaleString()} is recorded as an Advance.`
         : null,
     }
@@ -820,6 +859,9 @@ export const vendorApi = {
     if (data.vendorId) payments[index].vendorId = data.vendorId
     if (data.serviceId) payments[index].serviceId = data.serviceId
     if (data.billId !== undefined) payments[index].billId = data.billId
+    if (data.isAdvance !== undefined) payments[index].isAdvance = Boolean(data.isAdvance)
+    if (data.paymentType !== undefined) payments[index].paymentType = data.paymentType
+    if (data.advancePurpose !== undefined) payments[index].advancePurpose = data.advancePurpose.trim()
 
     saveStorage(STORAGE_KEYS.PAYMENTS, payments)
     return { success: true, data: payments[index] }
@@ -1135,31 +1177,15 @@ export const vendorApi = {
   },
 }
 
-// ── CSV / Excel Export Utility (Section 4.1, 5.5, 13) ─────────
-export function exportToCsv(filename, headers, rows) {
-  const escapeCsv = (val) => {
-    if (val === null || val === undefined) return '""'
-    const stringVal = String(val).replace(/"/g, '""')
-    return `"${stringVal}"`
-  }
-
-  const headerRow = headers.map((h) => escapeCsv(h.label)).join(',')
-  const dataRows = rows.map((row) =>
-    headers
-      .map((h) => {
-        const val = typeof h.key === 'function' ? h.key(row) : row[h.key]
-        return escapeCsv(val)
-      })
-      .join(',')
-  )
-
-  const csvContent = [headerRow, ...dataRows].join('\r\n')
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+// ── Export Utilities Re-exported ─────────────────────────────
+export const exportToCsv = engineExportToCsv
+export {
+  exportToExcel,
+  printPaymentVoucher,
+  printInvoice,
+  printVendorStatement,
+  printReportDocument,
+  numberToWords,
+  COMPANY_INFO,
 }
+
