@@ -34,15 +34,15 @@ export default function OverviewCards({ overview = {} }) {
       icon: <UserRound size={20} aria-hidden />,
       hint: 'vs last month',
     },
-    {
-      permission: 'reports.view',
-      label: 'Revenue (MTD)',
-      value: formatCurrency(overview.revenueThisMonth ?? 0),
-      delta: overview.revenueDelta,
-      deltaDirection: 'up',
-      icon: <Banknote size={20} aria-hidden />,
-      hint: 'vs last month',
-    },
+    // {
+    //   permission: 'reports.view',
+    //   label: 'Revenue (MTD)',
+    //   value: formatCurrency(overview.revenueThisMonth ?? 0),
+    //   delta: overview.revenueDelta,
+    //   deltaDirection: 'up',
+    //   icon: <Banknote size={20} aria-hidden />,
+    //   hint: 'vs last month',
+    // },
   ]
 
   const visibleCards = allCards.filter((card) => !card.permission || can(card.permission))

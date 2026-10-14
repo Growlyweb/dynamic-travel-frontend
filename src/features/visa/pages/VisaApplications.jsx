@@ -6,7 +6,8 @@ import ErrorState from "../../../components/common/ErrorState";
 import Input from "../../../components/common/Input";
 import VisaApplicationsTable from "../components/VisaApplicationsTable";
 import StatusChangeDialog from "../components/StatusChangeDialog";
-import { visaApi, VISA_STAFF } from "../visa.api";
+import AddApplicationPopover from "../components/AddApplicationPopover";
+import { visaApi } from "../visa.api";
 import { APP_ROUTES, VISA_STATUS_TONES } from "../../../utils/constants";
 import { getApiErrorMessage } from "../../../utils/helpers";
 
@@ -62,28 +63,73 @@ export default function VisaApplications() {
   });
 
   /**
-   * Quick status change from the table. Decisions that need a reason
-   * (action_required, rejected) open the dialog instead of saving directly.
+   * Status change from table dropdown or popover.
+   * If note is provided, saves directly with note.
+   * If action_required/rejected without note, opens detailed dialog.
    */
-  function handleStatusChange(application, nextStatus) {
+  async function handleStatusChange(application, nextStatus, customNote) {
+    if (customNote !== undefined) {
+      try {
+        await visaApi.changeStatus(application.id, {
+          status: nextStatus || application.status,
+          note: customNote.trim() || undefined,
+        });
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === application.id
+              ? {
+                  ...r,
+                  status: nextStatus || r.status,
+                  customNote: customNote.trim() || r.customNote,
+                }
+              : r
+          )
+        );
+        await load();
+      } catch (err) {
+        console.error("Failed to update status with note:", err);
+      }
+      return;
+    }
+
     if (nextStatus === application.status) return;
-    setStatusChange({ application, presetStatus: nextStatus });
+
+    if (nextStatus === "action_required" || nextStatus === "rejected") {
+      setStatusChange({ application, presetStatus: nextStatus });
+    } else {
+      try {
+        await visaApi.changeStatus(application.id, {
+          status: nextStatus,
+        });
+        setRows((prev) =>
+          prev.map((r) =>
+            r.id === application.id ? { ...r, status: nextStatus } : r
+          )
+        );
+        await load();
+      } catch (err) {
+        console.error("Failed to update status:", err);
+      }
+    }
   }
 
-  const staffOptions = [
-    ...VISA_STAFF.map((staff) => ({ label: staff, value: staff })),
-    { label: "Unassigned", value: "__unassigned__" },
-  ];
+  async function handleApplicationCreated(payload) {
+    try {
+      const created = await visaApi.createApplication(payload);
+      setRows((prev) => [created, ...prev]);
+    } catch (err) {
+      console.error("Failed to create application:", err);
+    }
+  }
 
   return (
-    <div className="stack">
+    <div className="stack w-full min-w-0 max-w-full">
       <PageHeader
         title="Visa applications"
-        // description="Every application from submission to decision, with B2C/B2B channel, staff assignment and status."
         breadcrumbs={[{ label: "Visa" }, { label: "Applications" }]}
       />
 
-      <div className="card">
+      <div className="card w-full min-w-0 max-w-full overflow-hidden">
         {loading ? (
           <Loader label="Loading applications…" />
         ) : error ? (
@@ -94,25 +140,32 @@ export default function VisaApplications() {
           />
         ) : (
           <>
-            <div className="filters mb-4">
-              <Input
-                label="From"
-                type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-              />
-              <Input
-                label="To"
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-4 flex-wrap">
+              <div className="filters flex flex-wrap items-end gap-3">
+                <Input
+                  label="From"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+                <Input
+                  label="To"
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </div>
+
+              <AddApplicationPopover
+                countryOptions={countryOptions}
+                onCreated={handleApplicationCreated}
               />
             </div>
+
             <VisaApplicationsTable
               data={filteredRows}
               statusOptions={statusOptions}
               countryOptions={countryOptions}
-              staffOptions={staffOptions}
               onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
               onStatusChange={handleStatusChange}
             />

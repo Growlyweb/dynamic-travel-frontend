@@ -1,6 +1,6 @@
 import { EllipsisIcon, EyeIcon } from "lucide-react";
 
-import { DataTable, StatusSelect } from "@/components/tables/ShadcnDataTable";
+import { DataTable } from "@/components/tables/ShadcnDataTable";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,17 +10,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate } from "../../../utils/formatters";
+import { StatusActionCell } from "./StatusActionCell";
 
 /**
  * Applications table (spec #12). Client-side search covers application
  * number, passport, applicant name, mobile and email; filters cover status,
- * country, channel and staff.
+ * country, and channel.
  */
 export function VisaApplicationsTable({
   data,
   statusOptions = [],
   countryOptions = [],
-  staffOptions = [],
   onView,
   onStatusChange,
   columns = [
@@ -38,9 +38,6 @@ export function VisaApplicationsTable({
       cell: (row) => (
         <span>
           <span className="font-medium">{row.applicant?.fullName}</span>
-          {/* <span className="block text-xs text-muted-foreground">
-            {row.partner ? `B2B · ${row.partner}` : "B2C"}
-          </span> */}
         </span>
       ),
       sortValue: (row) => row.applicant?.fullName ?? "",
@@ -67,22 +64,15 @@ export function VisaApplicationsTable({
       sortValue: (row) => row.submittedAt ?? "",
     },
     {
-      key: "assignedStaff",
-      header: "Staff",
-      cell: (row) => row.assignedStaff || "Unassigned",
-      sortValue: (row) => row.assignedStaff ?? "",
-    },
-    {
       key: "status",
       header: "Status",
       sortable: false,
       searchValue: () => "", // don't search on raw status keys
       cell: (row) => (
-        <StatusSelect
-          value={row.status}
-          options={statusOptions}
-          label={`Status for ${row.applicant?.fullName}`}
-          onChange={(value) => onStatusChange?.(row, value)}
+        <StatusActionCell
+          row={row}
+          statusOptions={statusOptions}
+          onStatusChange={onStatusChange}
         />
       ),
     },
@@ -93,80 +83,8 @@ export function VisaApplicationsTable({
       sortValue: (row) => row.updatedAt ?? "",
       className: "text-muted-foreground whitespace-nowrap",
     },
-  ]
+  ],
 }) {
-  // const columns = [
-  //   {
-  //     key: "number",
-  //     header: "Application",
-  //     className: "font-medium whitespace-nowrap",
-  //     // One search hit for: application number, passport, mobile, email.
-  //     searchValue: (row) =>
-  //       `${row.number} ${row.passport?.number ?? ""} ${row.applicant?.mobile ?? ""} ${row.applicant?.email ?? ""}`,
-  //   },
-  //   {
-  //     key: "applicant",
-  //     header: "Applicant",
-  //     cell: (row) => (
-  //       <span>
-  //         <span className="font-medium">{row.applicant?.fullName}</span>
-  //         {/* <span className="block text-xs text-muted-foreground">
-  //           {row.partner ? `B2B · ${row.partner}` : "B2C"}
-  //         </span> */}
-  //       </span>
-  //     ),
-  //     sortValue: (row) => row.applicant?.fullName ?? "",
-  //   },
-  //   {
-  //     key: "passport",
-  //     header: "Passport",
-  //     cell: (row) => row.passport?.number,
-  //     sortValue: (row) => row.passport?.number ?? "",
-  //     searchValue: (row) => row.passport?.number ?? "",
-  //   },
-  //   { key: "country", header: "Country" },
-  //   { key: "visaType", header: "Visa type" },
-  //   {
-  //     key: "channel",
-  //     header: "Channel",
-  //     cell: (row) => (row.channel === "b2b" ? "B2B" : "B2C"),
-  //     sortValue: (row) => row.channel,
-  //   },
-  //   {
-  //     key: "submittedAt",
-  //     header: "Submitted",
-  //     cell: (row) => formatDate(row.submittedAt),
-  //     sortValue: (row) => row.submittedAt ?? "",
-  //   },
-  //   {
-  //     key: "assignedStaff",
-  //     header: "Staff",
-  //     cell: (row) => row.assignedStaff || "Unassigned",
-  //     sortValue: (row) => row.assignedStaff ?? "",
-  //   },
-  //   {
-  //     key: "status",
-  //     header: "Status",
-  //     sortable: false,
-  //     searchValue: () => "", // don't search on raw status keys
-  //     cell: (row) => (
-  //       <StatusSelect
-  //         value={row.status}
-  //         options={statusOptions}
-  //         label={`Status for ${row.applicant?.fullName}`}
-  //         onChange={(value) => onStatusChange?.(row, value)}
-  //       />
-  //     ),
-  //   },
-  //   {
-  //     key: "updatedAt",
-  //     header: "Updated",
-  //     cell: (row) => formatDate(row.updatedAt),
-  //     sortValue: (row) => row.updatedAt ?? "",
-  //     className: "text-muted-foreground whitespace-nowrap",
-  //   },
-  // ];
-
   return (
     <DataTable
       ariaLabel="Visa applications"
@@ -198,14 +116,6 @@ export function VisaApplicationsTable({
             { label: "B2C", value: "b2c" },
             { label: "B2B", value: "b2b" },
           ],
-        },
-        {
-          key: "assignedStaff",
-          label: "staff",
-          allLabel: "All staff",
-          options: staffOptions,
-          match: (row, value) =>
-            value === "__unassigned__" ? !row.assignedStaff : row.assignedStaff === value,
         },
       ]}
       rowActions={(row) => (
