@@ -115,7 +115,7 @@ export const NAV_SECTIONS = [
     items: [
       { to: APP_ROUTES.VISA_OVERVIEW, label: 'Overview', icon: Gauge, permission: 'visa.view', end: true },
       { to: APP_ROUTES.VISA_APPLICATIONS, label: 'Applications', icon: Stamp, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'visa.view' },
       // { to: APP_ROUTES.VISA_TYPES, label: 'Visa types', icon: Layers, permission: 'visa.view' },
       { to: APP_ROUTES.VISA_PRICING, label: 'Pricing', icon: Tags, permission: 'visa.view' },
       { to: APP_ROUTES.VISA_CHECKLIST, label: 'Checklists', icon: ListChecks, permission: 'visa.view' },

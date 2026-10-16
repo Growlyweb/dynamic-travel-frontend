@@ -87,7 +87,7 @@ export function StatusActionCell({
                 variant="outline"
                 size="sm"
                 className={cn(
-                  "h-7 w-auto min-w-28 rounded-full border-0 px-2.5 text-xs font-medium justify-between gap-1.5 transition-all shadow-xs cursor-pointer",
+                  "h-7 w-auto min-w-20 rounded-full border-0 px-2.5 text-xs font-medium justify-between gap-1.5 transition-all shadow-xs cursor-pointer",
                   toneClasses[currentTone] ?? toneClasses.neutral
                 )}
                 aria-label={`Status for ${row.applicant?.fullName}: ${currentLabel}`}
@@ -240,7 +240,7 @@ export function StatusActionCell({
       </div>
 
       {/* Custom Note displayed directly in Status column */}
-      {activeNote ? (
+      {/* {activeNote ? (
         <button
           type="button"
           onClick={handleOpenCustomNote}
@@ -252,7 +252,7 @@ export function StatusActionCell({
             "{activeNote}"
           </span>
         </button>
-      ) : null}
+      ) : null} */}
     </div>
   );
 }

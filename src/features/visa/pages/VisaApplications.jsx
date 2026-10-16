@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FileSpreadsheet } from "lucide-react";
 import PageHeader from "../../../components/layout/PageHeader";
 import Loader from "../../../components/common/Loader";
 import ErrorState from "../../../components/common/ErrorState";
-import Input from "../../../components/common/Input";
+import { TableCard, TableHeader } from "../../../components/re-table";
 import VisaApplicationsTable from "../components/VisaApplicationsTable";
 import StatusChangeDialog from "../components/StatusChangeDialog";
 import AddApplicationPopover from "../components/AddApplicationPopover";
@@ -78,10 +79,10 @@ export default function VisaApplications() {
           prev.map((r) =>
             r.id === application.id
               ? {
-                  ...r,
-                  status: nextStatus || r.status,
-                  customNote: customNote.trim() || r.customNote,
-                }
+                ...r,
+                status: nextStatus || r.status,
+                customNote: customNote.trim() || r.customNote,
+              }
               : r
           )
         );
@@ -125,11 +126,11 @@ export default function VisaApplications() {
   return (
     <div className="stack w-full min-w-0 max-w-full">
       <PageHeader
-        title="Visa applications"
+        // title="Visa applications"
         breadcrumbs={[{ label: "Visa" }, { label: "Applications" }]}
       />
 
-      <div className="card w-full min-w-0 max-w-full overflow-hidden">
+      <TableCard className="w-full min-w-0 max-w-full">
         {loading ? (
           <Loader label="Loading applications…" />
         ) : error ? (
@@ -140,26 +141,50 @@ export default function VisaApplications() {
           />
         ) : (
           <>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-4 flex-wrap">
-              <div className="filters flex flex-wrap items-end gap-3">
-                <Input
-                  label="From"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
+            <TableHeader
+              title="Visa Applications"
+              subtitle="Track and manage all submitted visa applications and applicant statuses"
+              icon={FileSpreadsheet}
+              extraActions={
+                <AddApplicationPopover
+                  countryOptions={countryOptions}
+                  onCreated={handleApplicationCreated}
                 />
-                <Input
-                  label="To"
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
-              </div>
+              }
+            />
 
-              <AddApplicationPopover
-                countryOptions={countryOptions}
-                onCreated={handleApplicationCreated}
-              />
+            {/* Date Range Filter Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 pb-1 border-b border-slate-100">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+                <span>Filter by date:</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="px-2.5 py-1 text-xs border border-slate-200 rounded-md text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-slate-400">to</span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="px-2.5 py-1 text-xs border border-slate-200 rounded-md text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  {(dateFrom || dateTo) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateFrom("");
+                        setDateTo("");
+                      }}
+                      className="text-xs text-blue-600 hover:underline cursor-pointer ml-1"
+                    >
+                      Clear dates
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <VisaApplicationsTable
@@ -171,7 +196,7 @@ export default function VisaApplications() {
             />
           </>
         )}
-      </div>
+      </TableCard>
 
       <StatusChangeDialog
         open={Boolean(statusChange)}
