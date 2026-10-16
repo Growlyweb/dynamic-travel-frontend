@@ -23,7 +23,7 @@ export function TableHeader({
     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 ${className}`}>
       {/* Title & Icon */}
       <div className="flex items-center gap-3.5">
-        {Icon && (
+        {/* {Icon && (
           <div className="w-12 h-12 rounded-xl bg-[#0B192C] flex items-center justify-center text-white shrink-0 shadow-xs">
             {React.isValidElement(Icon) ? (
               Icon
@@ -31,7 +31,7 @@ export function TableHeader({
               <Icon className="w-6 h-6 stroke-[2]" />
             )}
           </div>
-        )}
+        )} */}
         <div>
           {title && <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-tight">{title}</h1>}
           {subtitle && <p className="text-sm text-slate-500 font-normal mt-0.5">{subtitle}</p>}
