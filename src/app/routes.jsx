@@ -49,6 +49,9 @@ const SmsTemplates = lazy(
   () => import("../features/visa/pages/SmsTemplates"),
 );
 const SmsLogs = lazy(() => import("../features/visa/pages/SmsLogs"));
+const ReTablePreviewPage = lazy(
+  () => import("../features/visa/pages/ReTablePreviewPage"),
+);
 
 const TourPackages = lazy(() => import("../features/tours/pages/TourPackages"));
 const TourDetails = lazy(() => import("../features/tours/pages/TourDetails"));
@@ -165,6 +168,7 @@ export function AppRoutes() {
         <Route path="/dashboard/reset-password/:role" element={<ResetPassword />} />
         <Route path="/reset-password/:role" element={<ResetPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/re-table-preview" element={<ReTablePreviewPage />} />
 
         <Route
           element={
@@ -237,6 +241,14 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="visa.view">
                 <VisaChecklist />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/checklist-preview"
+            element={
+              <RequirePermission permission="visa.view">
+                <ReTablePreviewPage />
               </RequirePermission>
             }
           />

@@ -4,6 +4,7 @@ import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
 import Select from '../../../components/common/Select'
 import Input from '../../../components/common/Input'
+import { ReTablePreview } from '../../../components/re-table'
 import { visaApi, APPLICANT_TYPES, CHECKLIST_REQUIREMENTS, DOCUMENT_SUBMISSION_MODES } from '../visa.api'
 
 const APPLICANT_TYPE_LABELS = {
@@ -28,6 +29,7 @@ export default function VisaChecklist() {
   const [dirty, setDirty] = useState(false)
   const [savedAt, setSavedAt] = useState(null)
   const [newItem, setNewItem] = useState({ label: '', requirement: 'required' })
+  const [viewMode, setViewMode] = useState('table') // 'table' | 'editor'
 
   useEffect(() => {
     visaApi.listCountries().then((result) => setCountries(result.items ?? []))
@@ -86,7 +88,7 @@ export default function VisaChecklist() {
       const items = [...current.items]
       const target = items[index + direction]
       if (!target) return current
-      ;[items[index], items[index + direction]] = [target, items[index]]
+        ;[items[index], items[index + direction]] = [target, items[index]]
       return { ...current, items }
     })
     setDirty(true)
@@ -129,11 +131,10 @@ export default function VisaChecklist() {
   return (
     <div className="stack">
       <PageHeader
-        title="Visa checklists"
-        // description="Country-wise document requirements. Pick a country, visa type and applicant type, then manage the checklist — no code changes needed."
+        title="Checklists"
         breadcrumbs={[{ label: 'Visa' }, { label: 'Checklists' }]}
         actions={
-          checklist ? (
+          viewMode === 'editor' && checklist ? (
             <Button onClick={handleSave} loading={saving} disabled={!dirty}>
               {dirty ? 'Save changes' : savedAt ? 'Saved' : 'No changes'}
             </Button>
@@ -141,182 +142,8 @@ export default function VisaChecklist() {
         }
       />
 
-      <div className="card stack">
-        <div className="filters">
-          <Select
-            label="Country"
-            placeholder="Select country"
-            value={selection.countryId}
-            onChange={(event) => setSelection((current) => ({ ...current, countryId: event.target.value, visaTypeId: '' }))}
-            options={countries.map((country) => ({ value: country.id, label: ` ${country.name}` }))}
-          />
-          <Select
-            label="Visa type"
-            placeholder={selection.countryId ? 'Select visa type' : 'Select a country first'}
-            value={selection.visaTypeId}
-            onChange={(event) => setSelection((current) => ({ ...current, visaTypeId: event.target.value }))}
-            options={visaTypes.map((type) => ({ value: type.id, label: type.name }))}
-          />
-          <Select
-            label="Applicant type"
-            value={selection.applicantType}
-            onChange={(event) => setSelection((current) => ({ ...current, applicantType: event.target.value }))}
-            options={APPLICANT_TYPES.map((type) => ({ value: type, label: APPLICANT_TYPE_LABELS[type] }))}
-          />
-        </div>
+      <ReTablePreview />
 
-        {checklist ? (
-          <div className="stack stack--sm">
-            <div className="row between row--wrap">
-              <p className="muted small" style={{ margin: 0 }}>
-                Checklist for <span className="strong">{selectedCountry?.name} · {selectedType?.name} · {APPLICANT_TYPE_LABELS[selection.applicantType]}</span>
-                {checklist.isDefault ? ' — not configured yet, showing a default template.' : ''}
-              </p>
-              <p className="muted small" style={{ margin: 0 }}>
-                {checklist.items.length} items · {requiredCount} required
-              </p>
-            </div>
-
-            {loading ? (
-              <p className="muted">Loading checklist…</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 80 }}>Order</th>
-                      <th>Document</th>
-                      <th style={{ width: 170 }}>Requirement</th>
-                      <th style={{ width: 130 }}>Submission</th>
-                      <th style={{ width: 220 }}>File rule</th>
-                      <th style={{ width: 90 }}>Included</th>
-                      <th style={{ width: 80 }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {checklist.items.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>
-                          <span className="row" style={{ gap: 4 }}>
-                            <span className="muted small">{index + 1}</span>
-                            <button type="button" className="icon-btn" aria-label="Move up" disabled={index === 0} onClick={() => moveItem(index, -1)}>▲</button>
-                            <button type="button" className="icon-btn" aria-label="Move down" disabled={index === checklist.items.length - 1} onClick={() => moveItem(index, 1)}>▼</button>
-                          </span>
-                        </td>
-                        <td>
-                          <input
-                            className="field__control"
-                            value={item.label}
-                            aria-label="Document label"
-                            onChange={(event) => updateItem(item.id, { label: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <div className="row" style={{ gap: 8 }}>
-                            <select
-                              className="field__control"
-                              value={item.requirement}
-                              aria-label="Requirement"
-                              onChange={(event) => updateItem(item.id, { requirement: event.target.value })}
-                            >
-                              {CHECKLIST_REQUIREMENTS.map((requirement) => (
-                                <option key={requirement} value={requirement}>
-                                  {requirement[0].toUpperCase() + requirement.slice(1)}
-                                </option>
-                              ))}
-                            </select>
-                            <Badge tone={REQUIREMENT_TONES[item.requirement] ?? 'neutral'}>{item.requirement}</Badge>
-                          </div>
-                        </td>
-                        <td>
-                          <select
-                            className="field__control"
-                            value={item.submissionMode ?? 'digital'}
-                            aria-label="Submission mode"
-                            onChange={(event) => updateItem(item.id, { submissionMode: event.target.value })}
-                          >
-                            {DOCUMENT_SUBMISSION_MODES.map((mode) => (
-                              <option key={mode} value={mode}>
-                                {mode === 'both' ? 'Digital + Physical' : mode[0].toUpperCase() + mode.slice(1)}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <div className="row" style={{ gap: 6 }}>
-                            <input
-                              className="field__control"
-                              value={item.fileFormats ?? 'PDF/JPG/PNG'}
-                              aria-label="File formats"
-                              placeholder="PDF/JPG"
-                              onChange={(event) => updateItem(item.id, { fileFormats: event.target.value })}
-                            />
-                            <input
-                              className="field__control"
-                              type="number"
-                              min="1"
-                              style={{ width: 76 }}
-                              value={item.maxSizeMb ?? 10}
-                              aria-label="Max size (MB)"
-                              title="Maximum file size (MB)"
-                              onChange={(event) => updateItem(item.id, { maxSizeMb: Number(event.target.value) || 10 })}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <label className="checkbox">
-                            <input
-                              type="checkbox"
-                              checked={item.active}
-                              onChange={(event) => updateItem(item.id, { active: event.target.checked })}
-                            />
-                            {item.active ? 'Active' : 'Off'}
-                          </label>
-                        </td>
-                        <td className="table-actions">
-                          <Button size="sm" variant="danger" onClick={() => removeItem(item.id)}>
-                            Remove
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {!checklist.items.length ? (
-                      <tr>
-                        <td colSpan={7} className="muted" style={{ textAlign: 'center' }}>
-                          No documents yet — add the first requirement below.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <form className="row row--wrap" style={{ gap: 8, alignItems: 'flex-end' }} onSubmit={addItem}>
-              <Input
-                label="Add document"
-                value={newItem.label}
-                onChange={(event) => setNewItem((current) => ({ ...current, label: event.target.value }))}
-                placeholder="e.g. Travel Insurance"
-                style={{ minWidth: 260 }}
-              />
-              <Select
-                label="Requirement"
-                value={newItem.requirement}
-                onChange={(event) => setNewItem((current) => ({ ...current, requirement: event.target.value }))}
-                options={CHECKLIST_REQUIREMENTS.map((requirement) => ({ value: requirement, label: requirement[0].toUpperCase() + requirement.slice(1) }))}
-              />
-              <Button type="submit" variant="subtle">+ Add item</Button>
-            </form>
-          </div>
-        ) : (
-          <p className="muted">
-            {selection.countryId && selection.visaTypeId
-              ? 'Loading checklist…'
-              : 'Select a country and visa type to manage its checklist.'}
-          </p>
-        )}
-      </div>
     </div>
   )
 }
