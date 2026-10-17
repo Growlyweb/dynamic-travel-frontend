@@ -30,7 +30,8 @@
   /* Status */
   --color-success: #16a34a;
   --color-success-soft: #dcfce7;
-  --color-warning: #FFB000;
+  --color-warning: #ffae00;
+  --color-warning-dark: #df9800ea;
   --color-warning-soft: #fff7e6;
   --color-danger: #dc2626;
   --color-danger-soft: #fee2e2;

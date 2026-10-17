@@ -6,7 +6,8 @@ import DonutChart from '../../../components/charts/DonutChart'
 import ReportFilters from '../components/ReportFilters'
 import ReportExport from '../components/ReportExport'
 import { toCsv, downloadBlob } from '../../../utils/helpers'
-import { formatCurrency } from '../../../utils/formatters'
+import { formatCurrency, formatNumber } from '../../../utils/formatters'
+import { exportToExcel, printReportDocument } from '../../../utils/exportEngine'
 
 // Replace with your reports API. Kept inline because this feature intentionally
 // has no api.js in the project structure.
@@ -29,12 +30,66 @@ const CHANNEL_TONES = ['#4f46e5', '#0ea5e9', '#16a34a']
 export default function Reports() {
   const [range, setRange] = useState({ from: '2026-01-01', to: '2026-09-30', type: 'bookings' })
 
-  function handleExport(_format) {
-    const csv = toCsv(MONTHLY_BOOKINGS, [
-      { key: 'label', label: 'Month' },
-      { key: 'value', label: 'Bookings' },
-    ])
-    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `travel-report-${range.from}_${range.to}.csv`)
+  function handleExport(format) {
+    if (format === 'csv') {
+      const csv = toCsv(MONTHLY_BOOKINGS, [
+        { key: 'label', label: 'Month' },
+        { key: 'value', label: 'Bookings' },
+      ])
+      downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `travel-report-${range.from}_${range.to}.csv`)
+    } else if (format === 'excel') {
+      const totalBookings = MONTHLY_BOOKINGS.reduce((acc, m) => acc + m.value, 0)
+      const totalRevenue = REVENUE_BY_CHANNEL.reduce((acc, c) => acc + c.value, 0)
+      exportToExcel(`Operational_Report_${range.from}_${range.to}`, {
+        title: 'Executive Operational & Revenue Report',
+        subtitle: `Period: ${range.from} to ${range.to} | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+        headers: ['Month', 'Monthly Bookings', 'Top Destinations', 'Visits', 'Revenue Channel', 'Revenue (USD)'],
+        rows: MONTHLY_BOOKINGS.map((m, idx) => {
+          const dest = TOP_DESTINATIONS[idx]
+          const ch = REVENUE_BY_CHANNEL[idx]
+          return [
+            m.label,
+            m.value,
+            dest ? dest.label : '',
+            dest ? dest.value : '',
+            ch ? ch.label : '',
+            ch ? ch.value : '',
+          ]
+        }),
+        summaryTotals: [
+          { label: 'Total Period Bookings', value: totalBookings },
+          { label: 'Total Channel Revenue', value: `$${formatNumber(totalRevenue)}` },
+        ],
+        metadata: {
+          'Report Range': `${range.from} to ${range.to}`,
+          'Report Category': range.type,
+        },
+      })
+    } else if (format === 'pdf') {
+      const totalBookings = MONTHLY_BOOKINGS.reduce((acc, m) => acc + m.value, 0)
+      const totalRevenue = REVENUE_BY_CHANNEL.reduce((acc, c) => acc + c.value, 0)
+      printReportDocument({
+        title: 'Executive Operations & Revenue Report',
+        subtitle: `Reporting Period: ${range.from} to ${range.to} | ABL Travel Operations`,
+        headers: ['Month', 'Confirmed Bookings', 'Top Destination', 'Visits', 'Revenue Channel', 'Revenue (USD)'],
+        rows: MONTHLY_BOOKINGS.map((m, idx) => {
+          const dest = TOP_DESTINATIONS[idx]
+          const ch = REVENUE_BY_CHANNEL[idx]
+          return [
+            m.label,
+            m.value,
+            dest ? dest.label : '—',
+            dest ? dest.value : '—',
+            ch ? ch.label : '—',
+            ch ? `$${formatNumber(ch.value)}` : '—',
+          ]
+        }),
+        summaryTotals: [
+          { label: 'Total Confirmed Bookings', value: totalBookings },
+          { label: 'Total Gross Revenue', value: `$${formatNumber(totalRevenue)}` },
+        ],
+      })
+    }
   }
 
   return (

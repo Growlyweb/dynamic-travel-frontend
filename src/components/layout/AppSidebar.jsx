@@ -249,7 +249,7 @@ export default function AppSidebar({ onNavigate }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild className="w-full">
+              <DropdownMenuTrigger className="w-full" asChild>
                 <SidebarMenuButton
                   size="lg"
                   className={cn(

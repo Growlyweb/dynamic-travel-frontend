@@ -30,15 +30,18 @@ export function usePermission() {
     [user, staffPerms],
   )
 
+  const hasAdminRole = user?.role === 'admin' || (Array.isArray(user?.roles) && user?.roles.includes('admin'))
+
   return useMemo(
     () => ({
       role: user?.role ?? null,
-      isAdmin: user?.role === 'admin',
-      isStaff: user?.role !== 'admin',
+      roles: Array.isArray(user?.roles) ? user.roles : (user?.role ? [user.role] : []),
+      isAdmin: hasAdminRole,
+      isStaff: !hasAdminRole,
       can,
       canAny,
       staffPerms,
     }),
-    [user, can, canAny, staffPerms],
+    [user, hasAdminRole, can, canAny, staffPerms],
   )
 }
