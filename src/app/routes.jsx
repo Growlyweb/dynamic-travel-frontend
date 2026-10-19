@@ -118,6 +118,21 @@ const Notifications = lazy(
   () => import("../features/notifications/pages/Notifications"),
 );
 const Reports = lazy(() => import("../features/reports/pages/Reports"));
+const ReportOverview = lazy(
+  () => import("../features/reports/pages/ReportOverview"),
+);
+const ReportMonthly = lazy(
+  () => import("../features/reports/pages/ReportMonthly"),
+);
+const ReportCategories = lazy(
+  () => import("../features/reports/pages/ReportCategories"),
+);
+const ReportB2BAgents = lazy(
+  () => import("../features/reports/pages/ReportB2BAgents"),
+);
+const ReportB2CClients = lazy(
+  () => import("../features/reports/pages/ReportB2CClients"),
+);
 
 const Profile = lazy(() => import("../features/settings/pages/Profile"));
 const Settings = lazy(() => import("../features/settings/pages/Settings"));
@@ -503,9 +518,45 @@ export function AppRoutes() {
           <Route path="notifications" element={<Notifications />} />
           <Route
             path="reports"
+            element={<Navigate to="/reports/overview" replace />}
+          />
+          <Route
+            path="reports/overview"
             element={
               <RequirePermission permission="reports.view">
-                <Reports />
+                <ReportOverview />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/monthly"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportMonthly />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/categories"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportCategories />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/b2b-agents"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportB2BAgents />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/b2c-clients"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportB2CClients />
               </RequirePermission>
             }
           />

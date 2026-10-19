@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Stamp,
+  TrendingUp,
   UserCog,
   UserRound,
 } from 'lucide-react'
@@ -53,6 +54,7 @@ import { cn } from '@/utils/helpers'
 
 const SECTION_ICONS = {
   Overview: LayoutDashboard,
+  Reports: TrendingUp,
   Visa: Stamp,
   Tours: Luggage,
   'Partners · B2B': Handshake,

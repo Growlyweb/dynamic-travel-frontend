@@ -98,7 +98,12 @@ export const APP_ROUTES = {
   DOCUMENT_DETAILS: (id) => `/documents/${id}`,
 
   NOTIFICATIONS: '/notifications',
-  REPORTS: '/reports',
+  REPORTS: '/reports/overview',
+  REPORT_OVERVIEW: '/reports/overview',
+  REPORT_MONTHLY: '/reports/monthly',
+  REPORT_CATEGORIES: '/reports/categories',
+  REPORT_B2B_AGENTS: '/reports/b2b-agents',
+  REPORT_B2C_CLIENTS: '/reports/b2c-clients',
 
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_GENERAL: '/settings',
@@ -109,6 +114,16 @@ export const NAV_SECTIONS = [
   {
     label: 'Overview',
     items: [{ to: APP_ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, end: true }],
+  },
+  {
+    label: 'Reports',
+    items: [
+      { to: APP_ROUTES.REPORT_OVERVIEW, label: 'Overview', icon: LayoutDashboard, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_MONTHLY, label: 'Monthly Report', icon: ChartLine, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_CATEGORIES, label: 'Categories', icon: Tags, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_B2B_AGENTS, label: 'B2B Agents', icon: Handshake, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_B2C_CLIENTS, label: 'B2C Clients', icon: UserRound, permission: 'reports.view' },
+    ],
   },
   {
     label: 'Visa',
