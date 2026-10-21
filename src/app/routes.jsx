@@ -133,6 +133,21 @@ const ReportB2BAgents = lazy(
 const ReportB2CClients = lazy(
   () => import("../features/reports/pages/ReportB2CClients"),
 );
+const ReportPriceList = lazy(
+  () => import("../features/reports/pages/ReportPriceList"),
+);
+const ReportDues = lazy(
+  () => import("../features/reports/pages/ReportDues"),
+);
+const ReportVendorPayables = lazy(
+  () => import("../features/reports/pages/ReportVendorPayables"),
+);
+const ReportPartnersCapital = lazy(
+  () => import("../features/reports/pages/ReportPartnersCapital"),
+);
+const ReportProfitLoss = lazy(
+  () => import("../features/reports/pages/ReportProfitLoss"),
+);
 
 const Profile = lazy(() => import("../features/settings/pages/Profile"));
 const Settings = lazy(() => import("../features/settings/pages/Settings"));
@@ -557,6 +572,46 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="reports.view">
                 <ReportB2CClients />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/price-list"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportPriceList />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/dues"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportDues />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/vendor-payables"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportVendorPayables />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/partners-capital"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportPartnersCapital />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/profit-loss"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportProfitLoss />
               </RequirePermission>
             }
           />

@@ -6,6 +6,11 @@ import {
   Tags,
   Handshake,
   Users,
+  ReceiptText,
+  AlertCircle,
+  Building2,
+  Landmark,
+  ScrollText,
   RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +41,31 @@ const TABS = [
     to: '/reports/b2c-clients',
     label: 'B2C Clients',
     icon: Users,
+  },
+  {
+    to: '/reports/price-list',
+    label: 'Price List',
+    icon: ReceiptText,
+  },
+  {
+    to: '/reports/dues',
+    label: 'Dues',
+    icon: AlertCircle,
+  },
+  {
+    to: '/reports/vendor-payables',
+    label: 'Vendor Payables',
+    icon: Building2,
+  },
+  {
+    to: '/reports/partners-capital',
+    label: 'Partners & Capital',
+    icon: Landmark,
+  },
+  {
+    to: '/reports/profit-loss',
+    label: 'P&L and Expenses',
+    icon: ScrollText,
   },
 ]
 

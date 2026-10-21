@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   BadgePercent,
   Bell,
   Building2,
@@ -104,6 +105,11 @@ export const APP_ROUTES = {
   REPORT_CATEGORIES: '/reports/categories',
   REPORT_B2B_AGENTS: '/reports/b2b-agents',
   REPORT_B2C_CLIENTS: '/reports/b2c-clients',
+  REPORT_PRICE_LIST: '/reports/price-list',
+  REPORT_DUES: '/reports/dues',
+  REPORT_VENDOR_PAYABLES: '/reports/vendor-payables',
+  REPORT_PARTNERS_CAPITAL: '/reports/partners-capital',
+  REPORT_PROFIT_LOSS: '/reports/profit-loss',
 
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_GENERAL: '/settings',
@@ -123,6 +129,11 @@ export const NAV_SECTIONS = [
       { to: APP_ROUTES.REPORT_CATEGORIES, label: 'Categories', icon: Tags, permission: 'reports.view' },
       { to: APP_ROUTES.REPORT_B2B_AGENTS, label: 'B2B Agents', icon: Handshake, permission: 'reports.view' },
       { to: APP_ROUTES.REPORT_B2C_CLIENTS, label: 'B2C Clients', icon: UserRound, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_PRICE_LIST, label: 'Price List', icon: ReceiptText, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_DUES, label: 'Dues', icon: AlertCircle, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_VENDOR_PAYABLES, label: 'Vendor Payables', icon: Building2, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_PARTNERS_CAPITAL, label: 'Partners & Capital', icon: Landmark, permission: 'reports.view' },
+      { to: APP_ROUTES.REPORT_PROFIT_LOSS, label: 'P&L and Expenses', icon: ScrollText, permission: 'reports.view' },
     ],
   },
   {

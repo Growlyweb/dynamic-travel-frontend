@@ -773,4 +773,794 @@ export const reportsApi = {
     }
     return { success: true }
   },
+
+  // ── Price List API ─────────────────────────────────────────
+  getPriceList: async () => {
+    const state = loadState()
+    const services = state.svc.map((s, idx) => {
+      const b2bProfit = s.b2b - s.cost
+      const b2bMargin = s.b2b > 0 ? (b2bProfit / s.b2b) * 100 : 0
+      const b2cProfit = s.b2c - s.cost
+      const b2cMargin = s.b2c > 0 ? (b2cProfit / s.b2c) * 100 : 0
+      return {
+        id: `svc_${idx + 1}`,
+        index: idx,
+        name: s.n,
+        cost: s.cost,
+        b2b: s.b2b,
+        b2bProfit,
+        b2bMargin,
+        b2c: s.b2c,
+        b2cProfit,
+        b2cMargin,
+      }
+    })
+
+    const totalServices = services.length
+    const avgB2BMargin =
+      totalServices > 0
+        ? services.reduce((sum, s) => sum + s.b2bMargin, 0) / totalServices
+        : 0
+    const avgB2CMargin =
+      totalServices > 0
+        ? services.reduce((sum, s) => sum + s.b2cMargin, 0) / totalServices
+        : 0
+    const highestMarginService =
+      [...services].sort((a, b) => b.b2cMargin - a.b2cMargin)[0] || null
+
+    return {
+      success: true,
+      data: {
+        services,
+        summary: {
+          totalServices,
+          avgB2BMargin,
+          avgB2CMargin,
+          highestMarginService,
+        },
+      },
+    }
+  },
+
+  addService: async ({ name, cost, b2b, b2c }) => {
+    const state = loadState()
+    const trimmed = name?.trim()
+    if (!trimmed) throw new Error('Service name is required')
+
+    const newSvc = {
+      n: trimmed,
+      cost: Math.max(0, Number(cost) || 0),
+      b2b: Math.max(0, Number(b2b) || 0),
+      b2c: Math.max(0, Number(b2c) || 0),
+    }
+
+    state.svc.push(newSvc)
+    saveState(state)
+    return { success: true, data: newSvc }
+  },
+
+  updateService: async (index, { name, cost, b2b, b2c }) => {
+    const state = loadState()
+    const i = Number(index)
+    if (!state.svc[i]) throw new Error('Service not found')
+
+    state.svc[i] = {
+      n: name?.trim() || state.svc[i].n,
+      cost: Math.max(0, Number(cost) || 0),
+      b2b: Math.max(0, Number(b2b) || 0),
+      b2c: Math.max(0, Number(b2c) || 0),
+    }
+
+    saveState(state)
+    return { success: true, data: state.svc[i] }
+  },
+
+  deleteService: async (index) => {
+    const state = loadState()
+    const i = Number(index)
+    if (!state.svc[i]) throw new Error('Service not found')
+    state.svc.splice(i, 1)
+    saveState(state)
+    return { success: true }
+  },
+
+  exportPriceList: async (format = 'csv') => {
+    const state = loadState()
+    const rows = state.svc.map((s) => {
+      const b2bProfit = s.b2b - s.cost
+      const b2bMargin = s.b2b > 0 ? (b2bProfit / s.b2b) * 100 : 0
+      const b2cProfit = s.b2c - s.cost
+      const b2cMargin = s.b2c > 0 ? (b2cProfit / s.b2c) * 100 : 0
+      return {
+        name: s.n,
+        cost: s.cost,
+        b2b: s.b2b,
+        b2bProfit,
+        b2bMargin: `${b2bMargin.toFixed(1)}%`,
+        b2c: s.b2c,
+        b2cProfit,
+        b2cMargin: `${b2cMargin.toFixed(1)}%`,
+      }
+    })
+
+    const filename = `Price-List-${new Date().toISOString().slice(0, 10)}`
+    if (format === 'csv') {
+      const headers = [
+        { key: 'name', label: 'Service' },
+        { key: 'cost', label: 'Vendor Cost (BDT)' },
+        { key: 'b2b', label: 'B2B Price (BDT)' },
+        { key: 'b2bProfit', label: 'B2B Profit (BDT)' },
+        { key: 'b2bMargin', label: 'B2B Margin' },
+        { key: 'b2c', label: 'B2C Price (BDT)' },
+        { key: 'b2cProfit', label: 'B2C Profit (BDT)' },
+        { key: 'b2cMargin', label: 'B2C Margin' },
+      ]
+      engineExportToCsv(filename, headers, rows)
+    } else {
+      exportToExcel(filename, {
+        title: 'Master Service Price List',
+        subtitle: `Rates & Margin Analysis · Currency: BDT (৳)`,
+        headers: [
+          { key: 'name', label: 'Service Name' },
+          { key: 'cost', label: 'Vendor Cost', isCurrency: true },
+          { key: 'b2b', label: 'B2B Wholesale Rate', isCurrency: true },
+          { key: 'b2bProfit', label: 'B2B Profit', isCurrency: true },
+          { key: 'b2bMargin', label: 'B2B Margin' },
+          { key: 'b2c', label: 'B2C Retail Rate', isCurrency: true },
+          { key: 'b2cProfit', label: 'B2C Profit', isCurrency: true },
+          { key: 'b2cMargin', label: 'B2C Margin' },
+        ],
+        rows,
+      })
+    }
+    return { success: true }
+  },
+
+  // ── Dues Management API ────────────────────────────────────
+  getDuesReport: async () => {
+    const state = loadState()
+    const allWithDues = state.cl.map((c, idx) => {
+      const due = calculateClientDue(c)
+      const collectedPercent = c.inv > 0 ? (c.paid / c.inv) * 100 : 0
+      const creditUsedPercent = c.limit > 0 ? (due / c.limit) * 100 : 0
+      return {
+        id: `client_${idx + 1}`,
+        index: idx,
+        ...c,
+        due,
+        collectedPercent,
+        creditUsedPercent,
+        status: getClientStatus(c),
+      }
+    })
+
+    const dueClients = allWithDues
+      .filter((c) => c.due > 0)
+      .sort((a, b) => b.due - a.due)
+
+    const b2bDues = dueClients
+      .filter((c) => c.t === 'B2B')
+      .reduce((sum, c) => sum + c.due, 0)
+
+    const b2cDues = dueClients
+      .filter((c) => c.t === 'B2C')
+      .reduce((sum, c) => sum + c.due, 0)
+
+    const totalDues = b2bDues + b2cDues
+    const totalOverdue = state.cl.reduce(
+      (sum, c) => sum + (Number(c.over) || 0),
+      0
+    )
+    const totalInvoiced = state.cl.reduce(
+      (sum, c) => sum + (Number(c.inv) || 0),
+      0
+    )
+    const totalPaid = state.cl.reduce((sum, c) => sum + (Number(c.paid) || 0), 0)
+    const overallCollectionRate =
+      totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0
+
+    const channelDistribution = [
+      { label: 'B2B Partners', value: b2bDues, color: '#0879E8' },
+      { label: 'B2C Direct Clients', value: b2cDues, color: '#16a34a' },
+    ]
+
+    return {
+      success: true,
+      data: {
+        dueClients,
+        allClients: allWithDues,
+        summary: {
+          totalDues,
+          b2bDues,
+          b2cDues,
+          totalOverdue,
+          totalInvoiced,
+          totalPaid,
+          overallCollectionRate,
+          dueCount: dueClients.length,
+        },
+        aging: state.aging,
+        channelDistribution,
+      },
+    }
+  },
+
+  recordClientPayment: async ({ name, amount }) => {
+    const state = loadState()
+    const payAmt = Math.max(0, Number(amount) || 0)
+    if (payAmt <= 0) throw new Error('Payment amount must be greater than zero')
+
+    const client = state.cl.find((c) => c.name === name)
+    if (!client) throw new Error(`Client "${name}" not found`)
+
+    client.paid = (Number(client.paid) || 0) + payAmt
+    if (client.over && client.over > 0) {
+      client.over = Math.max(0, client.over - payAmt)
+    }
+
+    saveState(state)
+    return { success: true, data: client }
+  },
+
+  exportDuesReport: async (format = 'csv') => {
+    const state = loadState()
+    const dueClients = state.cl
+      .map((c) => ({
+        name: c.name,
+        type: c.t,
+        contact: c.contact,
+        invoiced: c.inv,
+        paid: c.paid,
+        due: calculateClientDue(c),
+        overdue: c.over || 0,
+        status: getClientStatus(c),
+      }))
+      .filter((c) => c.due > 0)
+      .sort((a, b) => b.due - a.due)
+
+    const totalDue = dueClients.reduce((sum, c) => sum + c.due, 0)
+    const filename = `Due-Report-${new Date().toISOString().slice(0, 10)}`
+
+    if (format === 'csv') {
+      const headers = [
+        { key: 'name', label: 'Client / Agency' },
+        { key: 'type', label: 'Channel' },
+        { key: 'contact', label: 'Contact' },
+        { key: 'invoiced', label: 'Invoiced (BDT)' },
+        { key: 'paid', label: 'Paid (BDT)' },
+        { key: 'due', label: 'Due Amount (BDT)' },
+        { key: 'overdue', label: 'Overdue (BDT)' },
+        { key: 'status', label: 'Status' },
+      ]
+      engineExportToCsv(filename, headers, dueClients)
+    } else {
+      exportToExcel(filename, {
+        title: 'Outstanding Receivables & Due Management',
+        subtitle: `Generated: ${new Date().toLocaleDateString('en-GB')} | Currency: BDT (৳)`,
+        headers: [
+          { key: 'name', label: 'Client / Agency Name' },
+          { key: 'type', label: 'Channel' },
+          { key: 'contact', label: 'Phone' },
+          { key: 'invoiced', label: 'Total Invoiced', isCurrency: true },
+          { key: 'paid', label: 'Paid Amount', isCurrency: true },
+          { key: 'due', label: 'Outstanding Due', isCurrency: true },
+          { key: 'overdue', label: 'Overdue Balance', isCurrency: true },
+          { key: 'status', label: 'Status' },
+        ],
+        rows: dueClients,
+        summaryTotals: [
+          { label: 'Total Outstanding Receivables', value: formatMoney(totalDue) },
+        ],
+      })
+    }
+    return { success: true }
+  },
+
+  // ── Vendor Payables API ────────────────────────────────────
+  getVendorPayables: async () => {
+    const state = loadState()
+    const bills = (state.vendors || []).map((v, idx) => {
+      const isArr = Array.isArray(v)
+      const name = isArr ? v[0] : v.name
+      const billNo = isArr ? v[1] : v.billNo
+      const billed = isArr ? Number(v[2]) : Number(v.billed)
+      const paid = isArr ? Number(v[3]) : Number(v.paid)
+      const dueDate = isArr ? v[4] : v.dueDate
+
+      const payable = Math.max(0, billed - paid)
+      const paidPercent = billed > 0 ? Math.min(100, (paid / billed) * 100) : 0
+      const status = payable === 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid'
+
+      return {
+        id: `vendor_${idx + 1}`,
+        index: idx,
+        name,
+        billNo,
+        billed,
+        paid,
+        payable,
+        paidPercent,
+        dueDate,
+        status,
+      }
+    })
+
+    const totalBilled = bills.reduce((sum, b) => sum + b.billed, 0)
+    const totalPaid = bills.reduce((sum, b) => sum + b.paid, 0)
+    const totalPayable = bills.reduce((sum, b) => sum + b.payable, 0)
+    const settlementRate =
+      totalBilled > 0 ? (totalPaid / totalBilled) * 100 : 0
+
+    return {
+      success: true,
+      data: {
+        bills,
+        summary: {
+          totalBilled,
+          totalPaid,
+          totalPayable,
+          settlementRate,
+          billCount: bills.length,
+        },
+      },
+    }
+  },
+
+  addVendorBill: async ({ name, billNo, billed, paid = 0, dueDate }) => {
+    const state = loadState()
+    const trimmedName = name?.trim()
+    const trimmedBill =
+      billNo?.trim() || `BILL-${Math.floor(100 + Math.random() * 900)}`
+    if (!trimmedName) throw new Error('Vendor name is required')
+
+    const billedAmt = Math.max(0, Number(billed) || 0)
+    const paidAmt = Math.min(billedAmt, Math.max(0, Number(paid) || 0))
+    const due =
+      dueDate ||
+      new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
+
+    const newBill = {
+      name: trimmedName,
+      billNo: trimmedBill,
+      billed: billedAmt,
+      paid: paidAmt,
+      dueDate: due,
+    }
+
+    state.vendors.push(newBill)
+    saveState(state)
+    return { success: true, data: newBill }
+  },
+
+  recordVendorPayment: async ({ billNo, amount }) => {
+    const state = loadState()
+    const payAmt = Math.max(0, Number(amount) || 0)
+    if (payAmt <= 0) throw new Error('Payment amount must be greater than zero')
+
+    const bill = state.vendors.find((v) => {
+      const bNo = Array.isArray(v) ? v[1] : v.billNo
+      return bNo === billNo
+    })
+
+    if (!bill) throw new Error(`Bill "${billNo}" not found`)
+
+    if (Array.isArray(bill)) {
+      bill[3] = Math.min(bill[2], (Number(bill[3]) || 0) + payAmt)
+    } else {
+      bill.paid = Math.min(bill.billed, (Number(bill.paid) || 0) + payAmt)
+    }
+
+    saveState(state)
+    return { success: true }
+  },
+
+  deleteVendorBill: async (billNo) => {
+    const state = loadState()
+    state.vendors = state.vendors.filter((v) => {
+      const bNo = Array.isArray(v) ? v[1] : v.billNo
+      return bNo !== billNo
+    })
+    saveState(state)
+    return { success: true }
+  },
+
+  exportVendorPayables: async (format = 'csv') => {
+    const state = loadState()
+    const bills = (state.vendors || []).map((v) => {
+      const isArr = Array.isArray(v)
+      const name = isArr ? v[0] : v.name
+      const billNo = isArr ? v[1] : v.billNo
+      const billed = isArr ? Number(v[2]) : Number(v.billed)
+      const paid = isArr ? Number(v[3]) : Number(v.paid)
+      const dueDate = isArr ? v[4] : v.dueDate
+      const payable = Math.max(0, billed - paid)
+      const status = payable === 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Unpaid'
+      return {
+        name,
+        billNo,
+        billed,
+        paid,
+        payable,
+        dueDate,
+        status,
+      }
+    })
+
+    const totalPayable = bills.reduce((sum, b) => sum + b.payable, 0)
+    const filename = `Vendor-Payables-${new Date().toISOString().slice(0, 10)}`
+
+    if (format === 'csv') {
+      const headers = [
+        { key: 'name', label: 'Vendor Name' },
+        { key: 'billNo', label: 'Bill No' },
+        { key: 'billed', label: 'Billed Amount (BDT)' },
+        { key: 'paid', label: 'Paid Amount (BDT)' },
+        { key: 'payable', label: 'Payable Amount (BDT)' },
+        { key: 'dueDate', label: 'Due Date' },
+        { key: 'status', label: 'Status' },
+      ]
+      engineExportToCsv(filename, headers, bills)
+    } else {
+      exportToExcel(filename, {
+        title: 'Vendor Payables & Supplier Balances',
+        subtitle: `Generated: ${new Date().toLocaleDateString('en-GB')} | Currency: BDT (৳)`,
+        headers: [
+          { key: 'name', label: 'Vendor Name' },
+          { key: 'billNo', label: 'Bill Reference' },
+          { key: 'billed', label: 'Billed Amount', isCurrency: true },
+          { key: 'paid', label: 'Paid Amount', isCurrency: true },
+          { key: 'payable', label: 'Outstanding Payable', isCurrency: true },
+          { key: 'dueDate', label: 'Due Date' },
+          { key: 'status', label: 'Status' },
+        ],
+        rows: bills,
+        summaryTotals: [
+          { label: 'Total Vendor Payables', value: formatMoney(totalPayable) },
+        ],
+      })
+    }
+    return { success: true }
+  },
+
+  // ── Partners & Capital API ─────────────────────────────────
+  getPartnersCapital: async (targetYear, targetMonth) => {
+    const state = loadState()
+    const now = new Date()
+    const year =
+      targetYear !== undefined ? Number(targetYear) : now.getFullYear()
+    const month =
+      targetMonth !== undefined ? Number(targetMonth) : now.getMonth()
+
+    const getInvested = (id) =>
+      state.inv
+        .filter((x) => x.p === id && x.t === 'Investment')
+        .reduce((sum, x) => sum + (Number(x.a) || 0), 0)
+
+    const getWithdrawn = (id) =>
+      state.inv
+        .filter((x) => x.p === id && x.t === 'Withdrawal')
+        .reduce((sum, x) => sum + (Number(x.a) || 0), 0)
+
+    const partnerAInvested = getInvested('A')
+    const partnerAWithdrawn = getWithdrawn('A')
+    const partnerANet = partnerAInvested - partnerAWithdrawn
+
+    const partnerBInvested = getInvested('B')
+    const partnerBWithdrawn = getWithdrawn('B')
+    const partnerBNet = partnerBInvested - partnerBWithdrawn
+
+    const totalInvested = partnerAInvested + partnerBInvested
+    const totalWithdrawn = partnerAWithdrawn + partnerBWithdrawn
+    const totalNetCapital = partnerANet + partnerBNet
+
+    const partnerAShare =
+      totalNetCapital > 0 ? (partnerANet / totalNetCapital) * 100 : 50
+    const partnerBShare =
+      totalNetCapital > 0 ? (partnerBNet / totalNetCapital) * 100 : 50
+
+    // Compute month profit pool from actual entries
+    const monthPrefix = ds(year, month, 1).slice(0, 7)
+    const monthEntries = state.ent.filter((e) => e.d.startsWith(monthPrefix))
+    const agg = aggregateEntries(monthEntries, state.cats)
+    const monthlyProfitPool = agg.net
+
+    const partnerAProfit =
+      monthlyProfitPool > 0 ? (monthlyProfitPool * partnerAShare) / 100 : 0
+    const partnerBProfit =
+      monthlyProfitPool > 0 ? (monthlyProfitPool * partnerBShare) / 100 : 0
+
+    const partners = [
+      {
+        id: 'A',
+        name: 'Partner A',
+        color: '#0879E8',
+        invested: partnerAInvested,
+        withdrawn: partnerAWithdrawn,
+        net: partnerANet,
+        sharePercent: partnerAShare,
+        profitShare: partnerAProfit,
+      },
+      {
+        id: 'B',
+        name: 'Partner B',
+        color: '#16a34a',
+        invested: partnerBInvested,
+        withdrawn: partnerBWithdrawn,
+        net: partnerBNet,
+        sharePercent: partnerBShare,
+        profitShare: partnerBProfit,
+      },
+    ]
+
+    const history = [...state.inv]
+      .sort((a, b) => b.d.localeCompare(a.d))
+      .map((item, idx) => ({
+        id: `inv_${idx + 1}`,
+        index: idx,
+        ...item,
+      }))
+
+    return {
+      success: true,
+      data: {
+        year,
+        month,
+        monthName: MONTH_NAMES[month],
+        partners,
+        partnerA: partners[0],
+        partnerB: partners[1],
+        totalInvested,
+        totalWithdrawn,
+        totalNetCapital,
+        monthlyProfitPool,
+        history,
+      },
+    }
+  },
+
+  addPartnerRecord: async ({ partner, type, amount, date, note }) => {
+    const state = loadState()
+    const amt = Math.max(1, Number(amount) || 0)
+    const p = partner || 'A'
+    const t = type || 'Investment'
+    const d = date || new Date().toISOString().slice(0, 10)
+    const n =
+      note?.trim() ||
+      (t === 'Investment' ? 'Capital injection' : 'Partner drawings')
+
+    state.inv.push({
+      d,
+      p,
+      t,
+      a: amt,
+      note: n,
+    })
+
+    saveState(state)
+    return { success: true }
+  },
+
+  deletePartnerRecord: async (date, partner, amount) => {
+    const state = loadState()
+    const idx = state.inv.findIndex(
+      (x) => x.d === date && x.p === partner && Number(x.a) === Number(amount)
+    )
+    if (idx !== -1) {
+      state.inv.splice(idx, 1)
+      saveState(state)
+    }
+    return { success: true }
+  },
+
+  exportPartnersCapital: async (format = 'csv') => {
+    const state = loadState()
+    const history = [...state.inv]
+      .sort((a, b) => b.d.localeCompare(a.d))
+      .map((x) => ({
+        date: x.d,
+        partner: `Partner ${x.p}`,
+        type: x.t,
+        amount: x.a,
+        note: x.note || '—',
+      }))
+
+    const filename = `Partner-Capital-${new Date().toISOString().slice(0, 10)}`
+    if (format === 'csv') {
+      const headers = [
+        { key: 'date', label: 'Date' },
+        { key: 'partner', label: 'Partner' },
+        { key: 'type', label: 'Transaction Type' },
+        { key: 'amount', label: 'Amount (BDT)' },
+        { key: 'note', label: 'Description' },
+      ]
+      engineExportToCsv(filename, headers, history)
+    } else {
+      exportToExcel(filename, {
+        title: 'Partner Capital & Investment History',
+        subtitle: `ABL Travel · Equity & Drawings Log · Currency: BDT (৳)`,
+        headers: [
+          { key: 'date', label: 'Transaction Date' },
+          { key: 'partner', label: 'Partner' },
+          { key: 'type', label: 'Type' },
+          { key: 'amount', label: 'Amount', isCurrency: true },
+          { key: 'note', label: 'Notes' },
+        ],
+        rows: history,
+      })
+    }
+    return { success: true }
+  },
+
+  // ── Profit & Loss and Expenses API ─────────────────────────
+  getProfitAndLossReport: async (targetYear, targetMonth) => {
+    const state = loadState()
+    const now = new Date()
+    const year =
+      targetYear !== undefined ? Number(targetYear) : now.getFullYear()
+    const month =
+      targetMonth !== undefined ? Number(targetMonth) : now.getMonth()
+
+    const prefix = ds(year, month, 1).slice(0, 7)
+    const monthEntries = state.ent.filter((e) => e.d.startsWith(prefix))
+    const agg = aggregateEntries(monthEntries, state.cats)
+
+    const totalOperatingExpenses = (state.exp || []).reduce(
+      (sum, e) => sum + (Array.isArray(e) ? Number(e[1]) : Number(e.amount)),
+      0
+    )
+
+    const expensesList = (state.exp || []).map((e, idx) => {
+      const isArr = Array.isArray(e)
+      const name = isArr ? e[0] : e.name
+      const amount = isArr ? Number(e[1]) : Number(e.amount)
+      const percentOfExpenses =
+        totalOperatingExpenses > 0
+          ? (amount / totalOperatingExpenses) * 100
+          : 0
+      return {
+        id: `exp_${idx + 1}`,
+        index: idx,
+        name,
+        amount,
+        percentOfExpenses,
+      }
+    })
+
+    const netProfit = agg.gp - totalOperatingExpenses
+    const netMargin = agg.sell > 0 ? (netProfit / agg.sell) * 100 : 0
+
+    const availableYears = [
+      ...new Set([
+        new Date().getFullYear(),
+        year,
+        ...state.ent.map((e) => parseInt(e.d.slice(0, 4), 10)),
+      ]),
+    ].sort()
+
+    const trend6Months = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(year, month - i, 1)
+      const dPrefix = ds(d.getFullYear(), d.getMonth(), 1).slice(0, 7)
+      const mEntries = state.ent.filter((e) => e.d.startsWith(dPrefix))
+      const mAgg = aggregateEntries(mEntries, state.cats)
+      trend6Months.push({
+        label: SHORT_MONTHS[d.getMonth()],
+        revenue: mAgg.sell,
+        cost: mAgg.cost,
+        expenses: totalOperatingExpenses,
+        net: mAgg.gp - totalOperatingExpenses,
+      })
+    }
+
+    return {
+      success: true,
+      data: {
+        year,
+        month,
+        monthName: MONTH_NAMES[month],
+        isLiveMonth:
+          year === new Date().getFullYear() && month === new Date().getMonth(),
+        revenue: agg.sell,
+        directCosts: agg.cost,
+        grossProfit: agg.gp,
+        grossMargin: agg.sell > 0 ? (agg.gp / agg.sell) * 100 : 0,
+        totalOperatingExpenses,
+        netProfit,
+        netMargin,
+        categoryBreakdown: state.cats.map((cat) => ({
+          name: cat.n,
+          color: cat.c,
+          revenue: agg.by[cat.n] || 0,
+          cost: agg.cc[cat.n] || 0,
+          profit: (agg.by[cat.n] || 0) - (agg.cc[cat.n] || 0),
+        })),
+        expensesList,
+        trend6Months,
+        availableYears,
+      },
+    }
+  },
+
+  addOperatingExpense: async ({ name, amount }) => {
+    const state = loadState()
+    const trimmed = name?.trim()
+    if (!trimmed) throw new Error('Expense title is required')
+    const amt = Math.max(0, Number(amount) || 0)
+
+    state.exp.push({ name: trimmed, amount: amt })
+    saveState(state)
+    return { success: true }
+  },
+
+  deleteOperatingExpense: async (index) => {
+    const state = loadState()
+    const i = Number(index)
+    if (state.exp[i]) {
+      state.exp.splice(i, 1)
+      saveState(state)
+    }
+    return { success: true }
+  },
+
+  exportProfitLossReport: async (year, month, format = 'csv') => {
+    const state = loadState()
+    const prefix = ds(year, month, 1).slice(0, 7)
+    const monthEntries = state.ent.filter((e) => e.d.startsWith(prefix))
+    const agg = aggregateEntries(monthEntries, state.cats)
+    const monthName = MONTH_NAMES[month]
+
+    const totalOperatingExpenses = (state.exp || []).reduce(
+      (sum, e) => sum + (Array.isArray(e) ? Number(e[1]) : Number(e.amount)),
+      0
+    )
+    const netProfit = agg.gp - totalOperatingExpenses
+    const netMargin = agg.sell > 0 ? (netProfit / agg.sell) * 100 : 0
+
+    const statementRows = [
+      ...state.cats.map((cat) => ({
+        item: `${cat.n} Sales Revenue`,
+        type: 'Revenue',
+        amount: agg.by[cat.n] || 0,
+      })),
+      { item: 'Total Gross Revenue', type: 'Revenue Total', amount: agg.sell },
+      { item: 'Direct Cost of Sales', type: 'Cost', amount: -agg.cost },
+      { item: 'Gross Profit', type: 'Gross Profit', amount: agg.gp },
+      ...(state.exp || []).map((e) => ({
+        item: `Operating Expense: ${Array.isArray(e) ? e[0] : e.name}`,
+        type: 'Operating Expense',
+        amount: -(Array.isArray(e) ? Number(e[1]) : Number(e.amount)),
+      })),
+      { item: 'Total Operating Expenses', type: 'Expense Total', amount: -totalOperatingExpenses },
+      { item: 'Net Operating Profit', type: 'Net Profit', amount: netProfit },
+    ]
+
+    const filename = `Profit-and-Loss-${year}-${String(month + 1).padStart(2, '0')}`
+
+    if (format === 'csv') {
+      const headers = [
+        { key: 'item', label: 'Financial Statement Line Item' },
+        { key: 'type', label: 'Classification' },
+        { key: 'amount', label: 'Amount (BDT)' },
+      ]
+      engineExportToCsv(filename, headers, statementRows)
+    } else {
+      exportToExcel(filename, {
+        title: `Profit & Loss Statement - ${monthName} ${year}`,
+        subtitle: `ABL Travel Consolidated P&L · Net Margin: ${netMargin.toFixed(1)}%`,
+        headers: [
+          { key: 'item', label: 'Line Item' },
+          { key: 'type', label: 'Classification' },
+          { key: 'amount', label: 'Amount (BDT)', isCurrency: true },
+        ],
+        rows: statementRows,
+        summaryTotals: [
+          { label: 'Total Sales Revenue', value: formatMoney(agg.sell) },
+          { label: 'Direct Costs', value: formatMoney(agg.cost) },
+          { label: 'Total Operating Expenses', value: formatMoney(totalOperatingExpenses) },
+          { label: 'Net Profit', value: formatMoney(netProfit) },
+        ],
+      })
+    }
+    return { success: true }
+  },
 }
