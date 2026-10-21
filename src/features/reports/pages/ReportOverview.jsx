@@ -205,7 +205,7 @@ export default function ReportOverview() {
           label={`Selling Price · ${monthName}`}
           value={formatMoney(currentMonth.sell)}
           subtext={`${currentMonth.salesCount} sales this month`}
-          badge="Gross Sales"
+          // badge="Gross Sales"
           icon={TrendingUp}
           variant="primary"
         />
@@ -213,7 +213,7 @@ export default function ReportOverview() {
           label={`Direct & Vendor Costs`}
           value={formatMoney(currentMonth.cost)}
           subtext="Direct package & visa costs"
-          badge="Direct Costs"
+          // badge="Direct Costs"
           icon={Receipt}
           variant="danger"
         />
@@ -221,7 +221,7 @@ export default function ReportOverview() {
           label={`Net Operating Profit`}
           value={formatMoney(currentMonth.net)}
           subtext={`Net margin: ${currentMonth.margin.toFixed(1)}%`}
-          badge={currentMonth.net >= 0 ? 'Profitable' : 'Deficit'}
+          // badge={currentMonth.net >= 0 ? 'Profitable' : 'Deficit'}
           icon={DollarSign}
           variant={currentMonth.net >= 0 ? 'success' : 'danger'}
         />
@@ -229,7 +229,7 @@ export default function ReportOverview() {
           label="Operating Expenses"
           value={formatMoney(currentMonth.ex)}
           subtext="Salaries, rent & utilities"
-          badge="Overhead"
+          // badge="Overhead"
           icon={CreditCard}
           variant="warning"
         />
@@ -241,7 +241,7 @@ export default function ReportOverview() {
           label="B2B Partner Revenue"
           value={formatMoney(currentMonth.b2b)}
           subtext={`${formatPercentVal(currentMonth.b2b, currentMonth.sell)} of total sales`}
-          badge="Wholesale"
+          // badge="Wholesale"
           icon={Building2}
           variant="primary"
         />
@@ -249,7 +249,7 @@ export default function ReportOverview() {
           label="B2C Client Revenue"
           value={formatMoney(currentMonth.b2c)}
           subtext={`${formatPercentVal(currentMonth.b2c, currentMonth.sell)} of total sales`}
-          badge="Retail"
+          // badge="Retail"
           icon={Users}
           variant="success"
         />
@@ -257,7 +257,7 @@ export default function ReportOverview() {
           label="Customer Receivables"
           value={formatMoney(customerDues)}
           subtext={`B2B: ${formatMoney(b2bDues)} · B2C: ${formatMoney(b2cDues)}`}
-          badge="Outstanding"
+          // badge="Outstanding"
           icon={AlertCircle}
           variant="danger"
         />
@@ -265,7 +265,7 @@ export default function ReportOverview() {
           label="Partner Capital"
           value={formatMoney(totalPartnerCapital)}
           subtext={`A: ${partnerA.sharePercent.toFixed(1)}% · B: ${partnerB.sharePercent.toFixed(1)}%`}
-          badge="Net Equity"
+          // badge="Net Equity"
           icon={Landmark}
           variant="neutral"
         />

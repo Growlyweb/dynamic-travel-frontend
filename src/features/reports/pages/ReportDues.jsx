@@ -328,12 +328,12 @@ export default function ReportDues() {
       </div>
 
       {/* 3. Accounting Rule Banner */}
-      <div className="flex items-center gap-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+      {/* <div className="flex items-center gap-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
         <Info className="size-4 shrink-0 text-amber-600" />
         <span className="font-medium">
           Accounting Standard: <strong>Due Balance = Total Invoiced Amount − Payments Applied − Advance Credits Applied</strong>. Overdue amounts trigger automated payment reminders to clients.
         </span>
-      </div>
+      </div> */}
 
       {/* 4. Table Card */}
       <TableCard>

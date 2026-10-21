@@ -294,13 +294,6 @@ export default function ReportPartnersCapital() {
               </tfoot>
             </table>
           </div>
-
-          <div className="p-3 bg-primary-soft/30 border border-primary/20 rounded-lg text-xs text-primary flex items-start gap-2">
-            <Info className="size-4 shrink-0 mt-0.5" />
-            <span>
-              Net profit is distributed dynamically proportional to each partner's Net Capital Employed balance. If an alternative fixed ratio is mutually agreed, it can be adjusted in the partnership deed.
-            </span>
-          </div>
         </div>
       </div>
 
