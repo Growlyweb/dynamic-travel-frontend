@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Building2,
   Landmark,
+  Megaphone,
   ScrollText,
   RotateCcw,
 } from 'lucide-react'
@@ -61,6 +62,11 @@ const TABS = [
     to: '/reports/partners-capital',
     label: 'Partners & Capital',
     icon: Landmark,
+  },
+  {
+    to: '/reports/marketing',
+    label: 'Marketing',
+    icon: Megaphone,
   },
   {
     to: '/reports/profit-loss',

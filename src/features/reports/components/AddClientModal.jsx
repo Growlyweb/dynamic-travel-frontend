@@ -66,7 +66,7 @@ export default function AddClientModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-surface border-border">
+      <DialogContent className="max-w-lg bg-white border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
             {isB2B ? (

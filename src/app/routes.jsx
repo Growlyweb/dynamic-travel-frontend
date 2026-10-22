@@ -145,6 +145,9 @@ const ReportVendorPayables = lazy(
 const ReportPartnersCapital = lazy(
   () => import("../features/reports/pages/ReportPartnersCapital"),
 );
+const ReportMarketing = lazy(
+  () => import("../features/marketing/pages/ReportMarketing"),
+);
 const ReportProfitLoss = lazy(
   () => import("../features/reports/pages/ReportProfitLoss"),
 );
@@ -604,6 +607,14 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="reports.view">
                 <ReportPartnersCapital />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/marketing"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportMarketing />
               </RequirePermission>
             }
           />

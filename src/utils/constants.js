@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Luggage,
+  Megaphone,
   MessageSquareText,
   Milestone,
   PenLine,
@@ -109,6 +110,7 @@ export const APP_ROUTES = {
   REPORT_DUES: '/reports/dues',
   REPORT_VENDOR_PAYABLES: '/reports/vendor-payables',
   REPORT_PARTNERS_CAPITAL: '/reports/partners-capital',
+  REPORT_MARKETING: '/reports/marketing',
   REPORT_PROFIT_LOSS: '/reports/profit-loss',
 
   SETTINGS_PROFILE: '/settings/profile',
@@ -135,6 +137,10 @@ export const NAV_SECTIONS = [
       { to: APP_ROUTES.REPORT_PARTNERS_CAPITAL, label: 'Partners & Capital', icon: Landmark, permission: 'reports.view' },
       { to: APP_ROUTES.REPORT_PROFIT_LOSS, label: 'P&L and Expenses', icon: ScrollText, permission: 'reports.view' },
     ],
+  },
+  {
+    label: 'Marketing',
+    items: [{ to: APP_ROUTES.REPORT_MARKETING, label: 'Email & SMS', icon: Megaphone, permission: 'reports.view' },],
   },
   {
     label: 'Visa',

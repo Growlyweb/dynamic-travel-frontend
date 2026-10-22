@@ -38,7 +38,7 @@ export default function AddCategoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-surface border-border">
+      <DialogContent className="max-w-md bg-white border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
             <Tag className="size-5 text-primary" />
@@ -78,11 +78,10 @@ export default function AddCategoryModal({
                     key={palColor}
                     type="button"
                     onClick={() => setColor(palColor)}
-                    className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                      color.toLowerCase() === palColor.toLowerCase()
+                    className={`w-7 h-7 rounded-full border-2 transition-transform ${color.toLowerCase() === palColor.toLowerCase()
                         ? 'border-foreground scale-110 shadow-xs'
                         : 'border-transparent hover:scale-105'
-                    }`}
+                      }`}
                     style={{ backgroundColor: palColor }}
                     title={palColor}
                   />
