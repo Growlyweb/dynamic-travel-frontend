@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Stamp,
+  TrendingUp,
   UserCog,
   UserRound,
 } from 'lucide-react'
@@ -53,6 +54,7 @@ import { cn } from '@/utils/helpers'
 
 const SECTION_ICONS = {
   Overview: LayoutDashboard,
+  Reports: TrendingUp,
   Visa: Stamp,
   Tours: Luggage,
   'Partners · B2B': Handshake,
@@ -249,7 +251,7 @@ export default function AppSidebar({ onNavigate }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild className="w-full">
+              <DropdownMenuTrigger className="w-full" asChild>
                 <SidebarMenuButton
                   size="lg"
                   className={cn(
@@ -260,8 +262,8 @@ export default function AppSidebar({ onNavigate }) {
                     isAccountActive && 'bg-sidebar-accent/70 font-semibold'
                   )}>
                   <div className="flex items-center gap-3 w-full min-w-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-                    <Avatar className="size-8.5 rounded-lg shrink-0 border border-sidebar-border/50">
-                      <AvatarFallback className="rounded-lg text-xs font-bold bg-primary text-primary-foreground">
+                    <Avatar className="size-8.5 rounded-full shrink-0 border border-sidebar-border/50">
+                      <AvatarFallback className="rounded-full text-xs font-bold bg-primary text-primary-foreground">
                         {initials(user?.name ?? 'ABL')}
                       </AvatarFallback>
                     </Avatar>
@@ -286,8 +288,8 @@ export default function AppSidebar({ onNavigate }) {
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="p-2 font-normal">
                     <div className="flex items-center gap-2">
-                      <Avatar className="size-9 rounded-lg shrink-0 border border-border/40">
-                        <AvatarFallback className="rounded-lg text-xs font-bold bg-primary text-primary-foreground">
+                      <Avatar className="size-9 rounded-full shrink-0 border border-border/40">
+                        <AvatarFallback className="rounded-full text-xs font-bold bg-primary text-primary-foreground">
                           {initials(user?.name ?? 'ABL')}
                         </AvatarFallback>
                       </Avatar>

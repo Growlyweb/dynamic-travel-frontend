@@ -796,6 +796,83 @@ export const visaApi = {
       () => clone(applicationsStore.find((application) => application.id === id) ?? applicationsStore[0]),
       () => apiClient.get(`/visa/applications/${id}`),
     ),
+  createApplication: (payload) =>
+    withMock(
+      () => {
+        const record = {
+          id: nextId('va'),
+          number: `VISA-${new Date().getFullYear()}-${String(applicationsStore.length + 101).padStart(6, '0')}`,
+          status: 'submitted',
+          submittedAt: new Date().toISOString().slice(0, 10),
+          updatedAt: new Date().toISOString().slice(0, 10),
+          channel: payload.clientName ? 'b2b' : 'b2c',
+          partner: payload.clientName || null,
+          country: payload.country || 'China',
+          countryId: payload.countryId || 'vcn',
+          visaType: payload.visaType || 'Tourist Visa',
+          applicant: {
+            fullName: payload.name || '',
+            mobile: payload.phone || '',
+            email: payload.email || '',
+            address: '',
+            city: '',
+            nationality: 'Bangladeshi',
+            applicantType: payload.clientName ? 'business' : 'individual',
+          },
+          passport: {
+            number: payload.passportNumber || '',
+            expiry: '',
+            issueDate: '',
+            issuingCountry: 'Bangladesh',
+            type: 'ordinary',
+          },
+          service: {
+            clientName: payload.clientName || '',
+            visaType: payload.visaType || '',
+            entries: payload.entries || 'Single Entry',
+            duration: payload.visaDuration || '30 Days',
+          },
+          vendor: {
+            name: payload.vendorName || '',
+            reference: payload.vendorReference || '',
+            cost: Number(payload.vendorCost) || 0,
+            notes: payload.vendorNotes || '',
+          },
+          account: {
+            totalAmount: Number(payload.totalAmount) || 0,
+            advancePaid: Number(payload.advancePaid) || 0,
+            dueAmount: Math.max(0, (Number(payload.totalAmount) || 0) - (Number(payload.advancePaid) || 0)),
+            paymentMethod: payload.paymentMethod || 'Cash',
+            status: payload.paymentStatus || 'Pending',
+          },
+          price: {
+            currency: 'BDT',
+            b2c: Number(payload.totalAmount) || 0,
+            b2b: Number(payload.totalAmount) || 0,
+          },
+          assignedStaff: null,
+          actionRequired: null,
+          rejection: null,
+          documents: [],
+          timeline: [
+            {
+              id: nextId('vtl'),
+              at: new Date().toISOString(),
+              event: 'Application Created',
+              message: 'Application created successfully.',
+              visibility: 'both',
+              by: 'Admin',
+            },
+          ],
+          internalNotes: payload.vendorNotes ? [{ id: nextId('vn'), at: new Date().toISOString(), by: 'Admin', text: `Vendor note: ${payload.vendorNotes}` }] : [],
+          customerNotes: [],
+          ...payload,
+        }
+        applicationsStore = [record, ...applicationsStore]
+        return clone(record)
+      },
+      () => apiClient.post('/visa/applications', payload),
+    ),
   updateApplication: (id, patch) =>
     withMock(
       () => {

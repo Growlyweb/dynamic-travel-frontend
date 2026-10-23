@@ -37,9 +37,12 @@ export default function ServiceCheckboxGroup({
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-foreground">
-          Services / Segments <span className="text-rose-500">* (min 1)</span>
+          Services <span className="text-rose-500">* (at least 1 service required)</span>
         </label>
-        <Button
+        <Button>
+
+        </Button>
+        {/* <Button
           type="button"
           variant="ghost"
           size="xs"
@@ -55,7 +58,7 @@ export default function ServiceCheckboxGroup({
               <CheckSquare className="size-3.5 mr-1" /> Check All
             </>
           )}
-        </Button>
+        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-3 rounded-xl">
@@ -86,11 +89,11 @@ export default function ServiceCheckboxGroup({
                 </div>
                 <span className="truncate">{service.name}</span>
               </div>
-              {service.code && (
+              {/* {service.code && (
                 <span className="text-[10px] font-mono uppercase bg-muted/60 text-muted-foreground px-1.5 py-0.5 rounded ml-1 shrink-0">
                   {service.code}
                 </span>
-              )}
+              )} */}
             </button>
           )
         })}
