@@ -2,6 +2,7 @@ import { authApi } from './auth.api'
 import { config } from '../../app/config'
 import { sleep } from '../../utils/helpers'
 import { getStoredUser } from '../../services/authStorage'
+import { b2bApi } from '../b2b/b2b.api'
 
 // Mock accounts used while VITE_ENABLE_MOCKS=true, so both login roles are
 // explorable without a backend. Any email/password combination signs in as
@@ -25,6 +26,23 @@ export const MOCK_USERS = {
 
 export const authService = {
   async login(credentials) {
+    if (config.enableMocks && credentials?.role === 'partner') {
+      await sleep(300)
+      const partner = await b2bApi.loginPartner(credentials.email, credentials.password)
+      return {
+        token: `partner-token-${partner.id}`,
+        refreshToken: `partner-refresh-${partner.id}`,
+        user: {
+          id: `partner_${partner.id}`,
+          name: partner.name,
+          email: partner.email,
+          role: 'partner',
+          partnerId: partner.id,
+          company: partner.company,
+          avatarUrl: null,
+        },
+      }
+    }
     if (config.enableMocks) {
       await sleep(400)
       const fallback = String(credentials?.email ?? '').includes('staff') ? 'staff' : 'admin'
