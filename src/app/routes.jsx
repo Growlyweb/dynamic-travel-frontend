@@ -49,6 +49,9 @@ const SmsTemplates = lazy(
   () => import("../features/visa/pages/SmsTemplates"),
 );
 const SmsLogs = lazy(() => import("../features/visa/pages/SmsLogs"));
+const ReTablePreviewPage = lazy(
+  () => import("../features/visa/pages/ReTablePreviewPage"),
+);
 
 const TourPackages = lazy(() => import("../features/tours/pages/TourPackages"));
 const TourDetails = lazy(() => import("../features/tours/pages/TourDetails"));
@@ -74,6 +77,9 @@ const Withdrawals = lazy(() => import("../features/b2b/pages/Withdrawals"));
 const PartnerDocuments = lazy(
   () => import("../features/b2b/pages/PartnerDocuments"),
 );
+const PartnerLogin = lazy(() => import("../features/b2b/pages/PartnerLogin"));
+const PartnerRegister = lazy(() => import("../features/b2b/pages/PartnerRegister"));
+const PartnerPortal = lazy(() => import("../features/b2b/pages/PartnerPortal"));
 
 const Customers = lazy(() => import("../features/b2c/pages/Customers"));
 const CustomerDetails = lazy(
@@ -90,9 +96,6 @@ const MembershipReports = lazy(
   () => import("../features/membership/pages/MembershipReports"),
 );
 
-const VendorDashboard = lazy(
-  () => import("../features/vendors/pages/VendorDashboard"),
-);
 const VendorList = lazy(() => import("../features/vendors/pages/VendorList"));
 const VendorForm = lazy(() => import("../features/vendors/pages/VendorForm"));
 const VendorServices = lazy(
@@ -114,14 +117,76 @@ const DocumentDetails = lazy(
 const Notifications = lazy(
   () => import("../features/notifications/pages/Notifications"),
 );
-const Reports = lazy(() => import("../features/reports/pages/Reports"));
-
+const AccountDashboard = lazy(
+  () => import("../features/reports/pages/AccountDashboard"),
+);
+const JournalVouchers = lazy(
+  () => import("../features/reports/pages/JournalVouchers"),
+);
+const ChartOfAccounts = lazy(
+  () => import("../features/reports/pages/ChartOfAccounts"),
+);
+const GeneralLedger = lazy(
+  () => import("../features/reports/pages/GeneralLedger"),
+);
+const TrialBalance = lazy(
+  () => import("../features/reports/pages/TrialBalance"),
+);
+const ProfitLoss = lazy(() => import("../features/reports/pages/ProfitLoss"));
+const BalanceSheet = lazy(
+  () => import("../features/reports/pages/BalanceSheet"),
+);
+const Receivables = lazy(() => import("../features/reports/pages/Receivables"));
+const Payables = lazy(() => import("../features/reports/pages/Payables"));
+const VisaFiles = lazy(() => import("../features/reports/pages/VisaFiles"));
+const ServiceSegments = lazy(
+  () => import("../features/reports/pages/ServiceSegments"),
+);
+const MonthlyPerformance = lazy(
+  () => import("../features/reports/pages/MonthlyPerformance"),
+);
+const AccountsHome = lazy(
+  () => import("../features/reports/simple-accounts/pages/AccountsHome"),
+);
+const SimpleSales = lazy(
+  () => import("../features/reports/simple-accounts/pages/Sales"),
+);
+const ClientDues = lazy(
+  () => import("../features/reports/simple-accounts/pages/ClientDues"),
+);
+const MoneyReceipts = lazy(
+  () => import("../features/reports/simple-accounts/pages/MoneyReceipts"),
+);
+const SimpleMonthly = lazy(
+  () => import("../features/reports/simple-accounts/pages/MonthlyReport"),
+);
+const SimpleProfit = lazy(
+  () => import("../features/reports/simple-accounts/pages/ProfitExpenses"),
+);
+const SimpleCategories = lazy(
+  () => import("../features/reports/simple-accounts/pages/Categories"),
+);
+const SimplePriceList = lazy(
+  () => import("../features/reports/simple-accounts/pages/PriceList"),
+);
+const ReportMarketing = lazy(
+  () => import("../features/marketing/pages/ReportMarketing"),
+);
+const SimpleClients = lazy(
+  () => import("../features/reports/simple-accounts/pages/ClientList"),
+);
+const SimplePayables = lazy(
+  () => import("../features/reports/simple-accounts/pages/VendorPayables"),
+);
+const AccountPartners = lazy(
+  () => import("../features/reports/simple-accounts/pages/Partners"),
+);
 const Profile = lazy(() => import("../features/settings/pages/Profile"));
 const Settings = lazy(() => import("../features/settings/pages/Settings"));
 const Security = lazy(() => import("../features/settings/pages/Security"));
 
 function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const location = useLocation();
   if (!isAuthenticated) {
     return (
@@ -132,12 +197,24 @@ function RequireAuth({ children }) {
       />
     );
   }
+  if (user?.role === "partner") {
+    return <Navigate to="/partner/portal" replace />;
+  }
   return children;
 }
 
 function RequirePermission({ permission, children }) {
   const { can } = usePermission();
+  const { user } = useAuth();
+  if (user?.role === "partner") return <Navigate to="/partner/portal" replace />;
   if (!can(permission)) return <Navigate to={APP_ROUTES.DASHBOARD} replace />;
+  return children;
+}
+
+function RequirePartner({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/partner/login" replace />;
+  if (user?.role !== "partner") return <Navigate to={APP_ROUTES.DASHBOARD} replace />;
   return children;
 }
 
@@ -154,6 +231,17 @@ export function AppRoutes() {
         <Route path="/login/:role" element={<Login />} />
         <Route path="/login" element={<Navigate to="/dashboard/login/admin" replace />} />
 
+        <Route path="/partner/login" element={<PartnerLogin />} />
+        <Route path="/partner/register" element={<PartnerRegister />} />
+        <Route
+          path="/partner/portal"
+          element={
+            <RequirePartner>
+              <PartnerPortal />
+            </RequirePartner>
+          }
+        />
+
         <Route path="/dashboard/forgot-password/:role" element={<ForgotPassword />} />
         <Route path="/forgot-password/:role" element={<ForgotPassword />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -165,6 +253,7 @@ export function AppRoutes() {
         <Route path="/dashboard/reset-password/:role" element={<ResetPassword />} />
         <Route path="/reset-password/:role" element={<ResetPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/re-table-preview" element={<ReTablePreviewPage />} />
 
         <Route
           element={
@@ -174,6 +263,104 @@ export function AppRoutes() {
           }
         >
           <Route path="dashboard" element={<Dashboard />} />
+
+          {/* Simple Accounts */}
+          <Route
+            path="accounts"
+            element={
+              <RequirePermission permission="reports.view">
+                <AccountsHome />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/sales"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleSales />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/dues"
+            element={
+              <RequirePermission permission="reports.view">
+                <ClientDues />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/receipts"
+            element={
+              <RequirePermission permission="reports.view">
+                <MoneyReceipts />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/monthly"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleMonthly />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/profit"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleProfit />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/categories"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleCategories />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/price-list"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimplePriceList />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/agents"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleClients kind="B2B" />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/clients"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimpleClients kind="B2C" />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/payables"
+            element={
+              <RequirePermission permission="reports.view">
+                <SimplePayables />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="accounts/partners"
+            element={
+              <RequirePermission permission="reports.view">
+                <AccountPartners />
+              </RequirePermission>
+            }
+          />
 
           <Route
             path="users"
@@ -237,6 +424,14 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="visa.view">
                 <VisaChecklist />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/checklist-preview"
+            element={
+              <RequirePermission permission="visa.view">
+                <ReTablePreviewPage />
               </RequirePermission>
             }
           />
@@ -314,7 +509,7 @@ export function AppRoutes() {
           />
 
           <Route
-            path="tours"
+            path="tours/packages"
             element={
               <RequirePermission permission="tours.view">
                 <TourPackages />
@@ -361,6 +556,15 @@ export function AppRoutes() {
               </RequirePermission>
             }
           />
+            <Route
+            path="reports/marketing"
+            element={
+              <RequirePermission permission="reports.view">
+                <ReportMarketing />
+              </RequirePermission>
+            }
+          />
+          
 
           <Route
             path="b2b/partners"
@@ -462,7 +666,7 @@ export function AppRoutes() {
           />
 
           {/* Vendors */}
-          <Route path="vendors/dashboard" element={<VendorDashboard />} />
+          <Route path="vendors/dashboard" element={<Navigate to="/vendors" replace />} />
           <Route path="vendors" element={<VendorList />} />
           <Route path="vendors/new" element={<VendorForm />} />
           <Route path="vendors/services" element={<VendorServices />} />
@@ -489,11 +693,110 @@ export function AppRoutes() {
           />
 
           <Route path="notifications" element={<Notifications />} />
+
+          {/* Accounting */}
+          <Route path="reports" element={<Navigate to="/accounts" replace />} />
           <Route
-            path="reports"
+            path="reports/overview"
             element={
               <RequirePermission permission="reports.view">
-                <Reports />
+                <AccountDashboard />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/journal"
+            element={
+              <RequirePermission permission="reports.view">
+                <JournalVouchers />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/accounts"
+            element={
+              <RequirePermission permission="reports.view">
+                <ChartOfAccounts />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/ledger"
+            element={
+              <RequirePermission permission="reports.view">
+                <GeneralLedger />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/trial-balance"
+            element={
+              <RequirePermission permission="reports.view">
+                <TrialBalance />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/profit-loss"
+            element={
+              <RequirePermission permission="reports.view">
+                <ProfitLoss />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/balance-sheet"
+            element={
+              <RequirePermission permission="reports.view">
+                <BalanceSheet />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/b2c-clients"
+            element={
+              <RequirePermission permission="reports.view">
+                <Receivables kind="B2C" />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/b2b-agents"
+            element={
+              <RequirePermission permission="reports.view">
+                <Receivables kind="B2B" />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/payables"
+            element={
+              <RequirePermission permission="reports.view">
+                <Payables />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/visa-files"
+            element={
+              <RequirePermission permission="reports.view">
+                <VisaFiles />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/categories"
+            element={
+              <RequirePermission permission="reports.view">
+                <ServiceSegments />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="reports/monthly"
+            element={
+              <RequirePermission permission="reports.view">
+                <MonthlyPerformance />
               </RequirePermission>
             }
           />

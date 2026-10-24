@@ -18,14 +18,14 @@ export default function DashboardLayout() {
   return (
     <div className="flex h-full w-full min-w-0">
       <Suspense>
-      <AppSidebar />
+        <AppSidebar />
       </Suspense>
-      <SidebarInset className='flex flex-1 flex-col'>
+      <SidebarInset className='flex min-w-0 flex-1 flex-col'>
         {/* <MobileSidebar open={mobileOpen} onClose={() => setMobileOpen(false)} /> */}
-          <AppHeader onMenuClick={() => setMobileOpen(true)} />
-          <main className='mx-auto size-full max-w-360 flex-1 px-4 py-6 sm:px-6'>
-            <Outlet />
-          </main>
+        <AppHeader onMenuClick={() => setMobileOpen(true)} />
+        <main className='mx-auto size-full w-full min-w-0 max-w-360 flex-1 px-4 py-6 sm:px-6'>
+          <Outlet />
+        </main>
       </SidebarInset>
     </div>
   )
