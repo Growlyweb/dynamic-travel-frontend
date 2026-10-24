@@ -58,8 +58,24 @@ export default function PartnerDetails() {
             <dd>{partner.company}</dd>
           </div>
           <div>
+            <dt>Contact person</dt>
+            <dd>{partner.name}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>{partner.email || '—'}</dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>{partner.phone || '—'}</dd>
+          </div>
+          <div>
             <dt>Country</dt>
             <dd>{partner.country}</dd>
+          </div>
+          <div>
+            <dt>Account</dt>
+            <dd>{partner.isActive ? 'Active' : 'Not active'}</dd>
           </div>
           <div>
             <dt>Commission due</dt>
@@ -70,6 +86,31 @@ export default function PartnerDetails() {
             <dd>{formatDate(partner.joinedAt)}</dd>
           </div>
         </dl>
+      </div>
+
+      <div className="card">
+        <div className="row between row--wrap">
+          <div>
+            <p className="card__title" style={{ marginBottom: 0 }}>Verification documents</p>
+            <p className="muted small">{partner.verifiedDocumentCount || 0} of {partner.documentCount || 0} verified</p>
+          </div>
+          <Button variant="subtle" onClick={() => navigate(`/b2b/documents?partnerId=${partner.id}`)}>
+            Review documents
+          </Button>
+        </div>
+        <div className="mt-3 divide-y divide-slate-100">
+          {(partner.documents || []).map((document) => (
+            <div key={document.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+              <span className="font-medium text-slate-700">{document.name}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold capitalize ${
+                document.status === 'verified' ? 'bg-emerald-50 text-emerald-700' : document.status === 'rejected' ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'
+              }`}>
+                {document.status}
+              </span>
+            </div>
+          ))}
+          {!(partner.documents || []).length ? <p className="py-4 text-sm text-slate-400">No documents uploaded.</p> : null}
+        </div>
       </div>
 
       <CommissionSummary
