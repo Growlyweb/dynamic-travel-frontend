@@ -12,9 +12,16 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
-import { Plus, Download, Edit, Trash2, Receipt, Search } from 'lucide-react'
+import ExportMenu from '@/components/common/ExportMenu'
+import { Plus, Edit, Trash2, Search, Printer, FileSpreadsheet } from 'lucide-react'
 
-import { vendorApi, exportToCsv } from '../vendor.api'
+import {
+  vendorApi,
+  exportToCsv,
+  exportToExcel,
+  printInvoice,
+  printReportDocument,
+} from '../vendor.api'
 import BillModal from '../components/BillModal'
 import DueBadge from '../components/DueBadge'
 import { formatDate, formatNumber } from '@/utils/formatters'
@@ -79,7 +86,7 @@ export default function VendorBills() {
     )
   }, [bills, search])
 
-  const handleExport = () => {
+  const handleExportCsv = () => {
     const headers = [
       { label: 'SL', key: (r, i) => i + 1 },
       { label: 'Date', key: (r) => formatDate(r.date) },
@@ -92,6 +99,58 @@ export default function VendorBills() {
       { label: 'Due (BDT)', key: 'due' },
     ]
     exportToCsv('Vendor_Bills', headers, filteredBills)
+  }
+
+  const handleExportExcel = () => {
+    exportToExcel('Vendor_Bills_Report', {
+      title: 'Vendor Payable Bills Report',
+      subtitle: `Generated: ${new Date().toLocaleDateString('en-GB')} | Scope: ${vendorFilter === 'all' ? 'All Vendors' : 'Filtered'}`,
+      headers: ['SL', 'Date', 'Bill No', 'Vendor', 'Service', 'Invoice Ref', 'Amount (BDT)', 'Paid (BDT)', 'Due (BDT)'],
+      rows: filteredBills.map((b, i) => [
+        i + 1,
+        formatDate(b.date),
+        b.billNo,
+        b.vendorName,
+        b.serviceName,
+        b.invoiceRef || '—',
+        Number(b.amount) || 0,
+        Number(b.paid) || 0,
+        Number(b.due) || 0,
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed Amount', value: `BDT ${formatNumber(totalAmount)}` },
+        { label: 'Total Amount Paid', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Total Outstanding Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+      metadata: {
+        'Total Bills': filteredBills.length,
+        'Date Filter': from && to ? `${from} to ${to}` : 'All Dates',
+      },
+    })
+  }
+
+  const handleExportPdf = () => {
+    printReportDocument({
+      title: 'Vendor Payable Bills Register',
+      subtitle: `Statement of Invoices & Dues | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Date', 'Bill No', 'Vendor Name', 'Segment', 'Ref', 'Amount (BDT)', 'Paid (BDT)', 'Due (BDT)'],
+      rows: filteredBills.map((b, i) => [
+        i + 1,
+        formatDate(b.date),
+        b.billNo,
+        b.vendorName,
+        b.serviceName,
+        b.invoiceRef || '—',
+        formatNumber(b.amount),
+        formatNumber(b.paid),
+        formatNumber(b.due),
+      ]),
+      summaryTotals: [
+        { label: 'Total Invoiced', value: `BDT ${formatNumber(totalAmount)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Net Payable Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+    })
   }
 
   const handleSaveBill = async (billData) => {
@@ -132,15 +191,11 @@ export default function VendorBills() {
         ]}
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="bg-white text-xs gap-1.5 h-9"
-            >
-              <Download className="size-3.5 text-muted-foreground" /> Export Excel
-            </Button>
+            <ExportMenu
+              onExportPdf={handleExportPdf}
+              onExportExcel={handleExportExcel}
+              onExportCsv={handleExportCsv}
+            />
             <Button
               size="sm"
               onClick={() => {
@@ -293,6 +348,19 @@ export default function VendorBills() {
                     </TableCell>
                     <TableCell className="text-right pr-4">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => {
+                            const v = vendors.find((vend) => vend.id === row.vendorId) || { name: row.vendorName }
+                            const s = services.find((serv) => serv.id === row.serviceId) || { name: row.serviceName }
+                            printInvoice({ bill: row, vendor: v, service: s })
+                          }}
+                          className="size-7 p-0 text-muted-foreground hover:text-foreground"
+                          title="Print / Save Invoice (PDF)"
+                        >
+                          <Printer className="size-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="xs"

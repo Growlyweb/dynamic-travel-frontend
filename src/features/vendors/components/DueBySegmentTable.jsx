@@ -9,10 +9,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { ArrowUpRight, Download } from 'lucide-react'
+import ExportMenu from '@/components/common/ExportMenu'
+import { ArrowUpRight } from 'lucide-react'
 import DueBadge from './DueBadge'
 import { formatNumber } from '@/utils/formatters'
-import { exportToCsv } from '../vendor.api'
+import { exportToCsv, exportToExcel, printReportDocument } from '../vendor.api'
 
 export default function DueBySegmentTable({
   data = [],
@@ -20,7 +21,11 @@ export default function DueBySegmentTable({
 }) {
   const navigate = useNavigate()
 
-  const handleExport = () => {
+  const totalBilled = data.reduce((sum, r) => sum + (Number(r.billed) || 0), 0)
+  const totalPaid = data.reduce((sum, r) => sum + (Number(r.paid) || 0), 0)
+  const totalDue = data.reduce((sum, r) => sum + (Number(r.due) || 0), 0)
+
+  const handleExportCsv = () => {
     const headers = [
       { label: 'SL', key: 'sl' },
       { label: 'Segment', key: 'segment' },
@@ -32,32 +37,67 @@ export default function DueBySegmentTable({
     exportToCsv('Segment_Due_Summary', headers, data)
   }
 
+  const handleExportExcel = () => {
+    exportToExcel('Segment_Due_Summary', {
+      title: 'Outstanding Dues by Service Segment',
+      subtitle: `Vendor Service Categories | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Segment / Service', 'Vendors Count', 'Total Billed (BDT)', 'Total Paid (BDT)', 'Total Due (BDT)'],
+      rows: data.map((r) => [
+        r.sl,
+        r.segment,
+        r.vendorsCount,
+        Number(r.billed) || 0,
+        Number(r.paid) || 0,
+        Number(r.due) || 0,
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed', value: `BDT ${formatNumber(totalBilled)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Total Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+      metadata: {
+        'Total Segments': data.length,
+      },
+    })
+  }
+
+  const handleExportPdf = () => {
+    printReportDocument({
+      title: 'Outstanding Dues by Service Segment',
+      subtitle: `Vendor Service Categories | Date: ${new Date().toLocaleDateString('en-GB')}`,
+      headers: ['SL', 'Segment / Service', 'Vendors', 'Total Billed (BDT)', 'Total Paid (BDT)', 'Total Due (BDT)'],
+      rows: data.map((r) => [
+        r.sl,
+        r.segment,
+        r.vendorsCount,
+        formatNumber(r.billed),
+        formatNumber(r.paid),
+        formatNumber(r.due),
+      ]),
+      summaryTotals: [
+        { label: 'Total Billed', value: `BDT ${formatNumber(totalBilled)}` },
+        { label: 'Total Paid', value: `BDT ${formatNumber(totalPaid)}` },
+        { label: 'Total Due', value: `BDT ${formatNumber(totalDue)}` },
+      ],
+    })
+  }
+
   const handleSegmentClick = (segmentId) => {
     navigate(`/vendors?serviceId=${segmentId}`)
   }
-
-  const totalBilled = data.reduce((sum, r) => sum + (Number(r.billed) || 0), 0)
-  const totalPaid = data.reduce((sum, r) => sum + (Number(r.paid) || 0), 0)
-  const totalDue = data.reduce((sum, r) => sum + (Number(r.due) || 0), 0)
 
   return (
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base text-foreground">Due by Segment</h3>
-          {/* <p className="text-xs text-muted-foreground mt-0.5">
-            Click any segment row to view vendors providing that service
-          </p> */}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          className="text-xs gap-1.5 h-8"
-        >
-          <Download className="size-3.5 text-muted-foreground" /> Export Excel
-        </Button>
+        <ExportMenu
+          label="Export Dues"
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+          onExportCsv={handleExportCsv}
+        />
       </div>
 
       <div className="relative w-full overflow-x-auto">

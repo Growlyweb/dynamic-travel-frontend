@@ -5,74 +5,99 @@
  * Formula: Due = Opening Due + Total Bills - Total Payments
  */
 
+import {
+  exportToCsv as engineExportToCsv,
+  exportToExcel,
+  printPaymentVoucher,
+  printInvoice,
+  printVendorStatement,
+  printReportDocument,
+  numberToWords,
+  COMPANY_INFO,
+} from '@/utils/exportEngine'
+import { reverseVendorJournal, syncVendorAccounting } from './vendor.accounting'
+
 const STORAGE_KEYS = {
-  SERVICES: 'abl_vendor_services_v1',
-  VENDORS: 'abl_vendors_v1',
+  SERVICES: 'abl_vendor_services_v2',
+  VENDORS: 'abl_vendors_v2',
   BILLS: 'abl_vendor_bills_v1',
   PAYMENTS: 'abl_vendor_payments_v1',
 }
 
-// ── Default Seed Services (Section 4.3) ──────────────────────
+// ── Default Seed Services (Default Just Visa) ─────────────────
 const DEFAULT_SERVICES = [
-  { id: 'srv_air', name: 'Air Ticket', code: 'AIR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_air_re', name: 'Air Ticket (Re-Issue)', code: 'AIR-RE', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_tour', name: 'Tour Package', code: 'TOUR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
   { id: 'srv_visa', name: 'Visa', code: 'VISA', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_umrah', name: 'Umrah', code: 'UMR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_hajj', name: 'Hajj', code: 'HAJ', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_hotel', name: 'Hotel', code: 'HTL', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_car', name: 'Car Rental', code: 'CAR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_bus', name: 'Bus Ticket', code: 'BUS', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_rail', name: 'Rail Ticket', code: 'RAIL', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_med', name: 'Medical', code: 'MED', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_pass', name: 'Passport', code: 'PASS', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
-  { id: 'srv_guide', name: 'Local Guide', code: 'GUIDE', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
+  { id: 'srv_air', name: 'Air Ticket', code: 'AIR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
+  { id: 'srv_hotel', name: 'Hotel', code: 'HOTEL', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
+  { id: 'srv_tour', name: 'Tour Package', code: 'TOUR', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
+  { id: 'srv_transport', name: 'Transport', code: 'TRANS', isActive: true, createdAt: '2026-09-01T00:00:00.000Z' },
 ]
 
-// ── Default Seed Vendors & Transactions (Section 15) ─────────
+function withDefaultServices(stored = []) {
+  const map = new Map(stored.map((service) => [service.id, service]))
+  for (const service of DEFAULT_SERVICES) {
+    if (!map.has(service.id)) map.set(service.id, service)
+  }
+  return [...map.values()]
+}
+
+// ── Default Seed Vendors (Section 4 & 6 Example Vendors) ──────
 const DEFAULT_VENDORS = [
   {
     id: 'vnd_1',
     vendorCode: 'VND-0001',
-    name: 'Flight Expert',
-    email: 'info@flightexpert.com',
+    name: 'MR X',
+    email: 'mrx@visaservices.com',
     mobile: { countryCode: '+88', number: '01711000001' },
     address: 'Plot 42, Road 11, Block E, Banani, Dhaka',
-    services: ['srv_air', 'srv_visa'],
-    openingBalance: 0,
-    openingBalanceType: 'due',
-    creditLimit: 500000,
-    fixedAdvance: 0,
+    services: ['srv_visa'],
+    pricing: {
+      visa: [
+        { id: 'vp_1', country: 'China', visaType: 'Single Entry', vendorPrice: 5000, currency: 'BDT' },
+        { id: 'vp_2', country: 'China', visaType: 'Multiple Entry', vendorPrice: 8500, currency: 'BDT' },
+        { id: 'vp_3', country: 'Thailand', visaType: 'Tourist', vendorPrice: 4500, currency: 'BDT' },
+        { id: 'vp_4', country: 'Malaysia', visaType: 'Single Entry', vendorPrice: 3000, currency: 'BDT' },
+      ],
+    },
     isActive: true,
     createdAt: '2026-09-10T00:00:00.000Z',
   },
   {
     id: 'vnd_2',
     vendorCode: 'VND-0002',
-    name: 'Trip Lover',
-    email: 'accounts@triplover.com',
+    name: 'MR Y',
+    email: 'mry@travelagency.com',
     mobile: { countryCode: '+88', number: '01711000002' },
     address: 'House 14, Road 3, Dhanmondi, Dhaka',
-    services: ['srv_air', 'srv_visa'],
-    openingBalance: 0,
-    openingBalanceType: 'due',
-    creditLimit: 300000,
-    fixedAdvance: 0,
+    services: ['srv_visa', 'srv_air', 'srv_hotel'],
+    pricing: {
+      visa: [
+        { id: 'vp_5', country: 'Singapore', visaType: 'Tourist', vendorPrice: 3500, currency: 'BDT' },
+        { id: 'vp_6', country: 'UAE', visaType: 'Tourist (30 Days)', vendorPrice: 11000, currency: 'BDT' },
+      ],
+      'srv_air': [
+        { id: 'ap_1', route: 'DAC - DXB', airline: 'Emirates', ticketType: 'Economy Return', vendorPrice: 52000, currency: 'BDT' },
+      ],
+      'srv_hotel': [
+        { id: 'hp_1', destination: 'Dubai', roomType: 'Deluxe Room (4 Star)', vendorPrice: 14000, currency: 'BDT' },
+      ],
+    },
     isActive: true,
     createdAt: '2026-09-12T00:00:00.000Z',
   },
   {
     id: 'vnd_3',
     vendorCode: 'VND-0003',
-    name: 'Share Trip',
-    email: 'ops@sharetrip.net',
+    name: 'MR Z',
+    email: 'mrz@airticketing.com',
     mobile: { countryCode: '+88', number: '01711000003' },
     address: 'Level 5, Gulshan Tower, Gulshan 2, Dhaka',
-    services: ['srv_umrah', 'srv_air'],
-    openingBalance: 0,
-    openingBalanceType: 'due',
-    creditLimit: 400000,
-    fixedAdvance: 0,
+    services: ['srv_air'],
+    pricing: {
+      'srv_air': [
+        { id: 'ap_2', route: 'DAC - BKK', airline: 'Biman Bangladesh', ticketType: 'Economy', vendorPrice: 28000, currency: 'BDT' },
+      ],
+    },
     isActive: true,
     createdAt: '2026-09-15T00:00:00.000Z',
   },
@@ -84,10 +109,10 @@ const DEFAULT_BILLS = [
     billNo: 'BL-00001',
     date: '2026-10-01',
     vendorId: 'vnd_1',
-    serviceId: 'srv_air',
-    invoiceRef: 'INV-FE-101',
+    serviceId: 'srv_visa',
+    invoiceRef: 'INV-VS-101',
     amount: 500000,
-    note: 'October ticket quota bulk batch',
+    note: 'October visa processing batch',
     createdAt: '2026-10-01T10:00:00.000Z',
   },
   {
@@ -131,7 +156,7 @@ const DEFAULT_PAYMENTS = [
     voucherNo: 'VP-00001',
     date: '2026-10-03',
     vendorId: 'vnd_1',
-    serviceId: 'srv_air',
+    serviceId: 'srv_visa',
     billId: 'bill_1',
     method: 'bank',
     account: 'City Bank AC 21089',
@@ -177,6 +202,22 @@ const DEFAULT_PAYMENTS = [
     amount: 200000,
     note: 'Full settlement against INV-ST-301',
     createdAt: '2026-10-07T11:45:00.000Z',
+  },
+  {
+    id: 'pay_5',
+    voucherNo: 'VP-00005',
+    date: '2026-10-08',
+    vendorId: 'vnd_1',
+    serviceId: 'srv_hotel',
+    billId: null,
+    method: 'bank',
+    account: 'Standard Chartered AC 44102',
+    amount: 75000,
+    isAdvance: true,
+    paymentType: 'advance',
+    advancePurpose: 'Hotel Booking Advance for Group Tour Nov-2026',
+    note: 'Advance deposit for hotel room block',
+    createdAt: '2026-10-08T10:30:00.000Z',
   },
 ]
 
@@ -253,13 +294,18 @@ export function calculateVendorTotals(vendor, bills = [], payments = []) {
   const opening = Number(vendor.openingBalance) || 0
   const openingDue = vendor.openingBalanceType === 'advance' ? -opening : opening
 
+  const advancePaid = vPayments
+    .filter((p) => Boolean(p.isAdvance))
+    .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+  const regularPaid = Math.max(0, paidSum - advancePaid)
   const totalBilled = billedSum + (openingDue > 0 ? openingDue : 0)
   const totalPaid = paidSum + (openingDue < 0 ? Math.abs(openingDue) : 0)
-  const totalDue = openingDue + billedSum - paidSum
+  const totalDue = openingDue + billedSum - regularPaid
 
   return {
     billed: billedSum,
     paid: paidSum,
+    advance: advancePaid,
     opening: openingDue,
     totalBilled,
     totalPaid,
@@ -273,7 +319,7 @@ export function calculateVendorSegmentDue(vendorId, serviceId, bills = [], payme
     .reduce((acc, b) => acc + (Number(b.amount) || 0), 0)
 
   const paid = payments
-    .filter((p) => p.vendorId === vendorId && p.serviceId === serviceId)
+    .filter((p) => p.vendorId === vendorId && p.serviceId === serviceId && !p.isAdvance)
     .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
 
   return {
@@ -285,9 +331,32 @@ export function calculateVendorSegmentDue(vendorId, serviceId, bills = [], payme
 
 // ── API Implementation ───────────────────────────────────────
 export const vendorApi = {
+  /**
+   * Push vendor records into the Accounts ledger and keep the journal links.
+   * Safe to call often; already-linked bills/payments are skipped.
+   */
+  async syncAccounting() {
+    let vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
+    let bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
+    let payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
+
+    const result = syncVendorAccounting({ vendors, bills, payments, services })
+    if (result.changed) {
+      saveStorage(STORAGE_KEYS.VENDORS, vendors)
+      saveStorage(STORAGE_KEYS.BILLS, bills)
+      saveStorage(STORAGE_KEYS.PAYMENTS, payments)
+    }
+    return result
+  },
+
   // ── Services (Segments) CRUD ────────────────────────────────
   async getServices(params = {}) {
-    let services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const storedServices = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    let services = withDefaultServices(storedServices)
+    if (services.length !== storedServices.length) {
+      saveStorage(STORAGE_KEYS.SERVICES, services)
+    }
     if (params.isActive !== undefined) {
       services = services.filter((s) => s.isActive === Boolean(params.isActive))
     }
@@ -309,7 +378,7 @@ export const vendorApi = {
   },
 
   async createService(data) {
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const trimmedName = (data.name || '').trim()
     if (!trimmedName) throw new Error('Service name is required.')
 
@@ -330,7 +399,7 @@ export const vendorApi = {
   },
 
   async updateService(id, data) {
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const index = services.findIndex((s) => s.id === id)
     if (index === -1) throw new Error('Service not found.')
 
@@ -356,7 +425,7 @@ export const vendorApi = {
   },
 
   async toggleServiceStatus(id) {
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const index = services.findIndex((s) => s.id === id)
     if (index === -1) throw new Error('Service not found.')
     services[index].isActive = !services[index].isActive
@@ -366,7 +435,7 @@ export const vendorApi = {
   },
 
   async deleteService(id) {
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -382,8 +451,9 @@ export const vendorApi = {
 
   // ── Vendors CRUD ─────────────────────────────────────────────
   async getVendors(params = {}) {
+    await vendorApi.syncAccounting()
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -447,8 +517,9 @@ export const vendorApi = {
   },
 
   async getVendor(id) {
+    await vendorApi.syncAccounting()
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -506,6 +577,7 @@ export const vendorApi = {
       },
       address: (data.address || '').trim(),
       services: data.services,
+      pricing: data.pricing || {},
       openingBalance: Math.max(0, Number(data.openingBalance) || 0),
       openingBalanceType: data.openingBalanceType === 'advance' ? 'advance' : 'due',
       creditLimit: Math.max(0, Number(data.creditLimit) || 0),
@@ -517,6 +589,7 @@ export const vendorApi = {
 
     vendors.push(newVendor)
     saveStorage(STORAGE_KEYS.VENDORS, vendors)
+    await vendorApi.syncAccounting()
     return { success: true, data: newVendor }
   },
 
@@ -524,6 +597,8 @@ export const vendorApi = {
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
     const index = vendors.findIndex((v) => v.id === id)
     if (index === -1) throw new Error('Vendor not found.')
+    const openingChanged = data.openingBalance !== undefined || data.openingBalanceType !== undefined
+    const previousOpeningJournalId = vendors[index].openingJournalId
 
     if (data.name) {
       const trimmedName = data.name.trim()
@@ -533,6 +608,7 @@ export const vendorApi = {
       if (duplicate) throw new Error(`Another vendor named "${trimmedName}" already exists.`)
       vendors[index].name = trimmedName
     }
+    if (data.pricing !== undefined) vendors[index].pricing = data.pricing
 
     if (data.services !== undefined) {
       if (!Array.isArray(data.services) || data.services.length === 0) {
@@ -558,8 +634,13 @@ export const vendorApi = {
     if (data.fixedAdvance !== undefined) vendors[index].fixedAdvance = Math.max(0, Number(data.fixedAdvance) || 0)
     if (data.isActive !== undefined) vendors[index].isActive = Boolean(data.isActive)
 
+    if (openingChanged) delete vendors[index].openingJournalId
     vendors[index].updatedAt = new Date().toISOString()
     saveStorage(STORAGE_KEYS.VENDORS, vendors)
+    if (openingChanged && previousOpeningJournalId) {
+      reverseVendorJournal(previousOpeningJournalId, 'Vendor opening balance changed')
+    }
+    await vendorApi.syncAccounting()
     return { success: true, data: vendors[index] }
   },
 
@@ -570,6 +651,7 @@ export const vendorApi = {
     vendors[index].isActive = !vendors[index].isActive
     vendors[index].updatedAt = new Date().toISOString()
     saveStorage(STORAGE_KEYS.VENDORS, vendors)
+    await vendorApi.syncAccounting()
     return { success: true, data: vendors[index] }
   },
 
@@ -577,6 +659,7 @@ export const vendorApi = {
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
+    const vendor = vendors.find((v) => v.id === id)
 
     const hasBills = bills.some((b) => b.vendorId === id)
     const hasPayments = payments.some((p) => p.vendorId === id)
@@ -590,14 +673,18 @@ export const vendorApi = {
 
     const filtered = vendors.filter((v) => v.id !== id)
     saveStorage(STORAGE_KEYS.VENDORS, filtered)
+    if (vendor?.openingJournalId) {
+      reverseVendorJournal(vendor.openingJournalId, 'Vendor deleted')
+    }
     return { success: true, message: 'Vendor deleted successfully.' }
   },
 
   // ── Vendor Bills CRUD ────────────────────────────────────────
   async getBills(params = {}) {
+    await vendorApi.syncAccounting()
     let bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
     if (params.vendorId && params.vendorId !== 'all') {
@@ -669,6 +756,7 @@ export const vendorApi = {
 
     bills.push(newBill)
     saveStorage(STORAGE_KEYS.BILLS, bills)
+    await vendorApi.syncAccounting()
     return { success: true, data: newBill }
   },
 
@@ -677,6 +765,7 @@ export const vendorApi = {
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
     const index = bills.findIndex((b) => b.id === id)
     if (index === -1) throw new Error('Bill not found.')
+    const previousJournalId = bills[index].journalId
 
     const bill = bills[index]
     const vendorId = data.vendorId || bill.vendorId
@@ -698,23 +787,34 @@ export const vendorApi = {
     if (data.note !== undefined) bills[index].note = data.note.trim()
     if (data.vendorId) bills[index].vendorId = data.vendorId
     if (data.serviceId) bills[index].serviceId = data.serviceId
+    delete bills[index].journalId
 
     saveStorage(STORAGE_KEYS.BILLS, bills)
+    if (previousJournalId) reverseVendorJournal(previousJournalId, 'Vendor bill changed')
+    await vendorApi.syncAccounting()
     return { success: true, data: bills[index] }
   },
 
   async deleteBill(id) {
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
+    const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
+    const bill = bills.find((b) => b.id === id)
+    if (!bill) throw new Error('Bill not found.')
+    if (payments.some((payment) => payment.billId === id)) {
+      throw new Error('This bill has payments linked to it. Delete those payments first.')
+    }
     const filtered = bills.filter((b) => b.id !== id)
     saveStorage(STORAGE_KEYS.BILLS, filtered)
+    if (bill.journalId) reverseVendorJournal(bill.journalId, 'Vendor bill deleted')
     return { success: true, message: 'Bill deleted.' }
   },
 
   // ── Vendor Payments CRUD ─────────────────────────────────────
   async getPayments(params = {}) {
+    await vendorApi.syncAccounting()
     let payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
 
     if (params.vendorId && params.vendorId !== 'all') {
       payments = payments.filter((p) => p.vendorId === params.vendorId)
@@ -728,12 +828,20 @@ export const vendorApi = {
     if (params.to) {
       payments = payments.filter((p) => p.date <= params.to)
     }
+    if (params.type === 'advance') {
+      payments = payments.filter((p) => Boolean(p.isAdvance))
+    } else if (params.type === 'regular') {
+      payments = payments.filter((p) => !p.isAdvance)
+    }
 
     const enriched = payments.map((p) => {
       const vendor = vendors.find((v) => v.id === p.vendorId)
       const service = services.find((s) => s.id === p.serviceId)
       return {
         ...p,
+        isAdvance: Boolean(p.isAdvance),
+        paymentType: p.paymentType || (p.isAdvance ? 'advance' : 'regular'),
+        advancePurpose: p.advancePurpose || '',
         vendorName: vendor ? vendor.name : 'Unknown Vendor',
         vendorCode: vendor ? vendor.vendorCode : '',
         serviceName: service ? service.name : 'Unknown Service',
@@ -764,7 +872,8 @@ export const vendorApi = {
 
     // Check current due for that vendor and segment for warning validation
     const { due: currentDue } = calculateVendorSegmentDue(data.vendorId, data.serviceId, bills, payments)
-    const isAdvance = amount > currentDue
+    const isExcess = amount > currentDue
+    const isAdvance = Boolean(data.isAdvance || isExcess)
 
     const newPayment = {
       id: `pay_${Date.now().toString(36)}`,
@@ -772,21 +881,25 @@ export const vendorApi = {
       date: data.date || new Date().toISOString().slice(0, 10),
       vendorId: data.vendorId,
       serviceId: data.serviceId,
-      billId: data.billId || null,
+      billId: data.isAdvance ? null : (data.billId || null),
       method: data.method || 'bank',
       account: (data.account || '').trim(),
       amount,
       document: data.document || '',
       note: (data.note || '').trim(),
+      isAdvance,
+      paymentType: data.isAdvance ? 'advance' : (isExcess ? 'advance_settlement' : 'regular'),
+      advancePurpose: (data.advancePurpose || '').trim(),
       createdAt: new Date().toISOString(),
     }
 
     payments.push(newPayment)
     saveStorage(STORAGE_KEYS.PAYMENTS, payments)
+    await vendorApi.syncAccounting()
     return {
       success: true,
       data: newPayment,
-      warning: isAdvance
+      warning: isExcess && !data.isAdvance
         ? `Payment amount exceeds current due of ৳${currentDue.toLocaleString()}. The excess of ৳${(amount - currentDue).toLocaleString()} is recorded as an Advance.`
         : null,
     }
@@ -801,6 +914,7 @@ export const vendorApi = {
     const pay = payments[index]
     const vendorId = data.vendorId || pay.vendorId
     const serviceId = data.serviceId || pay.serviceId
+    const previousJournalId = pay.journalId
 
     const vendor = vendors.find((v) => v.id === vendorId)
     if (vendor && !vendor.services?.includes(serviceId)) {
@@ -820,22 +934,31 @@ export const vendorApi = {
     if (data.vendorId) payments[index].vendorId = data.vendorId
     if (data.serviceId) payments[index].serviceId = data.serviceId
     if (data.billId !== undefined) payments[index].billId = data.billId
+    if (data.isAdvance !== undefined) payments[index].isAdvance = Boolean(data.isAdvance)
+    if (data.paymentType !== undefined) payments[index].paymentType = data.paymentType
+    if (data.advancePurpose !== undefined) payments[index].advancePurpose = data.advancePurpose.trim()
 
+    delete payments[index].journalId
     saveStorage(STORAGE_KEYS.PAYMENTS, payments)
+    if (previousJournalId) reverseVendorJournal(previousJournalId, 'Vendor payment changed')
+    await vendorApi.syncAccounting()
     return { success: true, data: payments[index] }
   },
 
   async deletePayment(id) {
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
+    const payment = payments.find((p) => p.id === id)
+    if (!payment) throw new Error('Payment not found.')
     const filtered = payments.filter((p) => p.id !== id)
     saveStorage(STORAGE_KEYS.PAYMENTS, filtered)
+    if (payment.journalId) reverseVendorJournal(payment.journalId, 'Vendor payment deleted')
     return { success: true, message: 'Payment deleted.' }
   },
 
   // ── Vendor Ledger (Section 4.6 Tab 2) ────────────────────────
   async getVendorLedger(vendorId) {
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -887,9 +1010,12 @@ export const vendorApi = {
         type: 'payment',
         ref: p.voucherNo,
         serviceName: srv ? srv.name : 'Unknown Service',
-        description: p.note || `Payment via ${p.method} (${p.account || '—'})`,
+        description: p.isAdvance
+          ? `Advance deposit${p.advancePurpose ? ` — ${p.advancePurpose}` : ''}`
+          : p.note || `Payment via ${p.method} (${p.account || '—'})`,
         billed: 0,
-        paid: Number(p.amount) || 0,
+        paid: p.isAdvance ? 0 : Number(p.amount) || 0,
+        advance: p.isAdvance ? Number(p.amount) || 0 : 0,
       })
     })
 
@@ -924,7 +1050,7 @@ export const vendorApi = {
   // ── Vendor Segment Breakdown (Section 4.6 Tab 1) ─────────────
   async getVendorSegmentDue(vendorId) {
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     const bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -949,8 +1075,9 @@ export const vendorApi = {
 
   // ── Dashboard Aggregation (Section 5, 7.4 & 8) ───────────────
   async getDashboardData(filters = {}) {
+    await vendorApi.syncAccounting()
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
-    const services = loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES)
+    const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
     let bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     let payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
 
@@ -984,12 +1111,16 @@ export const vendorApi = {
     const activeVendorsCount = targetVendors.filter((v) => v.isActive).length
     let totalBilledSum = 0
     let totalPaidSum = 0
+    let totalDueSum = 0
+    let totalAdvanceSum = 0
 
     // Table A: Due by Vendor
     let tableA = targetVendors.map((v, idx) => {
       const totals = calculateVendorTotals(v, bills, payments)
       totalBilledSum += totals.totalBilled
       totalPaidSum += totals.totalPaid
+      totalDueSum += totals.totalDue
+      totalAdvanceSum += totals.advance
 
       const vendorServices = (v.services || [])
         .map((sId) => services.find((s) => s.id === sId))
@@ -1024,7 +1155,8 @@ export const vendorApi = {
       totalVendors: activeVendorsCount,
       totalBilled: totalBilledSum,
       totalPaid: totalPaidSum,
-      totalDue: totalBilledSum - totalPaidSum,
+      totalDue: totalDueSum,
+      totalAdvance: totalAdvanceSum,
     }
 
     // ── 5.3 Table B: Due by Segment ──
@@ -1034,7 +1166,9 @@ export const vendorApi = {
         const srvPayments = payments.filter((p) => p.serviceId === srv.id)
 
         const billed = srvBills.reduce((acc, b) => acc + (Number(b.amount) || 0), 0)
-        const paid = srvPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+        const paid = srvPayments
+          .filter((p) => !p.isAdvance)
+          .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
         const due = billed - paid
 
         // Count active vendors assigned to this service
@@ -1135,31 +1269,15 @@ export const vendorApi = {
   },
 }
 
-// ── CSV / Excel Export Utility (Section 4.1, 5.5, 13) ─────────
-export function exportToCsv(filename, headers, rows) {
-  const escapeCsv = (val) => {
-    if (val === null || val === undefined) return '""'
-    const stringVal = String(val).replace(/"/g, '""')
-    return `"${stringVal}"`
-  }
-
-  const headerRow = headers.map((h) => escapeCsv(h.label)).join(',')
-  const dataRows = rows.map((row) =>
-    headers
-      .map((h) => {
-        const val = typeof h.key === 'function' ? h.key(row) : row[h.key]
-        return escapeCsv(val)
-      })
-      .join(',')
-  )
-
-  const csvContent = [headerRow, ...dataRows].join('\r\n')
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${filename}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+// ── Export Utilities Re-exported ─────────────────────────────
+export const exportToCsv = engineExportToCsv
+export {
+  exportToExcel,
+  printPaymentVoucher,
+  printInvoice,
+  printVendorStatement,
+  printReportDocument,
+  numberToWords,
+  COMPANY_INFO,
 }
+
