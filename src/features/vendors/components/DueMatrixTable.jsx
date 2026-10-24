@@ -8,11 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Download } from 'lucide-react'
+import ExportMenu from '@/components/common/ExportMenu'
 import DueBadge from './DueBadge'
 import { formatNumber } from '@/utils/formatters'
-import { exportToCsv } from '../vendor.api'
+import { exportToCsv, exportToExcel, printReportDocument } from '../vendor.api'
 
 export default function DueMatrixTable({
   matrix = { segments: [], rows: [], columnTotals: {}, grandTotal: 0 },
@@ -20,7 +19,7 @@ export default function DueMatrixTable({
 }) {
   const { segments = [], rows = [], columnTotals = {}, grandTotal = 0 } = matrix
 
-  const handleExport = () => {
+  const handleExportCsv = () => {
     const headers = [
       { label: 'Vendor Code', key: 'vendorCode' },
       { label: 'Vendor', key: 'vendor' },
@@ -36,24 +35,60 @@ export default function DueMatrixTable({
     exportToCsv('Vendor_Segment_Matrix', headers, rows)
   }
 
+  const handleExportExcel = () => {
+    const headers = ['Vendor Code', 'Vendor Name', ...segments.map((s) => s.name), 'Total Due (BDT)']
+    const dataRows = rows.map((r) => [
+      r.vendorCode,
+      r.vendor,
+      ...segments.map((s) => Number(r.dues?.[s.id]) || 0),
+      Number(r.totalDue) || 0,
+    ])
+    exportToExcel('Vendor_Segment_Matrix', {
+      title: 'Vendor × Segment Due Matrix',
+      subtitle: `Cross-Tabulation of Outstanding Payables | Generated: ${new Date().toLocaleDateString('en-GB')}`,
+      headers,
+      rows: dataRows,
+      summaryTotals: [
+        { label: 'Grand Total Outstanding Due', value: `BDT ${formatNumber(grandTotal)}` },
+      ],
+      metadata: {
+        'Total Vendors': rows.length,
+        'Total Segments': segments.length,
+      },
+    })
+  }
+
+  const handleExportPdf = () => {
+    const headers = ['Vendor Code', 'Vendor', ...segments.map((s) => s.name), 'Total Due (BDT)']
+    const dataRows = rows.map((r) => [
+      r.vendorCode,
+      r.vendor,
+      ...segments.map((s) => (r.dues?.[s.id] ? formatNumber(r.dues[s.id]) : '—')),
+      formatNumber(r.totalDue),
+    ])
+    printReportDocument({
+      title: 'Vendor × Segment Due Matrix',
+      subtitle: `Cross-Tabulation of Outstanding Payables | Date: ${new Date().toLocaleDateString('en-GB')}`,
+      headers,
+      rows: dataRows,
+      summaryTotals: [
+        { label: 'Grand Total Outstanding Due', value: `BDT ${formatNumber(grandTotal)}` },
+      ],
+    })
+  }
+
   return (
     <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
       <div className="p-4 border-b border-border/80 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-base text-foreground">Vendor × Segment Matrix</h3>
-          {/* <p className="text-xs text-muted-foreground mt-0.5">
-            Cross-tabulation showing exact outstanding dues for every vendor and segment pair
-          </p> */}
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          className="text-xs gap-1.5 h-8"
-        >
-          <Download className="size-3.5 text-muted-foreground" /> Export Excel
-        </Button>
+        <ExportMenu
+          label="Export Matrix"
+          onExportPdf={handleExportPdf}
+          onExportExcel={handleExportExcel}
+          onExportCsv={handleExportCsv}
+        />
       </div>
 
       <div className="relative w-full overflow-x-auto">

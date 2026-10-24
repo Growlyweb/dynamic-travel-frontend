@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 import PageHeader from '../../../components/layout/PageHeader'
 import TablePagination from '../../../components/tables/TablePagination'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
+import Button from '../../../components/common/Button'
 import PartnerTable from '../components/PartnerTable'
+import CreatePartnerModal from '../components/CreatePartnerModal'
 import { b2bApi } from '../b2b.api'
 import { useDebounce } from '../../../hooks/useDebounce'
 import { usePagination } from '../../../hooks/usePagination'
@@ -19,6 +22,7 @@ export default function Partners() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const debouncedSearch = useDebounce(search, 350)
   const { page, pageSize, goToPage, changePageSize } = usePagination()
@@ -51,6 +55,11 @@ export default function Partners() {
         title="Partners"
         // description="B2B agencies reselling your tours and visa services."
         breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Partners' }]}
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" /> Create partner portal
+          </Button>
+        }
       />
       <div className="card stack">
         <div className="filters">
@@ -84,6 +93,14 @@ export default function Partners() {
           onPageSizeChange={changePageSize}
         />
       </div>
+
+      <CreatePartnerModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={async () => {
+          await load()
+        }}
+      />
     </div>
   )
 }

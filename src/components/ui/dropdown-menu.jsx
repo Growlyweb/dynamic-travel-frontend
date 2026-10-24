@@ -16,10 +16,31 @@ function DropdownMenuPortal({
 }
 
 function DropdownMenuTrigger({
+  asChild,
+  children,
   ...props
 }) {
-  return <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+  // Bridge Radix-style `asChild` to Base UI's `render` prop.
+  // When asChild is true, the single child element becomes the rendered element
+  // instead of being wrapped in an extra <button>.
+  if (asChild && React.isValidElement(children)) {
+    const child = children
+    return (
+      <MenuPrimitive.Trigger
+        data-slot="dropdown-menu-trigger"
+        render={child}
+        {...props}
+      />
+    )
+  }
+
+  return (
+    <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props}>
+      {children}
+    </MenuPrimitive.Trigger>
+  )
 }
+
 
 function DropdownMenuContent({
   align = "start",

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronDown,
   Clock3,
   Download,
@@ -13,6 +14,7 @@ import {
   SearchCheck,
   SlidersHorizontal,
   X,
+  XCircle,
 } from 'lucide-react'
 import PageHeader from '../../../components/layout/PageHeader'
 import Loader from '../../../components/common/Loader'
@@ -211,34 +213,53 @@ export default function VisaStatus() {
   function handleCardClick(type) {
     if (type === 'all') {
       setSelectedStatuses([])
-    } else if (type === 'submitted') {
-      if (selectedStatuses.length === 1 && selectedStatuses[0] === 'submitted') {
+    } else if (type === 'approved') {
+      if (selectedStatuses.length === 1 && selectedStatuses[0] === 'approved') {
         setSelectedStatuses([])
       } else {
-        setSelectedStatuses(['submitted'])
+        setSelectedStatuses(['approved'])
       }
-    } else if (type === 'in_progress') {
-      const isAlready =
-        selectedStatuses.length === inProgressKeys.length &&
-        inProgressKeys.every((k) => selectedStatuses.includes(k))
-      if (isAlready) {
+    } else if (type === 'rejected') {
+      if (selectedStatuses.length === 1 && selectedStatuses[0] === 'rejected') {
         setSelectedStatuses([])
       } else {
-        setSelectedStatuses([...inProgressKeys])
-      }
-    } else if (type === 'action_required') {
-      if (selectedStatuses.length === 1 && selectedStatuses[0] === 'action_required') {
-        setSelectedStatuses([])
-      } else {
-        setSelectedStatuses(['action_required'])
+        setSelectedStatuses(['rejected'])
       }
     }
   }
 
-  function handleStatusChange(application, nextStatus) {
-    if (nextStatus === application.status) return
-    setStatusChange({ application, presetStatus: nextStatus })
+  async function handleStatusChange(application, nextStatus, customNote, customDisplayName) {
+    if (nextStatus === application.status && !customNote && !customDisplayName) return
+
+    if (!customNote && !customDisplayName && ['action_required'].includes(nextStatus)) {
+      setStatusChange({ application, presetStatus: nextStatus })
+      return
+    }
+
+    try {
+      if (customDisplayName) {
+        try {
+          await visaApi.saveStatusConfig({
+            displayName: customDisplayName,
+            key: nextStatus,
+            category: 'in_progress',
+            active: true,
+          })
+        } catch (e) {
+          console.warn('Could not register status config:', e)
+        }
+      }
+
+      await visaApi.changeStatus(application.id, {
+        status: nextStatus,
+        note: customNote?.trim() || undefined,
+      })
+      await load()
+    } catch (err) {
+      console.error(err)
+    }
   }
+
 
   function handleResetAllFilters() {
     setSelectedStatuses([])
@@ -286,12 +307,8 @@ export default function VisaStatus() {
   const inProgressCount = stats.underReview + stats.processing + stats.submittedToEmbassy
 
   const isAllCardActive = selectedStatuses.length === 0
-  const isSubmittedCardActive = selectedStatuses.length === 1 && selectedStatuses[0] === 'submitted'
-  const isInProgressCardActive =
-    selectedStatuses.length === inProgressKeys.length &&
-    inProgressKeys.every((k) => selectedStatuses.includes(k))
-  const isActionRequiredCardActive =
-    selectedStatuses.length === 1 && selectedStatuses[0] === 'action_required'
+  const isApprovedCardActive = selectedStatuses.length === 1 && selectedStatuses[0] === 'approved'
+  const isRejectedCardActive = selectedStatuses.length === 1 && selectedStatuses[0] === 'rejected'
 
   return (
     <div className="stack">
@@ -370,7 +387,7 @@ export default function VisaStatus() {
       {/* Top Stat Cards: Submissions by Count */}
       <div className="grid grid--4">
         <StatCard
-          label="Total Submissions"
+          label="Total Applications"
           value={formatNumber(stats.total)}
           hint={`${stats.b2c} B2C · ${stats.b2b} B2B`}
           icon={<FileStack size={20} aria-hidden />}
@@ -379,31 +396,30 @@ export default function VisaStatus() {
           className="cursor-pointer"
         />
         <StatCard
-          label="New Submissions"
-          value={formatNumber(stats.submitted)}
-          hint="Awaiting triage & initial review"
-          icon={<Clock3 size={20} aria-hidden />}
-          active={isSubmittedCardActive}
-          onClick={() => handleCardClick('submitted')}
+          label="Approved"
+          value={formatNumber(stats.approved)}
+          hint="Approved visa applications"
+          icon={<CheckCircle2 size={20} aria-hidden />}
+          active={isApprovedCardActive}
+          onClick={() => handleCardClick('approved')}
           className="cursor-pointer"
         />
         <StatCard
-          label="Under Review & Processing"
-          value={formatNumber(inProgressCount)}
-          hint={`${stats.underReview} review · ${stats.processing} processing`}
+          label="Rejected"
+          value={formatNumber(stats.rejected)}
+          hint="Rejected visa applications"
+          icon={<XCircle size={20} aria-hidden />}
+          active={isRejectedCardActive}
+          onClick={() => handleCardClick('rejected')}
+          className="cursor-pointer"
+        />
+        <StatCard
+          label="Decision Rate"
+          value={`${stats.decisionRate}%`}
+          hint={`${stats.approved} approved · ${stats.rejected} rejected`}
           icon={<SearchCheck size={20} aria-hidden />}
-          active={isInProgressCardActive}
-          onClick={() => handleCardClick('in_progress')}
-          className="cursor-pointer"
-        />
-        <StatCard
-          label="Action Required"
-          value={formatNumber(stats.actionRequired)}
-          hint={`${stats.unassigned} unassigned applications`}
-          icon={<AlertTriangle size={20} aria-hidden />}
-          active={isActionRequiredCardActive}
-          onClick={() => handleCardClick('action_required')}
-          className="cursor-pointer"
+          active={false}
+          className="cursor-default"
         />
       </div>
 
@@ -567,7 +583,7 @@ export default function VisaStatus() {
               </div>
 
               {/* Date Range Inputs */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground font-medium">From:</span>
                   <Input
@@ -577,7 +593,7 @@ export default function VisaStatus() {
                       setDateFrom(event.target.value)
                       setActiveDatePreset(null)
                     }}
-                    className="h-8 w-36 text-xs bg-card"
+                    className="h-8 w-full min-w-0 sm:w-36 text-xs bg-card"
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -589,7 +605,7 @@ export default function VisaStatus() {
                       setDateTo(event.target.value)
                       setActiveDatePreset(null)
                     }}
-                    className="h-8 w-36 text-xs bg-card"
+                    className="h-8 w-full min-w-0 sm:w-36 text-xs bg-card"
                   />
                 </div>
               </div>

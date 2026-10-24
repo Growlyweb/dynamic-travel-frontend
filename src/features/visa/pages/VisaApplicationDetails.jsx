@@ -311,6 +311,47 @@ export default function VisaApplicationDetails() {
         </div>
       ) : null}
 
+      {/* Account connection */}
+      <div className="card">
+        <div className="row between row--wrap">
+          <p className="card__title" style={{ marginBottom: 0 }}>Account</p>
+          <Badge tone={application.accounting?.file ? 'success' : 'warning'}>
+            {application.accounting?.file ? `Posted · ${application.accounting.file.fileNo}` : 'Not posted'}
+          </Badge>
+        </div>
+        <dl className="detail-list mt-2">
+          <div>
+            <dt>Selling price</dt>
+            <dd className="strong">{formatCurrency(application.netAmount ?? application.account?.totalAmount ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Discount</dt>
+            <dd>{formatCurrency(application.discountAmount ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Advance received</dt>
+            <dd>{formatCurrency(application.advancePaid ?? application.account?.advancePaid ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Due</dt>
+            <dd className="strong" style={{ color: (application.dueAmount ?? application.account?.dueAmount ?? 0) > 0 ? '#c62828' : '#0f8a4f' }}>
+              {formatCurrency(application.dueAmount ?? application.account?.dueAmount ?? 0)}
+            </dd>
+          </div>
+          <div>
+            <dt>Payment method</dt>
+            <dd>{application.paymentMethod ?? application.account?.paymentMethod ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Accounts status</dt>
+            <dd>{application.accounting?.file ? 'Sale, vendor cost and receipt posted' : 'Will post when saved'}</dd>
+          </div>
+        </dl>
+        <Button size="sm" variant="subtle" onClick={() => navigate('/accounts/sales')}>
+          Open Accounts Sale
+        </Button>
+      </div>
+
       <div className="grid grid--2">
         {/* Applicant information */}
         <div className="stack stack--sm">

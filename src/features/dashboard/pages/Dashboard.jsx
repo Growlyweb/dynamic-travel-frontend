@@ -72,9 +72,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid--2">
+      <div className="flex min-w-0">
         {showVisa && <RecentApplications items={data.recentApplications} />}
-        <RecentActivities items={data.recentActivities} />
+        {/* <RecentActivities items={data.recentActivities} /> */}
       </div>
     </div>
   )

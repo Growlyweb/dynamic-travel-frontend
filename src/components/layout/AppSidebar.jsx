@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  BadgePercent,
   Building2,
   ChevronDown,
   ChevronsUpDown,
@@ -12,9 +11,11 @@ import {
   LayoutDashboard,
   LogOut,
   Luggage,
+  ReceiptText,
   Settings,
   ShieldCheck,
   Stamp,
+  Tags,
   UserCog,
   UserRound,
 } from 'lucide-react'
@@ -59,6 +60,9 @@ const SECTION_ICONS = {
   'Customers · B2C': UserRound,
   Membership: CreditCard,
   Vendors: Building2,
+  Accounts: ReceiptText,
+  'Clients & Partners': Handshake,
+  Setup: Tags,
   Administration: UserCog,
 }
 
@@ -249,7 +253,7 @@ export default function AppSidebar({ onNavigate }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild className="w-full">
+              <DropdownMenuTrigger className="w-full" asChild>
                 <SidebarMenuButton
                   size="lg"
                   className={cn(
@@ -274,7 +278,8 @@ export default function AppSidebar({ onNavigate }) {
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-                  </div></SidebarMenuButton>
+                  </div>
+                </SidebarMenuButton>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent
