@@ -55,9 +55,6 @@ const TourDetails = lazy(() => import("../features/tours/pages/TourDetails"));
 const CreateTour = lazy(() => import("../features/tours/pages/CreateTour"));
 const EditTour = lazy(() => import("../features/tours/pages/EditTour"));
 const CustomTours = lazy(() => import("../features/tours/pages/CustomTours"));
-const CustomTourBuilder = lazy(
-  () => import("../features/tours/pages/CustomTourBuilder"),
-);
 
 const Partners = lazy(() => import("../features/b2b/pages/Partners"));
 const PartnerDetails = lazy(
@@ -465,14 +462,6 @@ export function AppRoutes() {
             }
           />
           <Route
-            path="tours/custom/builder"
-            element={
-              <RequirePermission permission="TOURS_VIEW">
-                <CustomTourBuilder />
-              </RequirePermission>
-            }
-          />
-          <Route
             path="tours/:id"
             element={
               <RequirePermission permission="TOURS_VIEW">
@@ -629,7 +618,7 @@ export function AppRoutes() {
           {/* Accounting */}
           <Route path="reports/*" element={<Navigate to="/accounts" replace />} />
 
-          <Route path="settings" element={<Settings />} />
+          <Route path="settings" element={<RequirePermission permission="SETTINGS_VIEW"><Settings /></RequirePermission>} />
           <Route path="settings/profile" element={<Profile />} />
           <Route path="settings/security" element={<Security />} />
         </Route>

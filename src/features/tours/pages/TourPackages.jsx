@@ -8,7 +8,8 @@ import TourCard from '../components/TourCard'
 import { toursApi } from '../tours.api'
 import { APP_ROUTES } from '../../../utils/constants'
 import { usePermission } from '../../../hooks/usePermission'
-import { getApiErrorMessage } from '../../../utils/helpers'
+import { errorMessage } from '../../../utils/errors'
+import { useToast } from '../../../context/ToastContext'
 
 // Derive the country from the tour's `country` field, or fallback to last part of destination
 function getCountry(tour) {
@@ -21,6 +22,7 @@ function getCountry(tour) {
 
 export default function TourPackages() {
   const { can } = usePermission()
+  const toast = useToast()
   const [tours, setTours] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -30,7 +32,8 @@ export default function TourPackages() {
     setLoading(true)
     setError(null)
     try {
-      const result = await toursApi.list()
+      // A package list is small, so the page reads up to 500 of them and groups them by country.
+      const result = await toursApi.list({ pageSize: 500 })
       setTours(result.items ?? [])
     } catch (loadError) {
       setError(loadError)
@@ -44,8 +47,13 @@ export default function TourPackages() {
   }, [load])
 
   async function handleDelete(id) {
-    await toursApi.remove(id)
-    setTours((prev) => prev.filter((t) => t.id !== id))
+    try {
+      await toursApi.remove(id)
+      setTours((prev) => prev.filter((t) => t.id !== id))
+      toast.success('Package removed.')
+    } catch (failure) {
+      toast.error(errorMessage(failure))
+    }
   }
 
   // Build country list from tours
@@ -77,7 +85,7 @@ export default function TourPackages() {
   }, [tours, activeCountry, filteredTours])
 
   if (loading) return <Loader fullPage label="Loading tours…" />
-  if (error) return <ErrorState title="Could not load tour packages" message={getApiErrorMessage(error)} onRetry={load} />
+  if (error) return <ErrorState title="Could not load tour packages" message={errorMessage(error)} onRetry={load} />
 
   return (
     <div className="stack">

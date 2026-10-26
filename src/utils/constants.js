@@ -65,7 +65,6 @@ export const APP_ROUTES = {
   TOURS: '/tours/packages',
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
-  TOUR_CUSTOM_BUILDER: '/tours/custom/builder',
   TOUR_DETAILS: (id) => `/tours/${id}`,
   TOUR_EDIT: (id) => `/tours/${id}/edit`,
 
@@ -267,12 +266,11 @@ export const VISA_TYPE_OPTIONS = [
 export const VISA_APPLICATION_CHANNELS = ['b2c', 'b2b']
 export const VISA_APPLICANT_TYPES = ['individual', 'business', 'student', 'employee', 'sponsored']
 export const VISA_STATUS_CATEGORIES = ['in_progress', 'action_required', 'success', 'failed', 'cancelled']
-export const TOUR_STATUSES = ['draft', 'published', 'archived']
-export const PARTNER_STATUSES = ['pending', 'documents_verified', 'approved', 'suspended', 'rejected']
+export const TOUR_STATUSES = ['draft', 'published', 'unpublished', 'archived']
+export const PARTNER_STATUSES = ['pending', 'under_review', 'approved', 'suspended', 'rejected']
 export const DOCUMENT_STATUSES = ['pending', 'verified', 'rejected']
 export const PICKUP_STATUSES = ['requested', 'scheduled', 'completed', 'cancelled']
 export const WITHDRAWAL_STATUSES = ['pending', 'approved', 'paid', 'rejected']
-export const CUSTOM_TOUR_STATUSES = ['pending', 'quoted', 'booked', 'closed']
 
 export const ROLES = {
   ADMIN: 'admin',

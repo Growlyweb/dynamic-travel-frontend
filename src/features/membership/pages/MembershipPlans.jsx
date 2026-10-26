@@ -8,6 +8,8 @@ import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import { formatCurrency } from '../../../utils/formatters'
 import { membershipApi, DURATION_UNITS } from '../membership.api'
+import { useAction } from '../../../hooks/useAction'
+import { errorMessage } from '../../../utils/errors'
 
 const EMPTY_VALUES = {
   name: '',
@@ -39,6 +41,8 @@ function valuesFromPlan(plan) {
 }
 
 export default function MembershipPlans() {
+  const run = useAction()
+  const [formError, setFormError] = useState(null)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -50,14 +54,10 @@ export default function MembershipPlans() {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await membershipApi.listPlans()
-      setRows(result.items ?? [])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    const { ok, value } = await run(() => membershipApi.listPlans())
+    if (ok) setRows(value.items ?? [])
+    setLoading(false)
+  }, [run])
 
   useEffect(() => {
     load()
@@ -67,6 +67,7 @@ export default function MembershipPlans() {
     setEditing(null)
     setValues({ ...EMPTY_VALUES })
     setErrors({})
+    setFormError(null)
     setDialogOpen(true)
   }
 
@@ -74,6 +75,7 @@ export default function MembershipPlans() {
     setEditing(plan)
     setValues(valuesFromPlan(plan))
     setErrors({})
+    setFormError(null)
     setDialogOpen(true)
   }
 
@@ -114,6 +116,9 @@ export default function MembershipPlans() {
       })
       setDialogOpen(false)
       await load()
+    } catch (error) {
+      setErrors(error?.fields ?? {})
+      setFormError(errorMessage(error))
     } finally {
       setSaving(false)
     }
@@ -122,18 +127,15 @@ export default function MembershipPlans() {
   async function handleConfirmDelete() {
     if (!deletingPlan) return
     setDeleting(true)
-    try {
-      await membershipApi.deletePlan(deletingPlan.id)
-      setDeletingPlan(null)
-      await load()
-    } finally {
-      setDeleting(false)
-    }
+    const { ok } = await run(() => membershipApi.deletePlan(deletingPlan.id), { success: 'Plan deleted.' })
+    setDeletingPlan(null)
+    if (ok) await load()
+    setDeleting(false)
   }
 
   async function toggleActive(plan) {
-    await membershipApi.togglePlan(plan.id)
-    await load()
+    const { ok } = await run(() => membershipApi.togglePlan(plan.id))
+    if (ok) await load()
   }
 
   return (
@@ -212,6 +214,7 @@ export default function MembershipPlans() {
         }
       >
         <form onSubmit={handleSubmit} className="stack">
+          {formError ? <div className="alert alert--danger">{formError}</div> : null}
           <div className="grid grid--2">
             <Input
               label="Plan name"

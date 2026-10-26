@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { authService } from '../features/auth/auth.service'
-import { clearAuth, onSessionEnd } from '../services/authStorage'
+import { clearAuth, onSessionEnd, setAdminSession } from '../services/authStorage'
 import { config } from '../app/config'
 
 const AuthContext = createContext(null)
@@ -34,6 +34,10 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => onSessionEnd(() => setUser(null)), [])
+
+  useEffect(() => {
+    setAdminSession(user?.isAdmin)
+  }, [user])
 
   // What a person may do changes when an admin edits their roles. Reading it again when the tab regains focus keeps the
   // menu in step without a new login.

@@ -9,8 +9,17 @@ export const setAccessToken = (token) => {
   accessToken = token || null
 }
 
+// Some screens read different routes for an administrator and for a staff member. The auth provider tells us which one is
+// signed in.
+let adminSession = false
+export const setAdminSession = (value) => {
+  adminSession = Boolean(value)
+}
+export const isAdminSession = () => adminSession
+
 export const clearAuth = () => {
   accessToken = null
+  adminSession = false
 }
 
 // Called when the session cannot be renewed. The auth provider listens and sends the person to the login page.
