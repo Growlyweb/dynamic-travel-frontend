@@ -14,13 +14,3 @@ export { CountrySelect } from './CountrySelect';
 export { RichTextEditor } from './RichTextEditor';
 export { MediaManager } from './MediaManager';
 
-// Aliases for backward compatibility
-export { Table as ReTable } from './Table';
-export { TableCard as ReTableCard } from './TableCard';
-export { TableHeader as ReTableHeader } from './TableHeader';
-export { TableToolbar as ReTableToolbar } from './TableToolbar';
-export { TablePagination as ReTablePagination } from './TablePagination';
-export { TableBadge as ReTableBadge } from './TableBadge';
-export { TableActions as ReTableActions } from './TableActions';
-export { TableCountryCell as ReTableCountryCell } from './TableCountryCell';
-export { TableFull as ReTableFull } from './TableFull';

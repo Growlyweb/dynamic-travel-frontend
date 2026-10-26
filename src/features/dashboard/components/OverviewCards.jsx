@@ -1,6 +1,6 @@
 import StatCard from '../../../components/charts/StatCard'
 import { Banknote, Luggage, Stamp, UserRound } from 'lucide-react'
-import { formatCurrency, formatNumber } from '../../../utils/formatters'
+import { formatNumber } from '../../../utils/formatters'
 import { usePermission } from '../../../hooks/usePermission'
 
 export default function OverviewCards({ overview = {} }) {
