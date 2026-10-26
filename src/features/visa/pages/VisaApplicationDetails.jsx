@@ -5,17 +5,23 @@ import Loader from '../../../components/common/Loader'
 import ErrorState from '../../../components/common/ErrorState'
 import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
-import Modal from '../../../components/common/Modal'
 import Select from '../../../components/common/Select'
 import VisaStatusBadge from '../components/VisaStatusBadge'
 import VisaTimeline from '../components/VisaTimeline'
 import StatusChangeDialog from '../components/StatusChangeDialog'
 import PassportManageDialog from '../components/PassportManageDialog'
-import { visaApi, VISA_STAFF, PASSPORT_STATUS_LABELS, PASSPORT_STATUS_TONES, PASSPORT_METHOD_LABELS, PASSPORT_REQUIREMENT_LABELS } from '../visa.api'
-import { uploadFile } from '../../../services/uploadService'
+import ApplicationPayments from '../components/ApplicationPayments'
+import ApplicationDocuments from '../components/ApplicationDocuments'
+import ApplicationMessages from '../components/ApplicationMessages'
+import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_STATUS_TONES, PASSPORT_METHOD_LABELS, PASSPORT_REQUIREMENT_LABELS } from '../visa.api'
+import { nextStatuses } from '../statusRules'
+import { usePermission } from '../../../hooks/usePermission'
+import { useToast } from '../../../context/ToastContext'
+import { PERMISSIONS } from '../../../utils/permissions'
 import { APP_ROUTES } from '../../../utils/constants'
 import { formatDate, formatDateTime, formatCurrency } from '../../../utils/formatters'
-import { cn, getApiErrorMessage } from '../../../utils/helpers'
+import { cn } from '../../../utils/helpers'
+import { errorMessage } from '../../../utils/errors'
 
 const WORKFLOW_STEPS = [
   { key: 'submitted', label: 'Application submitted' },
@@ -70,61 +76,38 @@ function passportValidityWarning(passport) {
   return expiry < sixMonthsLater
 }
 
-function formatFileSize(bytes) {
-  if (!Number.isFinite(bytes)) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function isImageFile(name) {
-  return /\.(jpe?g|png|gif|webp)$/i.test(name ?? '')
-}
-
 export default function VisaApplicationDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const { can, isAdmin } = usePermission()
   const [application, setApplication] = useState(null)
   const [checklist, setChecklist] = useState(null)
   const [statusConfigs, setStatusConfigs] = useState([])
-  const [templates, setTemplates] = useState([])
+  const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
-  const [smsDialogOpen, setSmsDialogOpen] = useState(false)
-  const [docReview, setDocReview] = useState(null) // { document, status }
-  const [docNote, setDocNote] = useState('')
   const [noteDrafts, setNoteDrafts] = useState({ internal: '', customer: '' })
   const [savingAction, setSavingAction] = useState(false)
-  const [uploadOpen, setUploadOpen] = useState(false)
-  const [uploadType, setUploadType] = useState('')
-  const [uploadFileChosen, setUploadFileChosen] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState(null)
-  const [viewDoc, setViewDoc] = useState(null)
   const [visaType, setVisaType] = useState(null)
   const [passportDialogOpen, setPassportDialogOpen] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true)
     setError(null)
     try {
       const applicationResult = await visaApi.getApplication(id)
       setApplication(applicationResult)
-      const [checklistResult, statusResult, templateResult, typeResult] = await Promise.all([
-        visaApi.getChecklist({
-          countryId: applicationResult.countryId,
-          visaTypeId: applicationResult.visaTypeId,
-          applicantType: applicationResult.applicant.applicantType,
-        }),
+      const [checklistResult, statusResult, typeResult, staffResult] = await Promise.all([
+        visaApi.getChecklist({ countryId: applicationResult.countryId, visaTypeId: applicationResult.visaTypeId, applicantType: applicationResult.applicant.applicantType }),
         visaApi.listStatusConfigs(),
-        visaApi.listSmsTemplates(),
         visaApi.listVisaTypes({ countryId: applicationResult.countryId }),
+        visaApi.listStaff(),
       ])
       setChecklist(checklistResult)
-      setStatusConfigs((statusResult.items ?? []).filter((config) => config.active).sort((a, b) => a.displayOrder - b.displayOrder))
-      setTemplates((templateResult.items ?? []).filter((template) => template.active))
+      setStatusConfigs(statusResult.items ?? [])
       setVisaType((typeResult.items ?? []).find((type) => type.id === applicationResult.visaTypeId) ?? null)
+      setStaff(staffResult)
     } catch (loadError) {
       setError(loadError)
     } finally {
@@ -136,18 +119,29 @@ export default function VisaApplicationDetails() {
     load()
   }, [load])
 
-  async function runAction(action) {
+  // Something changed: read the application again, and say what happened.
+  const changed = useCallback(
+    async (message) => {
+      await load()
+      if (message) toast.success(message)
+    },
+    [load, toast],
+  )
+
+  async function runAction(action, done) {
     setSavingAction(true)
     try {
       await action()
-      await load()
+      await changed(done)
+    } catch (failure) {
+      toast.error(errorMessage(failure))
     } finally {
       setSavingAction(false)
     }
   }
 
   if (loading) return <Loader fullPage label="Loading application…" />
-  if (error) return <ErrorState title="Could not load this application" message={getApiErrorMessage(error)} onRetry={load} />
+  if (error) return <ErrorState title="Could not load this application" message={errorMessage(error)} onRetry={load} />
   if (!application) return null
 
   const isRejected = application.status === 'rejected'
@@ -161,60 +155,14 @@ export default function VisaApplicationDetails() {
   const passport = application.passport
   const passportWarning = passportValidityWarning(passport)
   const price = application.price
-
-  async function submitDocumentReview() {
-    if (!docReview) return
-    await runAction(async () => {
-      await visaApi.reviewDocument(application.id, docReview.document.id, {
-        status: docReview.status,
-        reviewNote: docNote.trim(),
-      })
-    })
-    setDocReview(null)
-    setDocNote('')
-  }
+  const canEdit = can(PERMISSIONS.VISA_EDIT)
+  const canChangeStatus = can(PERMISSIONS.VISA_UPDATE) && nextStatuses(application.status, statusConfigs, { isAdmin }).length > 0
 
   async function addNote(type) {
     const text = noteDrafts[type].trim()
     if (!text) return
-    await runAction(async () => {
-      await visaApi.addNote(application.id, { type, text })
-    })
+    await runAction(() => visaApi.addNote(application.id, { type, text }), 'Note added.')
     setNoteDrafts((current) => ({ ...current, [type]: '' }))
-  }
-
-  function openUpload() {
-    const firstChecklistItem = checklist?.items.find((item) => item.active)
-    setUploadType(firstChecklistItem?.label ?? 'Other document')
-    setUploadFileChosen(null)
-    setUploadError(null)
-    setUploadOpen(true)
-  }
-
-  async function handleUpload(event) {
-    event.preventDefault()
-    if (!uploadFileChosen) {
-      setUploadError('Choose a file first (PDF or image).')
-      return
-    }
-    setUploading(true)
-    setUploadError(null)
-    try {
-      const uploaded = await uploadFile(uploadFileChosen, { folder: 'visa-documents' })
-      await visaApi.addDocument(application.id, {
-        type: uploadType || 'Other document',
-        name: uploaded.name,
-        size: formatFileSize(uploaded.size),
-        mime: uploadFileChosen.type || 'application/octet-stream',
-        url: uploaded.url,
-      })
-      setUploadOpen(false)
-      await load()
-    } catch (submitError) {
-      setUploadError(submitError?.message ?? 'Could not upload the file.')
-    } finally {
-      setUploading(false)
-    }
   }
 
   return (
@@ -230,8 +178,7 @@ export default function VisaApplicationDetails() {
         actions={
           <>
             <Button variant="ghost" onClick={() => navigate(APP_ROUTES.VISA_APPLICATIONS)}>Back</Button>
-            <Button variant="subtle" onClick={() => setSmsDialogOpen(true)}>Send SMS</Button>
-            <Button onClick={() => setStatusDialogOpen(true)}>Change status</Button>
+            {canChangeStatus ? <Button onClick={() => setStatusDialogOpen(true)}>Change status</Button> : null}
           </>
         }
       />
@@ -274,10 +221,11 @@ export default function VisaApplicationDetails() {
             <dt>Assigned staff</dt>
             <dd>
               <Select
-                value={application.assignedStaff ?? ''}
+                value={application.assignedStaffId ?? ''}
                 aria-label="Assigned staff"
-                onChange={(event) => runAction(() => visaApi.assignStaff(application.id, event.target.value || null))}
-                options={[{ value: '', label: 'Unassigned' }, ...VISA_STAFF.map((staff) => ({ value: staff, label: staff }))]}
+                disabled={!canEdit || savingAction}
+                onChange={(event) => runAction(() => visaApi.assignStaff(application.id, event.target.value || null), 'Staff updated.')}
+                options={[{ value: '', label: 'Unassigned' }, ...staff.map((person) => ({ value: person.id ?? person._id, label: person.name }))]}
               />
             </dd>
           </div>
@@ -311,46 +259,7 @@ export default function VisaApplicationDetails() {
         </div>
       ) : null}
 
-      {/* Account connection */}
-      <div className="card">
-        <div className="row between row--wrap">
-          <p className="card__title" style={{ marginBottom: 0 }}>Account</p>
-          <Badge tone={application.accounting?.file ? 'success' : 'warning'}>
-            {application.accounting?.file ? `Posted · ${application.accounting.file.fileNo}` : 'Not posted'}
-          </Badge>
-        </div>
-        <dl className="detail-list mt-2">
-          <div>
-            <dt>Selling price</dt>
-            <dd className="strong">{formatCurrency(application.netAmount ?? application.account?.totalAmount ?? 0)}</dd>
-          </div>
-          <div>
-            <dt>Discount</dt>
-            <dd>{formatCurrency(application.discountAmount ?? 0)}</dd>
-          </div>
-          <div>
-            <dt>Advance received</dt>
-            <dd>{formatCurrency(application.advancePaid ?? application.account?.advancePaid ?? 0)}</dd>
-          </div>
-          <div>
-            <dt>Due</dt>
-            <dd className="strong" style={{ color: (application.dueAmount ?? application.account?.dueAmount ?? 0) > 0 ? '#c62828' : '#0f8a4f' }}>
-              {formatCurrency(application.dueAmount ?? application.account?.dueAmount ?? 0)}
-            </dd>
-          </div>
-          <div>
-            <dt>Payment method</dt>
-            <dd>{application.paymentMethod ?? application.account?.paymentMethod ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>Accounts status</dt>
-            <dd>{application.accounting?.file ? 'Sale, vendor cost and receipt posted' : 'Will post when saved'}</dd>
-          </div>
-        </dl>
-        <Button size="sm" variant="subtle" onClick={() => navigate('/accounts/sales')}>
-          Open Accounts Sale
-        </Button>
-      </div>
+      <ApplicationPayments application={application} onChanged={changed} onOpenAccounts={() => navigate('/accounts/sales')} />
 
       <div className="grid grid--2">
         {/* Applicant information */}
@@ -371,7 +280,7 @@ export default function VisaApplicationDetails() {
           <div className="card">
             <div className="row between">
               <p className="card__title" style={{ marginBottom: 0 }}>Passport</p>
-              <Button size="sm" variant="subtle" onClick={() => setPassportDialogOpen(true)}>Manage</Button>
+              {can(PERMISSIONS.PASSPORT_UPDATE) ? <Button size="sm" variant="subtle" onClick={() => setPassportDialogOpen(true)}>Manage</Button> : null}
             </div>
             <div className="row row--wrap mt-2" style={{ gap: 8 }}>
               <Badge tone="info">{PASSPORT_METHOD_LABELS[application.passportSubmissionMethod] ?? '—'}</Badge>
@@ -386,7 +295,7 @@ export default function VisaApplicationDetails() {
               <p className="muted small mt-2" style={{ marginBottom: 0 }}>
                 {application.pickupRequest.locationType} pickup · {application.pickupRequest.address}
                 {application.pickupRequest.district ? `, ${application.pickupRequest.district}` : ''}
-                {application.pickupRequest.preferredDate ? ` · preferred ${formatDate(application.pickupRequest.preferredDate)} ${application.pickupRequest.preferredTime ?? ''}` : ''}
+                {application.pickupRequest.preferredDate ? ` · preferred ${formatDate(application.pickupRequest.preferredDate)}` : ''}
                 {application.pickupRequest.assignedStaff ? ` · staff: ${application.pickupRequest.assignedStaff}` : ''}
               </p>
             ) : null}
@@ -402,42 +311,7 @@ export default function VisaApplicationDetails() {
             <p className="card__title">Progress</p>
             <VisaTimeline steps={steps} />
           </div>
-          <div className="card">
-            <div className="row between">
-              <p className="card__title" style={{ marginBottom: 0 }}>Documents</p>
-              <Button size="sm" variant="subtle" onClick={openUpload}>+ Add file</Button>
-            </div>
-            <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {application.documents.map((document) => (
-                <li key={document.id} className="row between row--wrap" style={{ gap: 8 }}>
-                  <div>
-                    <p className="strong" style={{ margin: 0 }}>{document.type}</p>
-                    <p className="muted small" style={{ margin: 0 }}>
-                      {document.name} · {document.size} · {formatDate(document.uploadedAt)} · by {document.uploadedBy}
-                    </p>
-                    {document.reviewNote ? (
-                      <p className="small" style={{ margin: 0, color: 'var(--color-danger, #dc2626)' }}>Note: {document.reviewNote}</p>
-                    ) : null}
-                  </div>
-                  <div className="row" style={{ gap: 6 }}>
-                    <Badge tone={DOC_TONES[document.status] ?? 'neutral'}>{document.status}</Badge>
-                    <Button size="sm" variant="ghost" onClick={() => setViewDoc(document)}>View</Button>
-                    {document.status !== 'verified' ? (
-                      <Button size="sm" variant="ghost" onClick={() => { setDocReview({ document, status: 'verified' }); setDocNote('') }}>
-                        Verify
-                      </Button>
-                    ) : null}
-                    {document.status !== 'rejected' ? (
-                      <Button size="sm" variant="ghost" onClick={() => { setDocReview({ document, status: 'rejected' }); setDocNote('') }}>
-                        Reject
-                      </Button>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-              {!application.documents.length ? <p className="muted small">No documents uploaded.</p> : null}
-            </ul>
-          </div>
+          <ApplicationDocuments application={application} checklist={checklist} onChanged={changed} />
         </div>
       </div>
 
@@ -450,7 +324,7 @@ export default function VisaApplicationDetails() {
               {checklist.items
                 .filter((item) => item.active)
                 .map((item) => {
-                  const document = matchDocumentForItem(item, application.documents)
+                  const document = application.documents.find((entry) => entry.checklistItem && String(entry.checklistItem) === String(item.id)) ?? matchDocumentForItem(item, application.documents)
                   const status = document?.status ?? 'missing'
                   return (
                     <li key={item.id} className="row between" style={{ gap: 8 }}>
@@ -544,48 +418,14 @@ export default function VisaApplicationDetails() {
         </div>
       </div>
 
-      {/* Document review dialog */}
-      <Modal
-        open={Boolean(docReview)}
-        onClose={() => setDocReview(null)}
-        title={docReview?.status === 'verified' ? 'Verify document' : 'Reject document'}
-        description={docReview?.document ? `${docReview.document.type} — ${docReview.document.name}` : undefined}
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDocReview(null)}>Cancel</Button>
-            <Button
-              variant={docReview?.status === 'rejected' ? 'danger' : 'primary'}
-              onClick={submitDocumentReview}
-              loading={savingAction}
-            >
-              {docReview?.status === 'verified' ? 'Mark verified' : 'Mark rejected'}
-            </Button>
-          </>
-        }
-      >
-        <div className="field">
-          <label className="field__label" htmlFor="doc-review-note">Review note</label>
-          <textarea
-            id="doc-review-note"
-            className="field__control"
-            rows={3}
-            value={docNote}
-            onChange={(event) => setDocNote(event.target.value)}
-            placeholder={
-              docReview?.status === 'rejected'
-                ? 'Why is this document rejected? e.g. Blurry scan — bio page unreadable.'
-                : 'Optional note for the record.'
-            }
-          />
-        </div>
-      </Modal>
+      <ApplicationMessages application={application} onChanged={changed} />
 
       <StatusChangeDialog
         open={statusDialogOpen}
         onClose={() => setStatusDialogOpen(false)}
         application={application}
         statusOptions={statusConfigs}
-        onSaved={load}
+        onSaved={() => changed('Status updated.')}
       />
 
       <PassportManageDialog
@@ -593,178 +433,10 @@ export default function VisaApplicationDetails() {
         onClose={() => setPassportDialogOpen(false)}
         application={application}
         visaType={visaType}
-        staff={VISA_STAFF}
-        onSaved={load}
+        staff={staff}
+        onSaved={() => changed('Passport updated.')}
       />
 
-      {/* Document upload (demo: file stays in this browser session) */}
-      <Modal
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        title="Upload document"
-        description="Demo upload — the file stays in this browser session, appears in the Documents list and matches the Checklist below."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setUploadOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpload} loading={uploading} disabled={!uploadFileChosen}>Upload</Button>
-          </>
-        }
-      >
-        <form onSubmit={handleUpload} className="stack">
-          <div className="field">
-            <label className="field__label" htmlFor="upload-doc-type">Document type</label>
-            <select
-              id="upload-doc-type"
-              className="field__control"
-              value={uploadType}
-              onChange={(event) => setUploadType(event.target.value)}
-            >
-              {(checklist?.items ?? []).filter((item) => item.active).map((item) => (
-                <option key={item.id} value={item.label}>{item.label}</option>
-              ))}
-              <option value="Other document">Other document</option>
-            </select>
-            <p className="field__hint">Picking a checklist type marks that requirement as fulfilled.</p>
-          </div>
-          <div className="field">
-            <label className="field__label" htmlFor="upload-doc-file">File (PDF or image)</label>
-            <input
-              id="upload-doc-file"
-              type="file"
-              className="field__control"
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
-              onChange={(event) => setUploadFileChosen(event.target.files?.[0] ?? null)}
-            />
-            {uploadFileChosen ? (
-              <p className="field__hint">{uploadFileChosen.name} · {formatFileSize(uploadFileChosen.size)}</p>
-            ) : (
-              <p className="field__hint">Accepted: PDF, JPG, PNG, WEBP.</p>
-            )}
-          </div>
-          {uploadError ? <p className="alert alert--danger" role="alert">{uploadError}</p> : null}
-        </form>
-      </Modal>
-
-      {/* Document preview */}
-      <Modal
-        open={Boolean(viewDoc)}
-        onClose={() => setViewDoc(null)}
-        title={viewDoc ? `Preview — ${viewDoc.type}` : ''}
-        description={viewDoc ? `${viewDoc.name} · ${viewDoc.size} · ${viewDoc.status}` : undefined}
-        size="lg"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setViewDoc(null)}>Close</Button>
-            {viewDoc?.url ? <Button onClick={() => window.open(viewDoc.url, '_blank')}>Open in new tab</Button> : null}
-          </>
-        }
-      >
-        {viewDoc?.url ? (
-          isImageFile(viewDoc.name) ? (
-            <img
-              src={viewDoc.url}
-              alt={viewDoc.name}
-              style={{ maxWidth: '100%', maxHeight: 460, borderRadius: 'var(--radius-sm, 8px)' }}
-            />
-          ) : (
-            <iframe
-              src={viewDoc.url}
-              title={viewDoc.name}
-              style={{ width: '100%', height: 460, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm, 8px)' }}
-            />
-          )
-        ) : (
-          <p className="muted small">
-            This is a seeded demo record without a real file. Upload a file with “+ Add file” and its preview will show here.
-          </p>
-        )}
-      </Modal>
-
-      <SendSmsDialog
-        open={smsDialogOpen}
-        onClose={() => setSmsDialogOpen(false)}
-        application={application}
-        templates={templates}
-        onSent={load}
-      />
     </div>
-  )
-}
-
-/** Manual SMS send (spec #20). Renders the chosen template for preview. */
-function SendSmsDialog({ open, onClose, application, templates, onSent }) {
-  const [templateId, setTemplateId] = useState('')
-  const [message, setMessage] = useState('')
-  const [sending, setSending] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setTemplateId(templates[0]?.id ?? '')
-      setMessage(templates[0]?.message ?? '')
-    }
-  }, [open, templates])
-
-  const preview = (message || '')
-    .replaceAll('{{applicantName}}', application?.applicant?.fullName ?? '')
-    .replaceAll('{{applicationNumber}}', application?.number ?? '')
-    .replaceAll('{{country}}', application?.country ?? '')
-    .replaceAll('{{visaType}}', application?.visaType ?? '')
-    .replaceAll('{{status}}', application?.status ?? '')
-    .replaceAll('{{trackingUrl}}', `dynamic.travel/track/${application?.number ?? ''}`)
-
-  async function handleSend() {
-    setSending(true)
-    try {
-      await visaApi.sendSms(application.id, { templateId: templateId || undefined, message })
-      onSent?.()
-      onClose()
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Send SMS"
-      description={`To ${application?.applicant?.fullName} · ${application?.applicant?.mobile}`}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSend} loading={sending} disabled={!message.trim()}>Send SMS</Button>
-        </>
-      }
-    >
-      <div className="stack">
-        <Select
-          label="Template"
-          value={templateId}
-          onChange={(event) => {
-            setTemplateId(event.target.value)
-            const template = templates.find((item) => item.id === event.target.value)
-            setMessage(template?.message ?? '')
-          }}
-          options={templates.map((template) => ({ value: template.id, label: template.name }))}
-          placeholder="No template — custom message"
-        />
-        <div className="field">
-          <label className="field__label" htmlFor="sms-message">Message</label>
-          <textarea
-            id="sms-message"
-            className="field__control"
-            rows={4}
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-          />
-          <p className="field__hint">
-            Variables: {'{{applicantName}} {{applicationNumber}} {{country}} {{visaType}} {{status}} {{trackingUrl}}'}
-          </p>
-        </div>
-        <div className="alert alert--info">
-          <p className="small" style={{ margin: 0 }}><strong>Preview:</strong> {preview}</p>
-        </div>
-      </div>
-    </Modal>
   )
 }

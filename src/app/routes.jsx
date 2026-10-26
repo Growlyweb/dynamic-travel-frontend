@@ -45,13 +45,10 @@ const VisaQuotations = lazy(
 const VisaPassportOperations = lazy(
   () => import("../features/visa/pages/VisaPassportOperations"),
 );
-const SmsTemplates = lazy(
-  () => import("../features/visa/pages/SmsTemplates"),
+const MessageTemplates = lazy(
+  () => import("../features/visa/pages/MessageTemplates"),
 );
-const SmsLogs = lazy(() => import("../features/visa/pages/SmsLogs"));
-const ReTablePreviewPage = lazy(
-  () => import("../features/visa/pages/ReTablePreviewPage"),
-);
+const MessageLog = lazy(() => import("../features/visa/pages/MessageLog"));
 
 const TourPackages = lazy(() => import("../features/tours/pages/TourPackages"));
 const TourDetails = lazy(() => import("../features/tours/pages/TourDetails"));
@@ -226,7 +223,6 @@ export function AppRoutes() {
         <Route path="/dashboard/verify-otp/:role" element={<Navigate to="/dashboard/reset-password" replace />} />
         <Route path="/forgot-password" element={<Navigate to="/dashboard/forgot-password" replace />} />
         <Route path="/reset-password" element={<Navigate to="/dashboard/reset-password" replace />} />
-        <Route path="/re-table-preview" element={<ReTablePreviewPage />} />
 
         <Route
           element={
@@ -401,14 +397,6 @@ export function AppRoutes() {
             }
           />
           <Route
-            path="visa/checklist-preview"
-            element={
-              <RequirePermission permission="VISA_VIEW">
-                <ReTablePreviewPage />
-              </RequirePermission>
-            }
-          />
-          <Route
             path="visa/countries"
             element={
               <RequirePermission permission="VISA_VIEW">
@@ -468,7 +456,7 @@ export function AppRoutes() {
             path="visa/sms/templates"
             element={
               <RequirePermission permission="VISA_VIEW">
-                <SmsTemplates />
+                <MessageTemplates />
               </RequirePermission>
             }
           />
@@ -476,7 +464,7 @@ export function AppRoutes() {
             path="visa/sms/logs"
             element={
               <RequirePermission permission="VISA_VIEW">
-                <SmsLogs />
+                <MessageLog />
               </RequirePermission>
             }
           />

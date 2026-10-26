@@ -149,8 +149,8 @@ export const NAV_SECTIONS = [
       // { to: APP_ROUTES.VISA_STATUS, label: 'Status board', icon: Kanban, permission: 'VISA_VIEW' },
       // { to: APP_ROUTES.VISA_QUOTATIONS, label: 'Quotations', icon: ReceiptText, permission: 'VISA_VIEW' },
       // { to: APP_ROUTES.VISA_PASSPORT_OPERATIONS, label: 'Passport operations', icon: KeyRound, permission: 'VISA_VIEW' },
-      // { to: APP_ROUTES.VISA_SMS_TEMPLATES, label: 'SMS templates', icon: MessageSquareText, permission: 'VISA_VIEW' },
-      // { to: APP_ROUTES.VISA_SMS_LOGS, label: 'SMS logs', icon: ScrollText, permission: 'VISA_VIEW' },
+      // { to: APP_ROUTES.VISA_SMS_TEMPLATES, label: 'Message templates', icon: MessageSquareText, permission: 'VISA_VIEW' },
+      // { to: APP_ROUTES.VISA_SMS_LOGS, label: 'Message log', icon: ScrollText, permission: 'VISA_VIEW' },
     ],
   },
   {

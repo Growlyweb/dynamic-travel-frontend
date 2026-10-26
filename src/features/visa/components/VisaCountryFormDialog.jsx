@@ -13,22 +13,8 @@ import {
 } from "lucide-react";
 import CountryFlagPicker from "./CountryFlagPicker";
 import RichChecklistEditor from "./RichChecklistEditor";
-import SampleMediaManager, { DEFAULT_SAMPLE_DOCS } from "./SampleMediaManager";
-
-const DEFAULT_RICH_CHECKLIST = `<h3>Mandatory Requirements</h3>
-<ul>
-  <li><strong>Original Passport:</strong> Must have at least 6 months validity from the travel date with minimum 2 blank pages.</li>
-  <li><strong>Photographs:</strong> 2 recent studio passport photos (35mm x 45mm, white background, matte finish).</li>
-  <li><strong>Bank Statement & Solvency:</strong> Last 6 months bank statement with authorized seal and minimum balance BDT 150,000+.</li>
-  <li><strong>Air Ticket & Hotel Booking:</strong> Return flight reservation and confirmed hotel stay.</li>
-</ul>
-<h3>Professional Proof</h3>
-<ol>
-  <li><strong>Business Owners:</strong> Trade license copy, company memo, visiting card.</li>
-  <li><strong>Employees:</strong> NOC from employer, salary certificate, office ID copy.</li>
-  <li><strong>Students:</strong> Student ID card copy and leave endorsement letter.</li>
-</ol>
-<blockquote><strong>Important:</strong> Physical passport submission required at the visa application center.</blockquote>`;
+import SampleMediaManager from "./SampleMediaManager";
+import { errorMessage } from "../../../utils/errors";
 
 const INITIAL_FORM = {
   name: "",
@@ -42,8 +28,8 @@ const INITIAL_FORM = {
   physicalPassportRequired: true,
   expressAvailable: false,
   displayOrder: 1,
-  richChecklist: DEFAULT_RICH_CHECKLIST,
-  sampleDocs: [...DEFAULT_SAMPLE_DOCS],
+  richChecklist: "",
+  sampleDocs: [],
 };
 
 export default function VisaCountryFormDialog({
@@ -73,16 +59,13 @@ export default function VisaCountryFormDialog({
           physicalPassportRequired: country.physicalPassportRequired ?? true,
           expressAvailable: country.expressAvailable ?? false,
           displayOrder: country.displayOrder || positionMax,
-          richChecklist: country.richChecklist || DEFAULT_RICH_CHECKLIST,
-          sampleDocs: country.sampleDocs && country.sampleDocs.length > 0
-            ? country.sampleDocs
-            : [...DEFAULT_SAMPLE_DOCS],
+          richChecklist: country.richChecklist || "",
+          sampleDocs: country.sampleDocs ?? [],
         });
       } else {
         setFormData({
           ...INITIAL_FORM,
           displayOrder: positionMax,
-          sampleDocs: [...DEFAULT_SAMPLE_DOCS],
         });
       }
       setError(null);
@@ -108,6 +91,10 @@ export default function VisaCountryFormDialog({
       setError("Please specify a country name.");
       return;
     }
+    if (!/^[A-Za-z]{2,3}$/.test((formData.code || "").trim())) {
+      setError("Choose the country from the list, or type its 2 or 3 letter code.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -117,13 +104,13 @@ export default function VisaCountryFormDialog({
         ...(country || {}),
         ...formData,
         name: formData.name.trim(),
-        code: (formData.code || "XX").toUpperCase(),
+        code: (formData.code || "").toUpperCase(),
         status: formData.status === "deactive" ? "paused" : "active",
         displayOrder: Number(formData.displayOrder) || 1,
       });
       onClose();
     } catch (err) {
-      setError(err?.message || "Failed to save visa country.");
+      setError(Object.values(err?.fields ?? {}).join(" ") || errorMessage(err, "Failed to save visa country."));
     } finally {
       setSaving(false);
     }
@@ -206,7 +193,6 @@ export default function VisaCountryFormDialog({
                         onSelectCountry={handleCountryPick}
                         onChangeName={(val) => setFormData((p) => ({ ...p, name: val }))}
                         onChangeCode={(val) => setFormData((p) => ({ ...p, code: val }))}
-                        onChangeFlag={(val) => setFormData((p) => ({ ...p, flag: val }))}
                       />
                     </div>
 

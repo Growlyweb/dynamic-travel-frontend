@@ -6,10 +6,10 @@ import ErrorState from "../../../components/common/ErrorState";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/tables/ShadcnDataTable";
 import PassportManageDialog from "../components/PassportManageDialog";
-import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_STATUS_TONES, PASSPORT_METHOD_LABELS, VISA_STAFF } from "../visa.api";
+import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_METHOD_LABELS } from "../visa.api";
 import { APP_ROUTES } from "../../../utils/constants";
 import { formatDate } from "../../../utils/formatters";
-import { getApiErrorMessage } from "../../../utils/helpers";
+import { errorMessage } from "../../../utils/errors";
 
 /**
  * Passport operations board (spec #15): every application with a physical
@@ -20,6 +20,7 @@ export default function VisaPassportOperations() {
   const [rows, setRows] = useState([]);
   const [countries, setCountries] = useState([]);
   const [visaTypes, setVisaTypes] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [managing, setManaging] = useState(null); // application being managed
@@ -28,11 +29,14 @@ export default function VisaPassportOperations() {
     setLoading(true);
     setError(null);
     try {
-      const [applicationResult, countryResult, typeResult] = await Promise.all([
-        visaApi.listApplications(),
+      // The 500 newest applications. The Applications page searches all of them.
+      const [applicationResult, countryResult, typeResult, staffResult] = await Promise.all([
+        visaApi.listApplications({ pageSize: 500 }),
         visaApi.listCountries(),
         visaApi.listVisaTypes(),
+        visaApi.listStaff(),
       ]);
+      setStaff(staffResult);
       setRows(applicationResult.items ?? []);
       setCountries(countryResult.items ?? []);
       setVisaTypes(typeResult.items ?? []);
@@ -50,7 +54,7 @@ export default function VisaPassportOperations() {
   const statusOptions = Object.entries(PASSPORT_STATUS_LABELS).map(([value, label]) => ({ label, value }));
   const countryOptions = countries.map((country) => ({ label: country.name, value: country.id }));
   const visaTypeOptions = visaTypes.map((type) => ({ label: type.name, value: type.id }));
-  const staffOptions = VISA_STAFF.map((staff) => ({ label: staff, value: staff }));
+  const staffOptions = staff.map((person) => ({ label: person.name, value: person.name }));
 
   const managingVisaType = managing ? visaTypes.find((type) => type.id === managing.visaTypeId) : null;
 
@@ -66,7 +70,7 @@ export default function VisaPassportOperations() {
         {loading ? (
           <Loader label="Loading passport operations…" />
         ) : error ? (
-          <ErrorState title="Could not load passport operations" message={getApiErrorMessage(error)} onRetry={load} />
+          <ErrorState title="Could not load passport operations" message={errorMessage(error)} onRetry={load} />
         ) : (
           <DataTable
             ariaLabel="Passport operations"
@@ -192,7 +196,7 @@ export default function VisaPassportOperations() {
         onClose={() => setManaging(null)}
         application={managing}
         visaType={managingVisaType}
-        staff={VISA_STAFF}
+        staff={staff}
         onSaved={(updated) => {
           load();
           // keep the open dialog in sync with the fresh record
