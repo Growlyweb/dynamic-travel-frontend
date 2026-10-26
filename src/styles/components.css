@@ -1,5 +1,7 @@
 /* ---------- Cards ---------- */
 .card {
+  min-width: 0;
+  max-width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -459,6 +461,8 @@ select.field__control {
 /* ---------- Tables ---------- */
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {

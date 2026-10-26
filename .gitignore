@@ -5,6 +5,10 @@ node_modules
 dist
 dist-ssr
 
+
+.wrangler
+.dev.vars*
+
 # Local env files
 .env
 .env.local
@@ -32,3 +36,5 @@ pnpm-debug.log*
 
 # Coverage
 coverage
+.lint*
+.build

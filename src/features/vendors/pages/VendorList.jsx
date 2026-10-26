@@ -1,537 +1,375 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import PageHeader from '@/components/layout/PageHeader'
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
+  TableCard,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+  TableToolbar,
+  Table,
+  TablePagination,
+  TableActions,
+} from '../../../components/re-table';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import ConfirmDialog from '@/components/common/ConfirmDialog'
-import {
-  Plus,
-  Download,
-  Search,
-  MoreVertical,
-  Eye,
-  Edit,
-  Trash2,
-  Receipt,
-  CreditCard,
-  CheckCircle2,
-  XCircle,
-  ArrowUpDown,
-} from 'lucide-react'
-
-import { vendorApi, exportToCsv } from '../vendor.api'
-import DueBadge from '../components/DueBadge'
-import BillModal from '../components/BillModal'
-import PaymentModal from '../components/PaymentModal'
-import { cn } from '@/utils/helpers'
+  vendorApi,
+  calculateVendorSegmentDue,
+} from '../vendor.api';
+import { formatNumber } from '@/utils/formatters';
 
 export default function VendorList() {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const navigate = useNavigate();
 
-  const [vendors, setVendors] = useState([])
-  const [services, setServices] = useState([])
-  const [bills, setBills] = useState([])
-  const [payments, setPaymentsList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [vendors, setVendors] = useState([]);
+  const [services, setServices] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Filters & Search
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [serviceFilter, setServiceFilter] = useState(searchParams.get('serviceId') || 'all')
-  const [sortByDueDesc, setSortByDueDesc] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [serviceFilter, setServiceFilter] = useState('');
 
   // Pagination
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  // Modals & Actions
-  const [billModalOpen, setBillModalOpen] = useState(false)
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
-  const [activeVendorId, setActiveVendorId] = useState(null)
-  const [deleteVendorTarget, setDeleteVendorTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [actionError, setActionError] = useState(null)
+  // Delete State
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const [vRes, sRes, bRes, pRes] = await Promise.all([
         vendorApi.getVendors(),
         vendorApi.getServices(),
         vendorApi.getBills(),
         vendorApi.getPayments(),
-      ])
-      if (vRes.success) setVendors(vRes.data)
-      if (sRes.success) setServices(sRes.data)
-      if (bRes.success) setBills(bRes.data)
-      if (pRes.success) setPaymentsList(pRes.data)
+      ]);
+
+      if (vRes.success) setVendors(vRes.data);
+      if (sRes.success) setServices(sRes.data);
+      if (bRes.success) setBills(bRes.data);
+      if (pRes.success) setPayments(pRes.data);
     } catch (err) {
-      console.error('Failed to load vendors:', err)
+      console.error('Failed to load vendor list data:', err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    loadData();
+  }, [loadData]);
 
-  // Filter & Search logic
+  // Filtered dataset
   const filteredVendors = useMemo(() => {
-    let list = [...vendors]
-
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter((v) => {
-        const fullPhone = `${v.mobile?.countryCode || ''} ${v.mobile?.number || ''}`.toLowerCase()
-        return (
-          v.name.toLowerCase().includes(q) ||
-          v.vendorCode.toLowerCase().includes(q) ||
+    return vendors.filter((v) => {
+      // Search matching across vendor name, mobile, email, services
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const fullPhone = `${v.mobile?.countryCode || ''} ${v.mobile?.number || v.mobileNumber || ''}`.toLowerCase();
+        const srvNames = (v.serviceNames || []).join(' ').toLowerCase();
+        const matches =
+          (v.name && v.name.toLowerCase().includes(q)) ||
+          (v.vendorName && v.vendorName.toLowerCase().includes(q)) ||
           fullPhone.includes(q) ||
-          (v.email && v.email.toLowerCase().includes(q))
-        )
-      })
-    }
+          (v.email && v.email.toLowerCase().includes(q)) ||
+          (v.emailAddress && v.emailAddress.toLowerCase().includes(q)) ||
+          srvNames.includes(q);
 
-    if (statusFilter !== 'all') {
-      const isAct = statusFilter === 'active'
-      list = list.filter((v) => v.isActive === isAct)
-    }
+        if (!matches) return false;
+      }
 
-    if (serviceFilter !== 'all') {
-      list = list.filter((v) => v.services?.includes(serviceFilter))
-    }
+      // Service filter
+      if (serviceFilter && !v.services?.includes(serviceFilter)) {
+        return false;
+      }
 
-    if (sortByDueDesc) {
-      list.sort((a, b) => b.totalDue - a.totalDue)
-    }
+      return true;
+    });
+  }, [vendors, searchQuery, serviceFilter]);
 
-    return list
-  }, [vendors, search, statusFilter, serviceFilter, sortByDueDesc])
-
-  // Pagination slice
-  const totalPages = Math.max(1, Math.ceil(filteredVendors.length / pageSize))
+  // Paginated dataset
   const paginatedVendors = useMemo(() => {
-    const start = (page - 1) * pageSize
-    return filteredVendors.slice(start, start + pageSize)
-  }, [filteredVendors, page, pageSize])
+    const start = (currentPage - 1) * pageSize;
+    return filteredVendors.slice(start, start + pageSize);
+  }, [filteredVendors, currentPage, pageSize]);
 
-  const handleExport = () => {
-    const headers = [
-      { label: 'SL', key: (r, idx) => idx + 1 },
-      { label: 'Vendor Code', key: 'vendorCode' },
-      { label: 'Vendor Name', key: 'name' },
-      {
-        label: 'Mobile',
-        key: (r) => `${r.mobile?.countryCode || ''} ${r.mobile?.number || ''}`.trim(),
-      },
-      { label: 'Email', key: 'email' },
-      { label: 'Services', key: (r) => (r.serviceNames || []).join(', ') },
-      { label: 'Total Due (BDT)', key: 'totalDue' },
-      { label: 'Status', key: (r) => (r.isActive ? 'Active' : 'Inactive') },
-    ]
-    exportToCsv('Vendor_List', headers, filteredVendors)
-  }
-
-  const handleToggleStatus = async (vendor) => {
-    try {
-      await vendorApi.toggleVendorStatus(vendor.id)
-      loadData()
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
+  // Handle delete
   const handleDelete = async () => {
-    if (!deleteVendorTarget) return
-    setDeleting(true)
-    setActionError(null)
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setActionError(null);
     try {
-      await vendorApi.deleteVendor(deleteVendorTarget.id)
-      setDeleteVendorTarget(null)
-      loadData()
+      await vendorApi.deleteVendor(deleteTarget.id);
+      setDeleteTarget(null);
+      loadData();
     } catch (err) {
-      setActionError(err.message)
+      setActionError(err.message || 'Failed to delete vendor.');
     } finally {
-      setDeleting(false)
+      setDeleting(false);
     }
-  }
+  };
 
-  const handleAddBill = (vId) => {
-    setActiveVendorId(vId)
-    setBillModalOpen(true)
-  }
+  // Helper: resolve due for a specific service category
+  const getServiceDue = useCallback(
+    (vendor, serviceMatchFn) => {
+      const srvId = (vendor.services || []).find((sid) => {
+        const srvObj = services.find((s) => s.id === sid);
+        return serviceMatchFn(sid, srvObj);
+      });
+      if (!srvId) return null; // vendor does not offer this service
+      const { due } = calculateVendorSegmentDue(vendor.id, srvId, bills, payments);
+      return due ?? 0;
+    },
+    [services, bills, payments]
+  );
 
-  const handleAddPayment = (vId) => {
-    setActiveVendorId(vId)
-    setPaymentModalOpen(true)
-  }
+  // Service matchers
+  const isVisa = (sid, s) =>
+    sid === 'srv_visa' || s?.name?.toLowerCase().includes('visa');
+  const isAir = (sid, s) =>
+    sid === 'srv_air' ||
+    s?.name?.toLowerCase().includes('air') ||
+    s?.name?.toLowerCase().includes('ticket');
+  const isTour = (sid, s) =>
+    sid === 'srv_tour' ||
+    s?.name?.toLowerCase().includes('tour') ||
+    s?.name?.toLowerCase().includes('package');
+  const isHotel = (sid, s) =>
+    sid === 'srv_hotel' || s?.name?.toLowerCase().includes('hotel');
+  const isTransport = (sid, s) =>
+    sid === 'srv_transport' ||
+    s?.name?.toLowerCase().includes('transport') ||
+    s?.name?.toLowerCase().includes('transfer');
+
+  // Due cell renderer
+  const renderDueCell = (amount) => {
+    if (amount === null) {
+      return <span className="text-slate-300 text-sm select-none">—</span>;
+    }
+    if (amount > 0) {
+      return (
+        <span className="inline-flex items-baseline gap-0.5 font-bold text-rose-600 text-sm">
+          <span className="text-xs">৳</span>
+          {formatNumber(amount)}
+        </span>
+      );
+    }
+    if (amount < 0) {
+      return (
+        <span className="inline-flex items-baseline gap-0.5 font-bold text-amber-600 text-sm">
+          <span className="text-xs">৳</span>
+          {formatNumber(Math.abs(amount))}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-baseline gap-0.5 font-semibold text-emerald-600 text-sm">
+        <span className="text-xs">৳</span>0
+      </span>
+    );
+  };
+
+  // Table Column Definitions matching Visa segment table design
+  const columns = useMemo(
+    () => [
+      {
+        key: 'sl',
+        header: '#',
+        width: '56px',
+        align: 'center',
+        render: (row, idx) => (
+          <span className="text-slate-600 font-normal">
+            {(currentPage - 1) * pageSize + idx + 1}
+          </span>
+        ),
+      },
+      {
+        key: 'name',
+        header: 'Vendor Name',
+        minWidth: '180px',
+        render: (row) => {
+          const num = row.mobile?.number || row.mobileNumber;
+          const code = row.mobile?.countryCode || '+88';
+          return (
+            <div>
+              <p className="font-semibold text-slate-900 text-sm">{row.name || row.vendorName}</p>
+              <p className="text-[11px] text-slate-500">{num ? `${code} ${num}` : row.email || '—'}</p>
+            </div>
+          );
+        },
+      },
+      // ── Service Due Amount Columns ──────────────────────────────
+      {
+        key: 'visaDue',
+        header: 'Visa Due',
+        minWidth: '105px',
+        align: 'right',
+        render: (row) => renderDueCell(getServiceDue(row, isVisa)),
+      },
+      {
+        key: 'airDue',
+        header: 'Air Ticket Due',
+        minWidth: '110px',
+        align: 'right',
+        render: (row) => renderDueCell(getServiceDue(row, isAir)),
+      },
+      {
+        key: 'tourDue',
+        header: 'Tour Package Due',
+        minWidth: '120px',
+        align: 'right',
+        render: (row) => renderDueCell(getServiceDue(row, isTour)),
+      },
+      {
+        key: 'hotelDue',
+        header: 'Hotel Due',
+        minWidth: '105px',
+        align: 'right',
+        render: (row) => renderDueCell(getServiceDue(row, isHotel)),
+      },
+      {
+        key: 'transportDue',
+        header: 'Transport Due',
+        minWidth: '110px',
+        align: 'right',
+        render: (row) => renderDueCell(getServiceDue(row, isTransport)),
+      },
+      // ── Actions ───────────────────────────────────────────────
+      {
+        key: 'actions',
+        header: 'Actions',
+        width: '170px',
+        align: 'center',
+        render: (row) => (
+          <TableActions
+            row={row}
+            onView={(r) => navigate(`/vendors/${r.id}`)}
+            onUpdate={(r) => navigate(`/vendors/${r.id}/edit`)}
+            onDelete={(r) => setDeleteTarget(r)}
+            viewLabel="View"
+            updateLabel="Edit"
+            deleteLabel="Delete"
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize, getServiceDue, navigate]
+  );
+
+  const hasActiveFilters = Boolean(searchQuery || serviceFilter);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setServiceFilter('');
+    setCurrentPage(1);
+  };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Vendors"
-        description="Manage supplier directory, service associations, outstanding dues, and payment ledgers."
-        breadcrumbs={[
-          { label: 'Vendors', to: '/vendors' },
-          { label: 'Directory' },
-        ]}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
+    <div className="w-full max-w-7xl mx-auto space-y-4">
+      {actionError && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+          <AlertCircle className="size-4 shrink-0 text-rose-600" />
+          <span>{actionError}</span>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+        <span>
+          Vendor bills, payments and advances are posted to <strong>Accounts → Vendor Payables</strong> automatically.
+        </span>
+        <button
+          type="button"
+          onClick={() => navigate('/accounts/payables')}
+          className="shrink-0 font-semibold text-[#2F80ED] hover:underline"
+        >
+          Open Vendor Payables →
+        </button>
+      </div>
+
+      {/* Main Table Card (Same design system as Visa segment table) */}
+      <TableCard>
+        {/* Header with Royal Blue Icon and + Add Vendor Action Button */}
+        <TableHeader
+          title="Vendors"
+          subtitle="Manage vendor directory, services and corresponding service due amounts"
+          icon={Building2}
+          actionText="Add Vendor"
+          onAction={() => navigate('/vendors/new')}
+        />
+
+        {/* Toolbar with Search & Filter */}
+        <TableToolbar
+          search={searchQuery}
+          onSearchChange={(val) => {
+            setSearchQuery(val);
+            setCurrentPage(1);
+          }}
+          searchPlaceholder="Search by vendor name, mobile, email, service..."
+          filters={[
+            {
+              id: 'service',
+              value: serviceFilter,
+              placeholder: 'All Services',
+              options: services.map((s) => ({ value: s.id, label: s.name })),
+              onChange: (val) => {
+                setServiceFilter(val);
+                setCurrentPage(1);
+              },
+            },
+          ]}
+        >
+          {hasActiveFilters && (
+            <button
               type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="text-xs gap-1.5 h-9 bg-white"
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+              title="Reset all filters"
             >
-              <Download className="size-3.5 text-muted-foreground" /> Export Excel
-            </Button>
-            <Link to="/vendors/new">
-              <Button size="sm" className="bg-primary text-white hover:bg-primary-strong text-xs gap-1.5 h-9">
-                <Plus className="size-3.5" /> Add Vendor
-              </Button>
-            </Link>
-          </div>
-        }
-      />
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
+        </TableToolbar>
 
-      {/* Filter and Search Bar (Section 4.1) */}
-      <div className="bg-white border border-border rounded-xl p-3.5 shadow-xs space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by vendor name, code (VND-XXXX), mobile..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
-              className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+        {/* Table with signature royal blue header */}
+        <Table
+          columns={columns}
+          data={paginatedVendors}
+          loading={loading}
+          rowKey="id"
+          emptyText="No vendors found"
+          emptyDescription="Try adjusting your search query or service filter."
+        />
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value)
-                setPage(1)
-              }}
-              className="h-9 px-2.5 text-xs rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
-            </select>
-          </div>
+        {/* Pagination Footer */}
+        <TablePagination
+          currentPage={currentPage}
+          totalEntries={filteredVendors.length}
+          pageSize={pageSize}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      </TableCard>
 
-          {/* Service Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Service:</span>
-            <select
-              value={serviceFilter}
-              onChange={(e) => {
-                setServiceFilter(e.target.value)
-                setPage(1)
-              }}
-              className="h-9 px-2.5 text-xs rounded-lg border border-border bg-surface text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="all">All Services</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sort by Due Descending Toggle */}
-          <Button
-            type="button"
-            variant={sortByDueDesc ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={() => setSortByDueDesc(!sortByDueDesc)}
-            className={cn(
-              'h-9 text-xs gap-1.5 bg-white',
-              sortByDueDesc && 'border-primary text-primary font-semibold'
-            )}
-          >
-            <ArrowUpDown className="size-3.5" />
-            Sort by Due {sortByDueDesc ? '(Highest First)' : ''}
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Vendor Table */}
-      <div className="bg-white border border-border rounded-xl shadow-xs overflow-hidden">
-        <div className="relative w-full overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-muted/40">
-                <TableHead className="w-12 text-center">SL</TableHead>
-                <TableHead className="w-28">Vendor Code</TableHead>
-                <TableHead>Vendor Name</TableHead>
-                <TableHead>Mobile</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Services</TableHead>
-                <TableHead className="text-right">Total Due</TableHead>
-                <TableHead className="text-center w-24">Status</TableHead>
-                <TableHead className="text-right pr-4 w-20">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-40 text-center text-muted-foreground">
-                    Loading vendors...
-                  </TableCell>
-                </TableRow>
-              ) : paginatedVendors.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="h-40 text-center text-muted-foreground">
-                    No vendors found matching your criteria.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedVendors.map((row, idx) => {
-                  const sl = (page - 1) * pageSize + idx + 1
-                  return (
-                    <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="text-center text-xs font-medium text-muted-foreground">
-                        {sl}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground">
-                        {row.vendorCode}
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          to={`/vendors/${row.id}`}
-                          className="font-medium text-sm text-foreground hover:text-primary transition-colors hover:underline block"
-                        >
-                          {row.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-xs text-foreground whitespace-nowrap">
-                        {row.mobile?.number
-                          ? `${row.mobile?.countryCode || '+88'} ${row.mobile.number}`
-                          : '—'}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {row.email || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 max-w-[220px]">
-                          {(row.serviceNames || []).map((srv) => (
-                            <span
-                              key={srv}
-                              className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
-                            >
-                              {srv}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DueBadge amount={row.totalDue} />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(row)}
-                          title="Click to toggle status"
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-colors cursor-pointer',
-                            row.isActive
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300'
-                              : 'bg-muted text-muted-foreground border border-border hover:bg-muted/80'
-                          )}
-                        >
-                          {row.isActive ? (
-                            <>
-                              <CheckCircle2 className="size-3" /> Active
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="size-3" /> Inactive
-                            </>
-                          )}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right pr-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Vendor actions"
-                              className="size-8 p-0"
-                            >
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuItem onClick={() => handleAddBill(row.id)}>
-                              <Receipt className="size-4 text-amber-600" /> Add Bill
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAddPayment(row.id)}>
-                              <CreditCard className="size-4 text-emerald-600" /> Add Payment
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => navigate(`/vendors/${row.id}`)}>
-                              <Eye className="size-4 text-muted-foreground" /> View Ledger
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/vendors/${row.id}/edit`)}>
-                              <Edit className="size-4 text-muted-foreground" /> Edit Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-
-                            {/* Delete Rule (Section 4.1 & 11): Delete shown ONLY if no bills and no payments */}
-                            {row.hasTransactions ? (
-                              <DropdownMenuItem
-                                disabled
-                                className="text-xs text-muted-foreground cursor-not-allowed"
-                                title="Cannot delete vendor with recorded transactions. Set to Inactive instead."
-                              >
-                                <Trash2 className="size-4 text-muted-foreground/40" /> Has transactions
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => {
-                                  setActionError(null)
-                                  setDeleteVendorTarget(row)
-                                }}
-                              >
-                                <Trash2 className="size-4" /> Delete Vendor
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination & Page Size (Section 4.1: 20 per page default, selectable 20 / 50 / 100) */}
-        <div className="p-3.5 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value))
-                setPage(1)
-              }}
-              className="h-7 px-2 text-xs rounded border border-border bg-surface text-foreground"
-            >
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <span>
-              Showing {filteredVendors.length === 0 ? 0 : (page - 1) * pageSize + 1} to{' '}
-              {Math.min(page * pageSize, filteredVendors.length)} of {filteredVendors.length} vendors
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              className="h-7 px-2.5"
-            >
-              Previous
-            </Button>
-            <span className="px-2 font-medium text-foreground">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={page >= totalPages}
-              onClick={() => setPage(page + 1)}
-              className="h-7 px-2.5"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Confirm Delete Dialog */}
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
-        open={Boolean(deleteVendorTarget)}
-        title={`Delete Vendor "${deleteVendorTarget?.name}"?`}
+        open={Boolean(deleteTarget)}
+        title="Delete Vendor"
         message={
-          actionError ? (
-            <span className="text-rose-600 font-medium">{actionError}</span>
-          ) : (
-            'Are you sure you want to permanently remove this vendor? This action cannot be undone.'
-          )
+          deleteTarget
+            ? `Are you sure you want to delete vendor "${deleteTarget.name || deleteTarget.vendorName}"? This action cannot be undone.`
+            : ''
         }
-        confirmLabel={deleting ? 'Deleting...' : 'Delete Vendor'}
+        confirmLabel="Yes, Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
         loading={deleting}
         onConfirm={handleDelete}
-        onCancel={() => {
-          setDeleteVendorTarget(null)
-          setActionError(null)
-        }}
-      />
-
-      {/* Add Bill Modal */}
-      <BillModal
-        open={billModalOpen}
-        onClose={() => setBillModalOpen(false)}
-        onSave={async (billData) => {
-          await vendorApi.createBill(billData)
-          loadData()
-        }}
-        vendors={vendors}
-        services={services}
-        initialVendorId={activeVendorId}
-      />
-
-      {/* Add Payment Modal */}
-      <PaymentModal
-        open={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
-        onSave={async (paymentData) => {
-          await vendorApi.createPayment(paymentData)
-          loadData()
-        }}
-        vendors={vendors}
-        services={services}
-        bills={bills}
-        payments={payments}
-        initialVendorId={activeVendorId}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
-  )
+  );
 }

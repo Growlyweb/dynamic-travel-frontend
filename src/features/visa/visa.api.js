@@ -1,4 +1,5 @@
 import { apiClient, withMock } from '../../services/apiClient'
+import { postVisaApplicationToAccounts } from './visa.accounting'
 
 /**
  * Visa module data layer.
@@ -219,19 +220,10 @@ const DEMO_CHECKLISTS = [
 /* ── Status configuration (spec #14) ─────────────────────── */
 
 const DEMO_STATUS_CONFIGS = [
-  { id: 'vsc_1', key: 'submitted', displayName: 'Submitted', customerMessage: 'We have received your visa application.', internalDescription: 'Application created, awaiting document check.', category: 'in_progress', active: true, displayOrder: 10, isSystem: true },
-  { id: 'vsc_2', key: 'under_review', displayName: 'Under Review', customerMessage: 'Your application is under review by our team.', internalDescription: 'Documents being verified against the checklist.', category: 'in_progress', active: true, displayOrder: 20, isSystem: true },
-  { id: 'vsc_3', key: 'action_required', displayName: 'Action Required', customerMessage: 'Additional documents or information are required. Please check the request.', internalDescription: 'Waiting on the applicant to upload missing documents.', category: 'action_required', active: true, displayOrder: 30, isSystem: true },
-  { id: 'vsc_4', key: 'documents_completed', displayName: 'Documents Completed', customerMessage: 'All requested documents have been received.', internalDescription: 'Applicant completed the pending request.', category: 'in_progress', active: true, displayOrder: 40, isSystem: true },
-  { id: 'vsc_5', key: 'processing', displayName: 'Processing', customerMessage: 'Your visa is being processed.', internalDescription: 'File is being prepared for embassy submission.', category: 'in_progress', active: true, displayOrder: 50, isSystem: true },
-  { id: 'vsc_6', key: 'submitted_to_embassy', displayName: 'Submitted to Embassy', customerMessage: 'Your application has been submitted to the embassy.', internalDescription: 'Embassy submission done, awaiting decision.', category: 'in_progress', active: true, displayOrder: 60, isSystem: true },
-  { id: 'vsc_7', key: 'approved', displayName: 'Approved', customerMessage: 'Congratulations! Your visa has been approved.', internalDescription: 'Visa granted by the embassy.', category: 'success', active: true, displayOrder: 70, isSystem: true },
-  { id: 'vsc_8', key: 'passport_ready', displayName: 'Passport Ready', customerMessage: 'Your passport is ready for collection from our office.', internalDescription: 'Passport returned with visa affixed.', category: 'success', active: true, displayOrder: 80, isSystem: true },
-  { id: 'vsc_9', key: 'completed', displayName: 'Completed', customerMessage: 'Your visa application is complete. Thank you for travelling with us.', internalDescription: 'Delivered to the applicant.', category: 'success', active: true, displayOrder: 90, isSystem: true },
-  { id: 'vsc_10', key: 'rejected', displayName: 'Rejected', customerMessage: 'Unfortunately your visa application was rejected. Please see the details.', internalDescription: 'Visa refused by the embassy.', category: 'failed', active: true, displayOrder: 100, isSystem: true },
-  { id: 'vsc_11', key: 'cancelled', displayName: 'Cancelled', customerMessage: 'Your application has been cancelled.', internalDescription: 'Cancelled by applicant or admin.', category: 'cancelled', active: true, displayOrder: 110, isSystem: true },
-  { id: 'vsc_12', key: 'passport_submitted', displayName: 'Passport Submitted', customerMessage: 'Your passport has been submitted to the embassy.', internalDescription: 'Custom status created by admin for China files.', category: 'in_progress', active: true, displayOrder: 65, isSystem: false },
+  { id: 'vsc_approved', key: 'approved', displayName: 'Approved', customerMessage: 'Congratulations! Your visa has been approved.', internalDescription: 'Visa granted by the embassy.', category: 'success', active: true, displayOrder: 10, isSystem: true },
+  { id: 'vsc_rejected', key: 'rejected', displayName: 'Rejected', customerMessage: 'Unfortunately your visa application was rejected.', internalDescription: 'Visa refused by the embassy.', category: 'failed', active: true, displayOrder: 20, isSystem: true },
 ]
+
 
 /* ── Applications (spec #6–#10, #12, #13) ────────────────── */
 
@@ -241,7 +233,7 @@ const DEMO_APPLICATIONS = [
     country: 'China', visaType: 'Tourist Visa', channel: 'b2c', partner: null,
     applicant: { fullName: 'Rahim Ahmed', dob: '1992-04-18', gender: 'male', nationality: 'Bangladeshi', mobile: '+880 1712 556 340', email: 'rahim.ahmed@gmail.com', address: 'House 42, Road 7, Dhanmondi', city: 'Dhaka', applicantType: 'individual' },
     passport: { number: 'BR0912345', expiry: '2030-06-15', issueDate: '2020-06-16', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'under_review', assignedStaff: 'Priya Nair', submittedAt: '2026-09-28', updatedAt: '2026-10-04',
+    status: 'approved', assignedStaff: 'Priya Nair', submittedAt: '2026-09-28', updatedAt: '2026-10-04',
     price: { currency: 'BDT', b2c: 12000, b2b: 10000 },
     actionRequired: null, rejection: null,
     documents: [
@@ -263,7 +255,7 @@ const DEMO_APPLICATIONS = [
     country: 'China', visaType: 'Business Visa', channel: 'b2b', partner: 'ABC Travels',
     applicant: { fullName: 'Tom Becker', dob: '1985-11-02', gender: 'male', nationality: 'German', mobile: '+49 151 2233 4455', email: 'tom.becker@nimbuslabs.de', address: 'Friedrichstr. 12', city: 'Berlin', applicantType: 'business' },
     passport: { number: 'C0X4K82P1', expiry: '2031-01-20', issueDate: '2021-01-21', issuingCountry: 'Germany', type: 'ordinary' },
-    status: 'action_required', assignedStaff: 'Priya Nair', submittedAt: '2026-09-22', updatedAt: '2026-10-03',
+    status: 'rejected', assignedStaff: 'Priya Nair', submittedAt: '2026-09-22', updatedAt: '2026-10-03',
     price: { currency: 'BDT', b2c: 18000, b2b: 15000 },
     actionRequired: { message: 'Please upload the invitation letter from the Chinese company and your company trade license.', requestedAt: '2026-10-03', requestedBy: 'Priya Nair' },
     rejection: null,
@@ -308,7 +300,7 @@ const DEMO_APPLICATIONS = [
     country: 'Malaysia', visaType: 'Tourist Visa (eVisa)', channel: 'b2b', partner: 'Sunrise Tours',
     applicant: { fullName: 'Nina Roy', dob: '2000-01-25', gender: 'female', nationality: 'Bangladeshi', mobile: '+880 1811 990 220', email: 'nina.roy@gmail.com', address: 'Agrabad C/A', city: 'Chattogram', applicantType: 'individual' },
     passport: { number: 'EP7788990', expiry: '2028-11-30', issueDate: '2018-12-01', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'submitted', assignedStaff: null, submittedAt: '2026-09-30', updatedAt: '2026-09-30',
+    status: 'approved', assignedStaff: null, submittedAt: '2026-09-30', updatedAt: '2026-09-30',
     price: { currency: 'BDT', b2c: 4500, b2b: 3600 },
     actionRequired: null, rejection: null,
     documents: [
@@ -323,7 +315,7 @@ const DEMO_APPLICATIONS = [
     country: 'United Arab Emirates', visaType: 'Business Visa', channel: 'b2b', partner: 'Nimbus Travels',
     applicant: { fullName: 'Kamal Hossain', dob: '1988-09-14', gender: 'male', nationality: 'Bangladeshi', mobile: '+880 1715 300 440', email: 'kamal@everestgroup.bd', address: 'Motijheel C/A', city: 'Dhaka', applicantType: 'business' },
     passport: { number: 'AB5566778', expiry: '2027-08-01', issueDate: '2017-08-02', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'processing', assignedStaff: 'Ahmed Karim', submittedAt: '2026-09-26', updatedAt: '2026-10-04',
+    status: 'rejected', assignedStaff: 'Ahmed Karim', submittedAt: '2026-09-26', updatedAt: '2026-10-04',
     price: { currency: 'BDT', b2c: 7800, b2b: 6400 },
     actionRequired: null, rejection: null,
     documents: [
@@ -341,7 +333,7 @@ const DEMO_APPLICATIONS = [
     country: 'United Kingdom', visaType: 'UK Standard Visitor Visa', channel: 'b2c', partner: null,
     applicant: { fullName: 'Farhana Islam', dob: '1994-03-03', gender: 'female', nationality: 'Bangladeshi', mobile: '+880 1913 456 780', email: 'farhana.islam@yahoo.com', address: 'Zindabazar', city: 'Sylhet', applicantType: 'individual' },
     passport: { number: 'BX1122334', expiry: '2031-05-20', issueDate: '2021-05-21', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'submitted_to_embassy', assignedStaff: 'Fatema Zahra', submittedAt: '2026-09-18', updatedAt: '2026-10-01',
+    status: 'approved', assignedStaff: 'Fatema Zahra', submittedAt: '2026-09-18', updatedAt: '2026-10-01',
     price: { currency: 'BDT', b2c: 18500, b2b: 16000 },
     actionRequired: null, rejection: null,
     documents: [
@@ -359,7 +351,7 @@ const DEMO_APPLICATIONS = [
     country: 'United Arab Emirates', visaType: 'Tourist Visa', channel: 'b2c', partner: null,
     applicant: { fullName: 'Jahangir Alam', dob: '1990-12-11', gender: 'male', nationality: 'Bangladeshi', mobile: '+880 1711 222 333', email: 'jahangir.alam@gmail.com', address: 'Badda', city: 'Dhaka', applicantType: 'individual' },
     passport: { number: 'CD9988776', expiry: '2029-09-09', issueDate: '2019-09-10', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'completed', assignedStaff: 'Ahmed Karim', submittedAt: '2026-09-10', updatedAt: '2026-09-24',
+    status: 'approved', assignedStaff: 'Ahmed Karim', submittedAt: '2026-09-10', updatedAt: '2026-09-24',
     price: { currency: 'BDT', b2c: 6500, b2b: 5200 },
     actionRequired: null, rejection: null,
     documents: [
@@ -399,7 +391,7 @@ const DEMO_APPLICATIONS = [
     country: 'China', visaType: 'Student Visa', channel: 'b2c', partner: null,
     applicant: { fullName: 'Anika Tabassum', dob: '2003-08-21', gender: 'female', nationality: 'Bangladeshi', mobile: '+880 1611 777 888', email: 'anika.tabassum@gmail.com', address: 'Mirpur DOHS', city: 'Dhaka', applicantType: 'student' },
     passport: { number: 'GH6677889', expiry: '2032-04-10', issueDate: '2022-04-11', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'passport_ready', assignedStaff: 'Priya Nair', submittedAt: '2026-08-28', updatedAt: '2026-10-03',
+    status: 'approved', assignedStaff: 'Priya Nair', submittedAt: '2026-08-28', updatedAt: '2026-10-03',
     price: { currency: 'BDT', b2c: 22000, b2b: 19000 },
     actionRequired: null, rejection: null,
     documents: [
@@ -419,7 +411,7 @@ const DEMO_APPLICATIONS = [
     country: 'Malaysia', visaType: 'Tourist Visa (eVisa)', channel: 'b2c', partner: null,
     applicant: { fullName: 'Shahidul Islam', dob: '1979-02-02', gender: 'male', nationality: 'Bangladeshi', mobile: '+880 1555 123 456', email: 'shahidul.islam@gmail.com', address: 'Khulna Sadar', city: 'Khulna', applicantType: 'individual' },
     passport: { number: 'IJ2233445', expiry: '2027-01-15', issueDate: '2017-01-16', issuingCountry: 'Bangladesh', type: 'ordinary' },
-    status: 'action_required', assignedStaff: 'Fatema Zahra', submittedAt: '2026-10-01', updatedAt: '2026-10-04',
+    status: 'rejected', assignedStaff: 'Fatema Zahra', submittedAt: '2026-10-01', updatedAt: '2026-10-04',
     price: { currency: 'BDT', b2c: 4500, b2b: 3600 },
     actionRequired: { message: 'Your passport bio page scan is not readable. Please re-upload a clear colour scan.', requestedAt: '2026-10-04', requestedBy: 'Fatema Zahra' },
     rejection: null,
@@ -581,20 +573,42 @@ const PASSPORT_SEED = {
 }
 
 let statusConfigsStore = DEMO_STATUS_CONFIGS.map((status) => ({ ...status }))
-let applicationsStore = DEMO_APPLICATIONS.map((application) => ({
-  passportSubmissionMethod: 'online',
-  passportStatus: 'not_required',
-  ...PASSPORT_SEED[application.id],
-  ...application,
-  applicant: { ...application.applicant },
-  passport: { ...application.passport },
-  price: { ...application.price },
-  documents: application.documents.map((document) => ({ ...document })),
-  timeline: application.timeline.map((event) => ({ ...event })),
-  internalNotes: application.internalNotes.map((note) => ({ ...note })),
-  customerNotes: application.customerNotes.map((note) => ({ ...note })),
-  ...(application.pickupRequest ? { pickupRequest: { ...application.pickupRequest } } : {}),
-}))
+const VISA_APPLICATIONS_KEY = 'abl_visa_applications_v1'
+
+function readStoredApplications() {
+  try {
+    const raw = localStorage.getItem(VISA_APPLICATIONS_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function persistApplications() {
+  try {
+    localStorage.setItem(VISA_APPLICATIONS_KEY, JSON.stringify(applicationsStore))
+  } catch {
+    // Storage can be unavailable in private mode; the in-memory list still works.
+  }
+}
+
+let applicationsStore =
+  readStoredApplications() ||
+  DEMO_APPLICATIONS.map((application) => ({
+    passportSubmissionMethod: 'online',
+    passportStatus: 'not_required',
+    ...PASSPORT_SEED[application.id],
+    ...application,
+    applicant: { ...application.applicant },
+    passport: { ...application.passport },
+    price: { ...application.price },
+    documents: application.documents.map((document) => ({ ...document })),
+    timeline: application.timeline.map((event) => ({ ...event })),
+    internalNotes: application.internalNotes.map((note) => ({ ...note })),
+    customerNotes: application.customerNotes.map((note) => ({ ...note })),
+    ...(application.pickupRequest ? { pickupRequest: { ...application.pickupRequest } } : {}),
+  }))
 let quotationsStore = DEMO_QUOTATIONS.map((quotation) => ({ ...quotation }))
 let smsTemplatesStore = DEMO_SMS_TEMPLATES.map((template) => ({ ...template }))
 let smsLogsStore = DEMO_SMS_LOGS.map((log) => ({ ...log }))
@@ -796,12 +810,101 @@ export const visaApi = {
       () => clone(applicationsStore.find((application) => application.id === id) ?? applicationsStore[0]),
       () => apiClient.get(`/visa/applications/${id}`),
     ),
+  createApplication: (payload) =>
+    withMock(
+      () => {
+        const record = {
+          id: nextId('va'),
+          number: `VISA-${new Date().getFullYear()}-${String(applicationsStore.length + 101).padStart(6, '0')}`,
+          status: 'submitted',
+          submittedAt: new Date().toISOString().slice(0, 10),
+          updatedAt: new Date().toISOString().slice(0, 10),
+          channel: payload.clientType === 'b2b' ? 'b2b' : 'b2c',
+          partner: payload.clientType === 'b2b' ? payload.clientName || null : null,
+          country: payload.country || 'China',
+          countryId: payload.countryId || 'vcn',
+          visaType: payload.visaType || 'Tourist Visa',
+          applicant: {
+            fullName: payload.name || '',
+            mobile: payload.phone || '',
+            email: payload.email || '',
+            address: '',
+            city: '',
+            nationality: 'Bangladeshi',
+            applicantType: payload.clientType === 'b2b' ? 'business' : 'individual',
+          },
+          passport: {
+            number: payload.passportNumber || '',
+            expiry: '',
+            issueDate: '',
+            issuingCountry: 'Bangladesh',
+            type: 'ordinary',
+          },
+          service: {
+            clientName: payload.clientName || '',
+            visaType: payload.visaType || '',
+            entries: payload.entries || 'Single Entry',
+            duration: payload.visaDuration || '30 Days',
+          },
+          vendor: {
+            name: payload.vendorName || '',
+            reference: payload.vendorReference || '',
+            cost: Number(payload.vendorCost) || 0,
+            notes: payload.vendorNotes || '',
+          },
+          account: {
+            totalAmount: Number(payload.totalAmount) || 0,
+            netAmount: Number(payload.netAmount ?? payload.totalAmount) || 0,
+            discountAmount: Number(payload.discountAmount) || 0,
+            advancePaid: Number(payload.advancePaid) || 0,
+            dueAmount: Math.max(
+              0,
+              (Number(payload.netAmount ?? payload.totalAmount) || 0) - (Number(payload.advancePaid) || 0)
+            ),
+            paymentMethod: payload.paymentMethod || 'Cash',
+            status: payload.paymentStatus || 'Pending',
+          },
+          price: {
+            currency: 'BDT',
+            b2c: Number(payload.netAmount ?? payload.totalAmount) || 0,
+            b2b: Number(payload.netAmount ?? payload.totalAmount) || 0,
+          },
+          assignedStaff: null,
+          actionRequired: null,
+          rejection: null,
+          documents: [],
+          timeline: [
+            {
+              id: nextId('vtl'),
+              at: new Date().toISOString(),
+              event: 'Application Created',
+              message: 'Application created successfully.',
+              visibility: 'both',
+              by: 'Admin',
+            },
+          ],
+          internalNotes: payload.vendorNotes ? [{ id: nextId('vn'), at: new Date().toISOString(), by: 'Admin', text: `Vendor note: ${payload.vendorNotes}` }] : [],
+          customerNotes: [],
+          ...payload,
+        }
+        applicationsStore = [record, ...applicationsStore]
+        try {
+          record.accounting = postVisaApplicationToAccounts(record, payload)
+        } catch (error) {
+          record.accountingError = error.message
+        }
+        persistApplications()
+        return clone(record)
+      },
+      () => apiClient.post('/visa/applications', payload),
+    ),
   updateApplication: (id, patch) =>
     withMock(
       () => {
         const index = applicationsStore.findIndex((application) => application.id === id)
         if (index < 0) return null
         applicationsStore[index] = { ...applicationsStore[index], ...patch }
+        persistApplications()
         return clone(applicationsStore[index])
       },
       () => apiClient.patch(`/visa/applications/${id}`, patch),
@@ -813,6 +916,7 @@ export const visaApi = {
         if (!application) return null
         application.assignedStaff = staff
         logTimeline(application, 'Assigned to Staff', `Assigned to ${staff}.`, 'internal')
+        persistApplications()
         return clone(application)
       },
       () => apiClient.patch(`/visa/applications/${id}`, { assignedStaff: staff }),
@@ -842,6 +946,7 @@ export const visaApi = {
           config?.customerMessage ??
           `Status changed to ${config?.displayName ?? status}.`
         logTimeline(application, config?.displayName ?? status, message, 'both')
+        persistApplications()
         return clone(application)
       },
       () => apiClient.patch(`/visa/applications/${id}/status`, { status, customerMessage, internalReason, customerReason, note }),
@@ -855,6 +960,7 @@ export const visaApi = {
         if (type === 'customer') application.customerNotes = [note, ...application.customerNotes]
         else application.internalNotes = [note, ...application.internalNotes]
         logTimeline(application, type === 'customer' ? 'Customer Note Added' : 'Internal Note Added', text, type === 'customer' ? 'customer' : 'internal')
+        persistApplications()
         return clone(application)
       },
       () => apiClient.post(`/visa/applications/${id}/notes`, { type, text }),
@@ -871,6 +977,7 @@ export const visaApi = {
           const label = status === 'verified' ? 'Document Verified' : 'Document Rejected'
           logTimeline(application, label, `${document.type}: ${document.name}${reviewNote ? ` — ${reviewNote}` : ''}`, 'internal')
         }
+        persistApplications()
         return clone(application)
       },
       () => apiClient.patch(`/visa/applications/${applicationId}/documents/${documentId}`, { status, reviewNote }),
@@ -891,6 +998,7 @@ export const visaApi = {
         }
         application.documents = [...application.documents, document]
         logTimeline(application, 'Document Uploaded', `${document.type}: ${document.name}`, 'both', 'Admin')
+        persistApplications()
         return clone(document)
       },
       () => apiClient.post(`/visa/applications/${applicationId}/documents`, payload),
@@ -961,6 +1069,7 @@ export const visaApi = {
         }
 
         application.updatedAt = new Date().toISOString().slice(0, 10)
+        persistApplications()
         return clone(application)
       },
       () => apiClient.patch(`/visa/applications/${id}/passport`, payload),
@@ -1184,11 +1293,7 @@ export const visaApi = {
         ).length
         return clone({
           total: applicationsStore.length,
-          submitted: byStatus('submitted'),
-          underReview: byStatus('under_review'),
-          actionRequired: byStatus('action_required'),
-          processing: byStatus('processing'),
-          submittedToEmbassy: byStatus('submitted_to_embassy'),
+
           approved: byStatus('approved') + byStatus('passport_ready') + byStatus('completed'),
           rejected: byStatus('rejected'),
           completed: byStatus('completed'),

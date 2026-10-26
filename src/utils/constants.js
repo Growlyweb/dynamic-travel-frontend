@@ -2,28 +2,26 @@ import {
   BadgePercent,
   Bell,
   Building2,
+  ChartColumnBig,
   ChartLine,
   CircleUser,
   CreditCard,
+  Megaphone,
   Files,
   FileText,
   Gauge,
-  Globe,
+  HandCoins,
   Handshake,
+  Home,
   Inbox,
-  Kanban,
-  KeyRound,
   Landmark,
-  Layers,
   LayoutDashboard,
   ListChecks,
+  ListTree,
   Luggage,
-  MessageSquareText,
-  Milestone,
   PenLine,
   Percent,
   ReceiptText,
-  ScrollText,
   Settings,
   ShieldCheck,
   Stamp,
@@ -32,6 +30,7 @@ import {
   UserCog,
   UserRound,
   Users,
+  Wallet,
 } from 'lucide-react'
 
 export const APP_ROUTES = {
@@ -63,7 +62,7 @@ export const APP_ROUTES = {
   VISA_SMS_TEMPLATES: '/visa/sms/templates',
   VISA_SMS_LOGS: '/visa/sms/logs',
 
-  TOURS: '/tours',
+  TOURS: '/tours/packages',
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
   TOUR_CUSTOM_BUILDER: '/tours/custom/builder',
@@ -77,6 +76,9 @@ export const APP_ROUTES = {
   B2B_COMMISSIONS: '/b2b/commissions',
   B2B_WITHDRAWALS: '/b2b/withdrawals',
   B2B_DOCUMENTS: '/b2b/documents',
+  PARTNER_LOGIN: '/partner/login',
+  PARTNER_REGISTER: '/partner/register',
+  PARTNER_PORTAL: '/partner/portal',
 
   B2C_CUSTOMERS: '/b2c/customers',
   B2C_CUSTOMER_DETAILS: (id) => `/b2c/customers/${id}`,
@@ -98,7 +100,34 @@ export const APP_ROUTES = {
   DOCUMENT_DETAILS: (id) => `/documents/${id}`,
 
   NOTIFICATIONS: '/notifications',
+  ACCOUNTS_HOME: '/accounts',
+  ACCOUNTS_SALES: '/accounts/sales',
+  ACCOUNTS_DUES: '/accounts/dues',
+  ACCOUNTS_RECEIPTS: '/accounts/receipts',
+  ACCOUNTS_MONTHLY: '/accounts/monthly',
+  ACCOUNTS_PROFIT: '/accounts/profit',
+  ACCOUNTS_CATEGORIES: '/accounts/categories',
+  ACCOUNTS_PRICE_LIST: '/accounts/price-list',
+  ACCOUNTS_AGENTS: '/accounts/agents',
+  ACCOUNTS_CLIENTS: '/accounts/clients',
+  ACCOUNTS_PAYABLES: '/accounts/payables',
+  ACCOUNTS_PARTNERS: '/accounts/partners',
   REPORTS: '/reports',
+  REPORTS_OVERVIEW: '/reports/overview',
+  REPORTS_JOURNAL: '/reports/journal',
+  REPORTS_ACCOUNTS: '/reports/accounts',
+  REPORTS_LEDGER: '/reports/ledger',
+  REPORTS_TRIAL_BALANCE: '/reports/trial-balance',
+  REPORTS_PROFIT_LOSS: '/reports/profit-loss',
+  REPORTS_BALANCE_SHEET: '/reports/balance-sheet',
+  REPORTS_B2B_AGENTS: '/reports/b2b-agents',
+  REPORTS_B2C_CLIENTS: '/reports/b2c-clients',
+  REPORTS_PAYABLES: '/reports/payables',
+  REPORTS_VISA_FILES: '/reports/visa-files',
+  REPORTS_CATEGORIES: '/reports/categories',
+  REPORTS_MONTHLY: '/reports/monthly',
+  REPORT_MARKETING: '/reports/marketing',
+
 
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_GENERAL: '/settings',
@@ -115,16 +144,16 @@ export const NAV_SECTIONS = [
     items: [
       { to: APP_ROUTES.VISA_OVERVIEW, label: 'Overview', icon: Gauge, permission: 'visa.view', end: true },
       { to: APP_ROUTES.VISA_APPLICATIONS, label: 'Applications', icon: Stamp, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_TYPES, label: 'Visa types', icon: Layers, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_TYPES, label: 'Visa types', icon: Layers, permission: 'visa.view' },
       { to: APP_ROUTES.VISA_PRICING, label: 'Pricing', icon: Tags, permission: 'visa.view' },
       { to: APP_ROUTES.VISA_CHECKLIST, label: 'Checklists', icon: ListChecks, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_STATUSES, label: 'Application statuses', icon: Milestone, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_STATUS, label: 'Status board', icon: Kanban, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_QUOTATIONS, label: 'Quotations', icon: ReceiptText, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_PASSPORT_OPERATIONS, label: 'Passport operations', icon: KeyRound, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_SMS_TEMPLATES, label: 'SMS templates', icon: MessageSquareText, permission: 'visa.view' },
-      { to: APP_ROUTES.VISA_SMS_LOGS, label: 'SMS logs', icon: ScrollText, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_STATUSES, label: 'Application statuses', icon: Milestone, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_STATUS, label: 'Status board', icon: Kanban, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_QUOTATIONS, label: 'Quotations', icon: ReceiptText, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_PASSPORT_OPERATIONS, label: 'Passport operations', icon: KeyRound, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_SMS_TEMPLATES, label: 'SMS templates', icon: MessageSquareText, permission: 'visa.view' },
+      // { to: APP_ROUTES.VISA_SMS_LOGS, label: 'SMS logs', icon: ScrollText, permission: 'visa.view' },
     ],
   },
   {
@@ -143,6 +172,7 @@ export const NAV_SECTIONS = [
       { to: APP_ROUTES.B2B_COMMISSIONS, label: 'Commissions', icon: Percent, permission: 'b2b.view' },
       { to: APP_ROUTES.B2B_WITHDRAWALS, label: 'Withdrawals', icon: Landmark, permission: 'b2b.view' },
       { to: APP_ROUTES.B2B_DOCUMENTS, label: 'Documents', icon: FileText, permission: 'b2b.view' },
+      { to: APP_ROUTES.PARTNER_LOGIN, label: 'Partner login page', icon: UserRound },
     ],
   },
   {
@@ -160,12 +190,44 @@ export const NAV_SECTIONS = [
   {
     label: 'Vendors',
     items: [
-      { to: APP_ROUTES.VENDORS_DASHBOARD, label: 'Vendor Dashboard', icon: LayoutDashboard },
       { to: APP_ROUTES.VENDORS, label: 'Vendors', icon: Building2, end: true },
       { to: APP_ROUTES.VENDOR_CREATE, label: 'Add Vendor', icon: PenLine },
-      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Vendor Services', icon: Layers },
-      { to: APP_ROUTES.VENDOR_BILLS, label: 'Vendor Bills', icon: ReceiptText },
-      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Vendor Payments', icon: CreditCard },
+      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Vendor Services', icon: ListTree },
+      { to: APP_ROUTES.VENDOR_BILLS, label: 'Vendor Bills', icon: FileText },
+      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Payments & Advances', icon: Wallet },
+    ],
+  },
+  {
+    label: 'Accounts',
+    items: [
+      { to: APP_ROUTES.ACCOUNTS_HOME, label: 'Home', icon: Home, permission: 'reports.view', end: true },
+      { to: APP_ROUTES.ACCOUNTS_SALES, label: 'Sales', icon: ReceiptText, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_DUES, label: 'Client Dues', icon: Wallet, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_RECEIPTS, label: 'Money Receipts', icon: HandCoins, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_MONTHLY, label: 'Monthly Report', icon: ChartColumnBig, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_PROFIT, label: 'Profit & Expenses', icon: ChartLine, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_PAYABLES, label: 'Vendor Payables', icon: Wallet, permission: 'reports.view' },
+    ],
+  },
+  {
+    label: 'Clients & Partners',
+    items: [
+      { to: APP_ROUTES.ACCOUNTS_AGENTS, label: 'B2B Agents', icon: Building2, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_CLIENTS, label: 'B2C Clients', icon: UserRound, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_PARTNERS, label: 'Partners', icon: Handshake, permission: 'reports.view' },
+    ],
+  },
+
+   {
+    label: 'Marketing',
+    items: [{ to: APP_ROUTES.REPORT_MARKETING, label: 'Email & SMS', icon: Megaphone, permission: 'reports.view' },],
+  },
+  
+  {
+    label: 'Setup',
+    items: [
+      { to: APP_ROUTES.ACCOUNTS_CATEGORIES, label: 'Categories', icon: Tags, permission: 'reports.view' },
+      { to: APP_ROUTES.ACCOUNTS_PRICE_LIST, label: 'Price List', icon: ListTree, permission: 'reports.view' },
     ],
   },
   {
@@ -175,7 +237,6 @@ export const NAV_SECTIONS = [
       { to: APP_ROUTES.ROLES, label: 'Roles & permissions', icon: UserCog, permission: 'users.view' },
       { to: APP_ROUTES.DOCUMENTS, label: 'All documents', icon: Files, permission: 'documents.view' },
       { to: APP_ROUTES.NOTIFICATIONS, label: 'Notifications', icon: Bell },
-      { to: APP_ROUTES.REPORTS, label: 'Reports', icon: ChartLine, permission: 'reports.view' },
     ],
   },
   {
@@ -225,7 +286,7 @@ export const VISA_APPLICATION_CHANNELS = ['b2c', 'b2b']
 export const VISA_APPLICANT_TYPES = ['individual', 'business', 'student', 'employee', 'sponsored']
 export const VISA_STATUS_CATEGORIES = ['in_progress', 'action_required', 'success', 'failed', 'cancelled']
 export const TOUR_STATUSES = ['draft', 'published', 'archived']
-export const PARTNER_STATUSES = ['pending', 'approved', 'suspended', 'rejected']
+export const PARTNER_STATUSES = ['pending', 'documents_verified', 'approved', 'suspended', 'rejected']
 export const DOCUMENT_STATUSES = ['pending', 'verified', 'rejected']
 export const PICKUP_STATUSES = ['requested', 'scheduled', 'completed', 'cancelled']
 export const WITHDRAWAL_STATUSES = ['pending', 'approved', 'paid', 'rejected']
