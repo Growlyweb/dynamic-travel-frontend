@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../components/AuthLayout';
 import { PasswordInput } from '../components/PasswordInput';
 import { useAuth } from '../../../hooks/useAuth';
@@ -19,10 +19,7 @@ export default function Login() {
 
   const destination = location.state?.from || '/dashboard';
 
-  if (ready && isAuthenticated) {
-    navigate(destination, { replace: true });
-    return null;
-  }
+  if (ready && isAuthenticated) return <Navigate to={destination} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

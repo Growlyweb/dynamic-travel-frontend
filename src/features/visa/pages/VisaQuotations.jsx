@@ -13,6 +13,7 @@ import { useServerTable } from '../../../hooks/useServerTable'
 import { useAction } from '../../../hooks/useAction'
 import { formatDate, formatCurrency } from '../../../utils/formatters'
 import { errorMessage, fieldErrors } from '../../../utils/errors'
+import { escapeHtml as esc } from '../../../utils/helpers'
 
 const QUOTATION_STATUS_TONES = { draft: 'neutral', sent: 'info', accepted: 'success', rejected: 'danger', expired: 'warning' }
 
@@ -56,7 +57,7 @@ export default function VisaQuotations() {
   function printQuotation(quotation) {
     const printWindow = window.open('', '_blank', 'width=800,height=900')
     if (!printWindow) return
-    printWindow.document.write(`<!doctype html><html><head><title>${quotation.number}</title>
+    printWindow.document.write(`<!doctype html><html><head><title>${esc(quotation.number)}</title>
       <style>
         body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 40px; }
         .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 16px; }
@@ -73,21 +74,21 @@ export default function VisaQuotations() {
         <div><div class="brand">Dynamic Travel</div><div class="muted">Visa Services · Dhaka, Bangladesh</div></div>
         <div style="text-align:right">
           <div class="brand" style="font-size:16px">QUOTATION</div>
-          <div class="muted">${quotation.number}<br/>Date: ${formatDate(quotation.createdAt)}<br/>Valid until: ${formatDate(quotation.validUntil)}</div>
+          <div class="muted">${esc(quotation.number)}<br/>Date: ${formatDate(quotation.createdAt)}<br/>Valid until: ${formatDate(quotation.validUntil)}</div>
         </div>
       </div>
-      <p style="margin-top:20px"><strong>B2B Partner:</strong> ${quotation.partner}<br/><strong>Client:</strong> ${quotation.clientName}</p>
+      <p style="margin-top:20px"><strong>B2B Partner:</strong> ${esc(quotation.partner)}<br/><strong>Client:</strong> ${esc(quotation.clientName)}</p>
       <table>
         <thead><tr><th>Service</th><th>Country</th><th>Qty</th><th>Net price</th><th>Amount</th></tr></thead>
         <tbody>
-          <tr><td>${quotation.visaType}</td><td>${quotation.country}</td><td>${quotation.quantity}</td><td>${formatCurrency(quotation.netPrice, quotation.currency)}</td><td>${formatCurrency(quotation.netPrice * quotation.quantity, quotation.currency)}</td></tr>
+          <tr><td>${esc(quotation.visaType)}</td><td>${esc(quotation.country)}</td><td>${quotation.quantity}</td><td>${formatCurrency(quotation.netPrice, quotation.currency)}</td><td>${formatCurrency(quotation.netPrice * quotation.quantity, quotation.currency)}</td></tr>
           <tr><td>Additional service fee</td><td>—</td><td>—</td><td>—</td><td>${formatCurrency(quotation.additionalFee, quotation.currency)}</td></tr>
         </tbody>
       </table>
       <table class="totals">
-        <tr><td></td><td style="text-align:right">Grand total (${quotation.currency})</td><td class="grand" style="text-align:right">${formatCurrency(quotation.total, quotation.currency)}</td></tr>
+        <tr><td></td><td style="text-align:right">Grand total (${esc(quotation.currency)})</td><td class="grand" style="text-align:right">${formatCurrency(quotation.total, quotation.currency)}</td></tr>
       </table>
-      ${quotation.notes ? `<p class="muted" style="margin-top:16px"><strong>Notes:</strong> ${quotation.notes}</p>` : ''}
+      ${quotation.notes ? `<p class="muted" style="margin-top:16px"><strong>Notes:</strong> ${esc(quotation.notes)}</p>` : ''}
       <p class="footer">This quotation is generated from the partner net price configured in our system and is valid until ${formatDate(quotation.validUntil)}. Prices may change after this date.</p>
       <script>window.onload = function () { window.print(); }</script>
       </body></html>`)

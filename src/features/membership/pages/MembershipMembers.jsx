@@ -355,7 +355,7 @@ function AddMembershipDialog({ open, onClose, plans, onSaved }) {
       setValues({ customerId: '', planId: '', paymentMethod: 'bkash', trxId: '', startDate: '' })
       setErrors({})
       setError(null)
-      b2cApi.list().then((result) => setCustomers(result.items ?? []))
+      b2cApi.list({ pageSize: 500 }).then((result) => setCustomers(result.items ?? []))
     }
   }, [open])
 

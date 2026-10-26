@@ -6,6 +6,7 @@ import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_METHOD_LABELS, PASSPORT_REQUIREMENT_LABELS, PICKUP_LOCATION_TYPES } from '../visa.api'
 import { errorMessage } from '../../../utils/errors'
+import { escapeHtml as esc } from '../../../utils/helpers'
 
 const TRACKING_STATUSES = Object.entries(PASSPORT_STATUS_LABELS)
   .filter(([key]) => key !== 'not_required')
@@ -80,7 +81,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
     const printWindow = window.open('', '_blank', 'width=720,height=840')
     if (!printWindow) return
     const received = application.passportReceived
-    printWindow.document.write(`<!doctype html><html><head><title>Passport Receipt — ${application.number}</title>
+    printWindow.document.write(`<!doctype html><html><head><title>Passport Receipt — ${esc(application.number)}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:40px}
       .brand{font-size:20px;font-weight:700;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:20px}
       table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:8px 10px;border-bottom:1px solid #ddd;font-size:14px}
@@ -88,13 +89,13 @@ export default function PassportManageDialog({ open, onClose, application, visaT
       .note{margin-top:24px;font-size:12px;color:#555}</style></head><body>
       <div class="brand">Passport Submission Receipt — Dynamic Travel</div>
       <table>
-        <tr><td>Application No</td><td>${application.number}</td></tr>
-        <tr><td>Applicant</td><td>${application.applicant.fullName}</td></tr>
-        <tr><td>Passport No</td><td>${application.passportReceived?.passportNumber || application.passport.number}</td></tr>
-        <tr><td>Country / Visa Type</td><td>${application.country} — ${application.visaType}</td></tr>
-        <tr><td>Received</td><td>${received?.receivedDate ?? application.passportCollection?.collectedAt ?? '—'}</td></tr>
-        <tr><td>Received By</td><td>${received?.receivedBy ?? application.passportCollection?.collectorName ?? 'Visa Processing Staff'}</td></tr>
-        <tr><td>Status</td><td>${PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus}</td></tr>
+        <tr><td>Application No</td><td>${esc(application.number)}</td></tr>
+        <tr><td>Applicant</td><td>${esc(application.applicant.fullName)}</td></tr>
+        <tr><td>Passport No</td><td>${esc(application.passportReceived?.passportNumber || application.passport.number)}</td></tr>
+        <tr><td>Country / Visa Type</td><td>${esc(application.country)} — ${esc(application.visaType)}</td></tr>
+        <tr><td>Received</td><td>${esc(received?.receivedDate ?? application.passportCollection?.collectedDate ?? '—')}</td></tr>
+        <tr><td>Received By</td><td>${esc(received?.receivedBy ?? application.passportCollection?.collectorName ?? 'Visa Processing Staff')}</td></tr>
+        <tr><td>Status</td><td>${esc(PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus)}</td></tr>
       </table>
       <p class="note">Please keep this receipt and present it when collecting your passport. Original passports are stored securely in our office.</p>
       <script>window.onload = function () { window.print(); }</script>
