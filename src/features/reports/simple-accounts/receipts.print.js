@@ -1,5 +1,5 @@
-import { COMPANY } from '@/features/reports/accounting/coa'
-import { formatMoney } from '@/features/reports/reports.api'
+import { COMPANY } from '@/features/reports/lib/company'
+import { formatMoney } from '@/features/reports/lib/format'
 import { numberToWords, openPrintWindow } from '@/utils/exportEngine'
 
 const esc = (value) =>

@@ -91,7 +91,6 @@ const MembershipReports = lazy(
 );
 
 const VendorList = lazy(() => import("../features/vendors/pages/VendorList"));
-const VendorForm = lazy(() => import("../features/vendors/pages/VendorForm"));
 const VendorServices = lazy(
   () => import("../features/vendors/pages/VendorServices"),
 );
@@ -110,34 +109,6 @@ const DocumentDetails = lazy(
 
 const Notifications = lazy(
   () => import("../features/notifications/pages/Notifications"),
-);
-const AccountDashboard = lazy(
-  () => import("../features/reports/pages/AccountDashboard"),
-);
-const JournalVouchers = lazy(
-  () => import("../features/reports/pages/JournalVouchers"),
-);
-const ChartOfAccounts = lazy(
-  () => import("../features/reports/pages/ChartOfAccounts"),
-);
-const GeneralLedger = lazy(
-  () => import("../features/reports/pages/GeneralLedger"),
-);
-const TrialBalance = lazy(
-  () => import("../features/reports/pages/TrialBalance"),
-);
-const ProfitLoss = lazy(() => import("../features/reports/pages/ProfitLoss"));
-const BalanceSheet = lazy(
-  () => import("../features/reports/pages/BalanceSheet"),
-);
-const Receivables = lazy(() => import("../features/reports/pages/Receivables"));
-const Payables = lazy(() => import("../features/reports/pages/Payables"));
-const VisaFiles = lazy(() => import("../features/reports/pages/VisaFiles"));
-const ServiceSegments = lazy(
-  () => import("../features/reports/pages/ServiceSegments"),
-);
-const MonthlyPerformance = lazy(
-  () => import("../features/reports/pages/MonthlyPerformance"),
 );
 const AccountsHome = lazy(
   () => import("../features/reports/simple-accounts/pages/AccountsHome"),
@@ -628,13 +599,13 @@ export function AppRoutes() {
 
           {/* Vendors */}
           <Route path="vendors/dashboard" element={<Navigate to="/vendors" replace />} />
-          <Route path="vendors" element={<VendorList />} />
-          <Route path="vendors/new" element={<VendorForm />} />
-          <Route path="vendors/services" element={<VendorServices />} />
-          <Route path="vendors/bills" element={<VendorBills />} />
-          <Route path="vendors/payments" element={<VendorPayments />} />
-          <Route path="vendors/:id" element={<VendorDetail />} />
-          <Route path="vendors/:id/edit" element={<VendorForm />} />
+          <Route path="vendors" element={<RequirePermission permission="VENDOR_VIEW"><VendorList /></RequirePermission>} />
+          <Route path="vendors/new" element={<RequirePermission permission="VENDOR_MANAGE"><VendorList openNew /></RequirePermission>} />
+          <Route path="vendors/services" element={<RequirePermission permission="VENDOR_VIEW"><VendorServices /></RequirePermission>} />
+          <Route path="vendors/bills" element={<RequirePermission permission="VENDOR_VIEW"><VendorBills /></RequirePermission>} />
+          <Route path="vendors/payments" element={<RequirePermission permission="VENDOR_VIEW"><VendorPayments /></RequirePermission>} />
+          <Route path="vendors/:id" element={<RequirePermission permission="VENDOR_VIEW"><VendorDetail /></RequirePermission>} />
+          <Route path="vendors/:id/edit" element={<RequirePermission permission="VENDOR_VIEW"><VendorDetail /></RequirePermission>} />
 
           <Route
             path="documents"
@@ -656,111 +627,7 @@ export function AppRoutes() {
           <Route path="notifications" element={<Notifications />} />
 
           {/* Accounting */}
-          <Route path="reports" element={<Navigate to="/accounts" replace />} />
-          <Route
-            path="reports/overview"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <AccountDashboard />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/journal"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <JournalVouchers />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/accounts"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <ChartOfAccounts />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/ledger"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <GeneralLedger />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/trial-balance"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <TrialBalance />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/profit-loss"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <ProfitLoss />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/balance-sheet"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <BalanceSheet />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/b2c-clients"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <Receivables kind="B2C" />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/b2b-agents"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <Receivables kind="B2B" />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/payables"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <Payables />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/visa-files"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <VisaFiles />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/categories"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <ServiceSegments />
-              </RequirePermission>
-            }
-          />
-          <Route
-            path="reports/monthly"
-            element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <MonthlyPerformance />
-              </RequirePermission>
-            }
-          />
+          <Route path="reports/*" element={<Navigate to="/accounts" replace />} />
 
           <Route path="settings" element={<Settings />} />
           <Route path="settings/profile" element={<Profile />} />

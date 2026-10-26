@@ -6,8 +6,8 @@ import SimpleTabs from '../components/SimpleTabs'
 import BigCard from '../components/BigCard'
 import AgingBars from '@/features/reports/components/AgingBars'
 import { simpleApi } from '../simple.api'
-import { formatMoney } from '@/features/reports/reports.api'
-import { formatDateShort } from '@/features/reports/accounting/dates'
+import { formatMoney } from '@/features/reports/lib/format'
+import { formatDateShort } from '@/features/reports/lib/dates'
 import { Table } from '@/components/re-table'
 
 export default function VendorPayables() {

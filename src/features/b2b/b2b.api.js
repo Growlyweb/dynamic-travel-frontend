@@ -1,4 +1,4 @@
-import { todayISO } from '../reports/accounting/dates'
+import { todayISO } from '../reports/lib/dates'
 
 /**
  * B2B partner onboarding + portal data layer.

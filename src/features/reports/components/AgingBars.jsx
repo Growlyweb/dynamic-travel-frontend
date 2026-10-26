@@ -1,4 +1,4 @@
-import { formatMoney } from '../reports.api'
+import { formatMoney } from '../lib/format'
 
 export default function AgingBars({ aging = [], total, columns = 5 }) {
   const sum = total ?? aging.reduce((acc, item) => acc + (Number(item.amount) || 0), 0)

@@ -109,20 +109,6 @@ export const APP_ROUTES = {
   ACCOUNTS_CLIENTS: '/accounts/clients',
   ACCOUNTS_PAYABLES: '/accounts/payables',
   ACCOUNTS_PARTNERS: '/accounts/partners',
-  REPORTS: '/reports',
-  REPORTS_OVERVIEW: '/reports/overview',
-  REPORTS_JOURNAL: '/reports/journal',
-  REPORTS_ACCOUNTS: '/reports/accounts',
-  REPORTS_LEDGER: '/reports/ledger',
-  REPORTS_TRIAL_BALANCE: '/reports/trial-balance',
-  REPORTS_PROFIT_LOSS: '/reports/profit-loss',
-  REPORTS_BALANCE_SHEET: '/reports/balance-sheet',
-  REPORTS_B2B_AGENTS: '/reports/b2b-agents',
-  REPORTS_B2C_CLIENTS: '/reports/b2c-clients',
-  REPORTS_PAYABLES: '/reports/payables',
-  REPORTS_VISA_FILES: '/reports/visa-files',
-  REPORTS_CATEGORIES: '/reports/categories',
-  REPORTS_MONTHLY: '/reports/monthly',
   REPORT_MARKETING: '/reports/marketing',
 
 
@@ -186,11 +172,11 @@ export const NAV_SECTIONS = [
   {
     label: 'Vendors',
     items: [
-      { to: APP_ROUTES.VENDORS, label: 'Vendors', icon: Building2, end: true },
-      { to: APP_ROUTES.VENDOR_CREATE, label: 'Add Vendor', icon: PenLine },
-      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Vendor Services', icon: ListTree },
-      { to: APP_ROUTES.VENDOR_BILLS, label: 'Vendor Bills', icon: FileText },
-      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Payments & Advances', icon: Wallet },
+      { to: APP_ROUTES.VENDORS, label: 'Vendors', icon: Building2, end: true, permission: 'VENDOR_VIEW' },
+      { to: APP_ROUTES.VENDOR_CREATE, label: 'Add Vendor', icon: PenLine, permission: 'VENDOR_MANAGE' },
+      { to: APP_ROUTES.VENDOR_SERVICES, label: 'Vendor Services', icon: ListTree, permission: 'VENDOR_VIEW' },
+      { to: APP_ROUTES.VENDOR_BILLS, label: 'Vendor Bills', icon: FileText, permission: 'VENDOR_VIEW' },
+      { to: APP_ROUTES.VENDOR_PAYMENTS, label: 'Payments & Advances', icon: Wallet, permission: 'VENDOR_VIEW' },
     ],
   },
   {

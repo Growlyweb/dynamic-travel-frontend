@@ -8,8 +8,8 @@ import BigCard from '../components/BigCard'
 import MonthNavigator from '@/features/reports/components/MonthNavigator'
 import ExpenseModal from '../components/ExpenseModal'
 import { simpleApi } from '../simple.api'
-import { formatMoney, formatPct } from '@/features/reports/reports.api'
-import { formatDateShort } from '@/features/reports/accounting/dates'
+import { formatMoney, formatPct } from '@/features/reports/lib/format'
+import { formatDateShort } from '@/features/reports/lib/dates'
 
 export default function ProfitExpenses() {
   const now = new Date()
