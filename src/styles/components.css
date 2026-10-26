@@ -460,9 +460,21 @@ select.field__control {
 
 /* ---------- Tables ---------- */
 .table-wrap {
-  overflow-x: auto;
+  overflow: auto;
   max-width: 100%;
+  /* A fixed box: the rows scroll inside it, the page does not grow, the header stays in view. */
+  max-height: calc(100vh - 21rem);
+  min-height: 12rem;
   -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap--compact {
+  max-height: 18rem;
+  min-height: 0;
+}
+
+.table-wrap.is-refreshing {
+  opacity: 0.6;
 }
 
 .table {
@@ -471,6 +483,10 @@ select.field__control {
 }
 
 .table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface, #fff);
   text-align: left;
   font-size: 11px;
   font-weight: 700;
@@ -1951,3 +1967,50 @@ select.field__control {
   font-weight: 600;
 }
 
+
+/* ---------- Toasts ---------- */
+.toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 40px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background: #101828;
+  color: #fff;
+  font-size: 13.5px;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.25);
+}
+
+.toast--success {
+  border-left: 4px solid #12b76a;
+}
+
+.toast--error {
+  border-left: 4px solid #f04438;
+}
+
+.toast--info {
+  border-left: 4px solid #2e90fa;
+}
+
+.toast button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}

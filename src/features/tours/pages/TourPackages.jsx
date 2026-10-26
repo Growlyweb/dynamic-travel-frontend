@@ -85,7 +85,7 @@ export default function TourPackages() {
         title="Tour packages"
         breadcrumbs={[{ label: 'Tours' }, { label: 'Packages' }]}
         actions={
-          can('tours.edit') ? (
+          can('TOUR_MANAGE') ? (
             <Link to={APP_ROUTES.TOUR_CREATE}>
               <Button>+ New package</Button>
             </Link>
@@ -132,7 +132,7 @@ export default function TourPackages() {
                     <TourCard
                       key={tour.id}
                       tour={tour}
-                      onDelete={can('tours.edit') ? handleDelete : undefined}
+                      onDelete={can('TOUR_MANAGE') ? handleDelete : undefined}
                     />
                   ))}
                 </div>

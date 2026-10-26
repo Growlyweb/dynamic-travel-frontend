@@ -2,13 +2,18 @@ import Button from '../common/Button'
 import { PAGINATION_PAGE_SIZES } from '../../utils/constants'
 
 export default function TablePagination({
-  page,
+  page: pageProp,
   pageSize,
-  total,
+  total: totalProp,
+  // The names the other kit and useServerTable use work here too.
+  currentPage,
+  totalEntries,
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = PAGINATION_PAGE_SIZES,
 }) {
+  const page = pageProp ?? currentPage ?? 1
+  const total = totalProp ?? totalEntries ?? 0
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, total)
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -16,7 +21,7 @@ export default function TablePagination({
   return (
     <div className="table-pagination">
       <span>
-        Showing {from}–{to} of {total}
+        Showing {from.toLocaleString()} to {to.toLocaleString()} of {total.toLocaleString()}
       </span>
       <div className="table-pagination__controls">
         <select

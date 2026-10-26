@@ -1,3 +1,5 @@
+import { errorMessage } from './errors'
+
 export function cn(...classes) {
   return classes.flat(Infinity).filter(Boolean).join(' ')
 }
@@ -40,5 +42,5 @@ export function toCsv(rows = [], columns = []) {
 }
 
 export function getApiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
-  return error?.data?.message || error?.message || fallback
+  return errorMessage(error, fallback)
 }

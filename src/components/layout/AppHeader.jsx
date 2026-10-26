@@ -37,8 +37,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/context/NotificationContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { APP_ROUTES } from "@/utils/constants";
-import { ROLE_LABELS } from "@/utils/roles";
-import { formatRelativeTime, initials, titleCase } from "@/utils/formatters";
+import { roleText } from "@/utils/roles";
+import { formatRelativeTime, initials } from "@/utils/formatters";
 
 const NOTIFICATION_ICONS = {
   visa: "🛂",
@@ -67,7 +67,7 @@ export default function AppHeader() {
   }
 
   const visibleNotifications = notifications.slice(0, 4);
-  const roleLabel = ROLE_LABELS[user?.role] ?? titleCase(user?.role);
+  const roleLabel = roleText(user);
   const selectedCurrency = SUPPORTED_CURRENCIES.find(
     (c) => c.code === currency,
   );

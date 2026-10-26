@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import Button from '../../../components/common/Button'
 import Input from '../../../components/common/Input'
-import { validateResetPassword } from '../../auth/auth.validation'
-import { getApiErrorMessage } from '../../../utils/helpers'
+import { validateNewPassword } from '../../auth/auth.validation'
+import { authApi } from '../../auth/auth.api'
+import { setAccessToken } from '../../../services/authStorage'
+import { errorMessage, fieldErrors } from '../../../utils/errors'
 
 export default function ChangePasswordForm() {
   const [values, setValues] = useState({ currentPassword: '', password: '', confirmPassword: '' })
@@ -18,19 +20,25 @@ export default function ChangePasswordForm() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    const validation = validateResetPassword(values)
-    setErrors(validation.errors)
-    if (!validation.valid) return
+    const found = {}
+    if (!values.currentPassword) found.currentPassword = 'Enter your current password.'
+    const problem = validateNewPassword(values.password, values.confirmPassword)
+    if (problem) found[problem === 'Passwords do not match.' ? 'confirmPassword' : 'password'] = problem
+    setErrors(found)
+    if (Object.keys(found).length) return
 
     setSaving(true)
     setFormError(null)
     try {
-      // Replace with your change-password API.
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      // Every other session ends with a password change. The answer carries a new access token for this one.
+      const session = await authApi.changePassword({ currentPassword: values.currentPassword, newPassword: values.password })
+      if (session?.accessToken) setAccessToken(session.accessToken)
       setSaved(true)
       setValues({ currentPassword: '', password: '', confirmPassword: '' })
     } catch (error) {
-      setFormError(getApiErrorMessage(error))
+      const fields = fieldErrors(error)
+      if (fields.currentPassword || fields.newPassword) setErrors({ currentPassword: fields.currentPassword, password: fields.newPassword })
+      else setFormError(errorMessage(error))
     } finally {
       setSaving(false)
     }
@@ -55,7 +63,7 @@ export default function ChangePasswordForm() {
         autoComplete="new-password"
         value={values.password}
         error={errors.password}
-        hint="At least 8 characters, with letters and numbers."
+        hint="At least 8 characters, with upper and lower case letters, a number and a symbol."
         onChange={(event) => update('password', event.target.value)}
       />
       <Input

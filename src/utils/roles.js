@@ -83,3 +83,10 @@ export function getUserRoles(user) {
   }
   return ['agent']
 }
+
+// What to show under a person's name: "Administrator", or the names of the roles a staff member holds.
+export function roleText(user) {
+  if (!user) return '—'
+  if (user.isAdmin || user.role === 'admin') return ROLE_LABELS.admin
+  return user.roles?.length ? user.roles.join(', ') : ROLE_LABELS.staff
+}

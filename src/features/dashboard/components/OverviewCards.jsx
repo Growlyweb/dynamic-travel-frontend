@@ -8,7 +8,7 @@ export default function OverviewCards({ overview = {} }) {
 
   const allCards = [
     {
-      permission: 'visa.view',
+      permission: 'VISA_VIEW',
       label: 'Visa applications',
       value: formatNumber(overview.totalVisaApplications ?? 0),
       delta: overview.visaDelta,
@@ -17,7 +17,7 @@ export default function OverviewCards({ overview = {} }) {
       hint: 'vs last month',
     },
     {
-      permission: 'tours.view',
+      permission: 'TOURS_VIEW',
       label: 'Active tours',
       value: formatNumber(overview.activeTours ?? 0),
       delta: overview.tourDelta,
@@ -26,7 +26,7 @@ export default function OverviewCards({ overview = {} }) {
       hint: 'vs last month',
     },
     {
-      permission: 'b2c.view',
+      permission: 'B2C_VIEW',
       label: 'Customers',
       value: formatNumber(overview.totalCustomers ?? 0),
       delta: overview.customerDelta,
@@ -35,7 +35,7 @@ export default function OverviewCards({ overview = {} }) {
       hint: 'vs last month',
     },
     // {
-    //   permission: 'reports.view',
+    //   permission: 'REPORTS_VIEW',
     //   label: 'Revenue (MTD)',
     //   value: formatCurrency(overview.revenueThisMonth ?? 0),
     //   delta: overview.revenueDelta,

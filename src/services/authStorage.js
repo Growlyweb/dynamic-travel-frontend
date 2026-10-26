@@ -1,32 +1,25 @@
-const TOKEN_KEY = 'travel-dashboard.token'
-const REFRESH_KEY = 'travel-dashboard.refresh-token'
-const USER_KEY = 'travel-dashboard.user'
+// The access token lives in memory only. The refresh token is an httpOnly cookie that the browser sends by itself,
+// so nothing that can sign a person in is kept in local storage.
+let accessToken = null
+const listeners = new Set()
 
-export function getAccessToken() {
-  return localStorage.getItem(TOKEN_KEY)
+export const getAccessToken = () => accessToken
+
+export const setAccessToken = (token) => {
+  accessToken = token || null
 }
 
-export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_KEY)
+export const clearAuth = () => {
+  accessToken = null
 }
 
-export function getStoredUser() {
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
+// Called when the session cannot be renewed. The auth provider listens and sends the person to the login page.
+export const onSessionEnd = (listener) => {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
 }
 
-export function saveAuthSession({ token, refreshToken, user }) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken)
-  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
-}
-
-export function clearAuth() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(REFRESH_KEY)
-  localStorage.removeItem(USER_KEY)
+export const endSession = () => {
+  clearAuth()
+  listeners.forEach((listener) => listener())
 }

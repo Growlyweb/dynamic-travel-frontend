@@ -1,104 +1,95 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PageHeader from '../../../components/layout/PageHeader'
 import TablePagination from '../../../components/tables/TablePagination'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
+import Button from '../../../components/common/Button'
 import UserFilters from '../components/UserFilters'
 import UserTable from '../components/UserTable'
+import CreateStaffModal from '../components/CreateStaffModal'
 import { usersApi } from '../users.api'
-import { useDebounce } from '../../../hooks/useDebounce'
-import { usePagination } from '../../../hooks/usePagination'
+import { useServerTable } from '../../../hooks/useServerTable'
+import { useToast } from '../../../context/ToastContext'
 import { APP_ROUTES } from '../../../utils/constants'
+import { errorMessage } from '../../../utils/errors'
 
 export default function Users() {
   const navigate = useNavigate()
+  const toast = useToast()
   const [filters, setFilters] = useState({ search: '', status: '', role: '' })
-  const [rows, setRows] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const search = useDebounce(filters.search, 350)
-  const { page, pageSize, goToPage, changePageSize } = usePagination()
+  const table = useServerTable({
+    table: 'users',
+    fetcher: usersApi.list,
+    filters: { status: filters.status, role: filters.role },
+  })
+  const { setSearch } = table
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await usersApi.list({
-        page,
-        pageSize,
-        search,
-        status: filters.status || undefined,
-        role: filters.role || undefined,
-      })
-      setRows(result.items ?? [])
-      setTotal(result.total ?? 0)
-    } catch (loadError) {
-      setError(loadError)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, pageSize, search, filters.status, filters.role])
+  function changeFilters(next) {
+    setFilters(next)
+    setSearch(next.search)
+  }
 
-  useEffect(() => {
-    load()
-  }, [load])
-
-  useEffect(() => {
-    goToPage(1)
-  }, [search, filters.status, filters.role, goToPage])
-
-  async function handleDelete() {
+  async function handleDeactivate() {
     if (!deleteTarget) return
     setDeleting(true)
-    setError(null)
     try {
       await usersApi.remove(deleteTarget.id)
-      setDeleteTarget(null)
-      await load()
-    } catch (deleteError) {
-      setError(deleteError)
-      setDeleteTarget(null)
+      toast.success(`${deleteTarget.name} was deactivated.`)
+      table.reload()
+    } catch (error) {
+      toast.error(errorMessage(error))
     } finally {
+      setDeleteTarget(null)
       setDeleting(false)
     }
   }
 
   return (
     <div className="stack">
-      <PageHeader title="Users" description="Manage back-office users and their access." breadcrumbs={[{ label: 'Users' }]} />
+      <PageHeader
+        title="Users"
+        description="The people who work here and the accounts of partners and customers."
+        breadcrumbs={[{ label: 'Users' }]}
+        actions={<Button onClick={() => setCreating(true)}>New staff member</Button>}
+      />
 
       <div className="card">
         <div className="stack">
-          <UserFilters value={filters} onChange={setFilters} />
+          <UserFilters value={filters} onChange={changeFilters} />
           <UserTable
-            rows={rows}
-            loading={loading}
-            error={error}
-            onRetry={load}
+            rows={table.rows}
+            loading={table.loading}
+            refreshing={table.refreshing}
+            error={table.error}
+            onRetry={table.reload}
             onView={(user) => navigate(APP_ROUTES.USER_DETAILS(user.id))}
             onDelete={(user) => setDeleteTarget(user)}
           />
-          <TablePagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={goToPage}
-            onPageSizeChange={changePageSize}
-          />
+          <TablePagination {...table.paginationProps} />
         </div>
       </div>
 
+      <CreateStaffModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={({ user, inviteSent }) => {
+          setCreating(false)
+          toast[inviteSent ? 'success' : 'info'](inviteSent ? `Invitation sent to ${user.email}.` : `${user.name} was created. The invitation email could not be sent: use Resend invitation.`)
+          table.reload()
+        }}
+      />
+
       <ConfirmDialog
         open={Boolean(deleteTarget)}
-        title="Delete user"
-        message={`Remove ${deleteTarget?.name ?? 'this user'}? This action cannot be undone.`}
-        confirmLabel="Delete"
+        title="Deactivate account"
+        message={`${deleteTarget?.name ?? 'This person'} will lose access at once. The record and its history stay.`}
+        confirmLabel="Deactivate"
         loading={deleting}
-        onConfirm={handleDelete}
+        onConfirm={handleDeactivate}
         onCancel={() => setDeleteTarget(null)}
       />
     </div>

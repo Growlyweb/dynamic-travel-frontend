@@ -7,7 +7,7 @@ import { sleep } from '../utils/helpers'
  * never sent anywhere — a local object URL is returned so previews still work.
  */
 export async function uploadFile(file, { folder = 'general' } = {}) {
-  if (config.enableMocks) {
+  if (config.mockAll) {
     await sleep(400)
     return { url: URL.createObjectURL(file), name: file.name, size: file.size, folder }
   }

@@ -9,6 +9,8 @@ export default function DataTable({
   emptyTitle = 'Nothing here yet',
   emptyDescription,
   onRowClick,
+  compact = false,
+  refreshing = false,
 }) {
   if (loading) {
     return (
@@ -23,7 +25,7 @@ export default function DataTable({
   }
 
   return (
-    <div className="table-wrap">
+    <div className={`table-wrap${compact ? ' table-wrap--compact' : ''}${refreshing ? ' is-refreshing' : ''}`}>
       <table className="table">
         <thead>
           <tr>
