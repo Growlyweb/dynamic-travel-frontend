@@ -1,4 +1,8 @@
-import { apiClient, withMock, withMockList } from '../../services/apiClient'
+import { apiClient, withModuleMock } from '../../services/apiClient'
+
+// The list of every document of every kind is not on the server yet (partner documents are reviewed on the partner's page,
+// visa documents on the application). This page shows demo data until it is built: VITE_MOCK_MODULES=documents.
+const { withMock, withMockList } = withModuleMock('documents')
 
 const DEMO_DOCUMENTS = [
   { id: 'doc_401', name: 'passport_rohan_gupta.pdf', owner: 'Rohan Gupta', type: 'Passport', uploadedAt: '2026-09-28', status: 'pending', size: '2.1 MB' },

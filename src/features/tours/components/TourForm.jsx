@@ -5,7 +5,7 @@ import Select from '../../../components/common/Select'
 import { TOUR_STATUSES } from '../../../utils/constants'
 import { titleCase } from '../../../utils/formatters'
 import { validateRequired } from '../../../utils/validators'
-import { categoriesApi, DEFAULT_CATEGORIES } from '../categories.api'
+import { categoriesApi } from '../categories.api'
 import { getApiErrorMessage } from '../../../utils/helpers'
 
 const NEW_CATEGORY_VALUE = '__create_new__'
@@ -13,11 +13,12 @@ const NEW_CATEGORY_VALUE = '__create_new__'
 const CURRENCY_OPTIONS = [
   { value: 'BDT', label: 'BDT (Bangladeshi Taka)' },
   { value: 'USD', label: 'USD (US Dollar)' },
+  { value: 'EUR', label: 'EUR (Euro)' },
 ]
 
 const EMPTY_VALUES = {
   name: '',
-  segment: DEFAULT_CATEGORIES[0].name,
+  segment: '',
   country: '',
   destination: '',
   durationDays: '3',
@@ -40,6 +41,8 @@ function normalizeValues(values) {
   return {
     ...EMPTY_VALUES,
     ...values,
+    // The tour comes with its category as an object. The form holds its id.
+    segment: values?.categoryId ?? '',
     price: values?.price == null ? '' : String(values.price),
     b2bPrice: values?.b2bPrice == null ? '' : String(values.b2bPrice),
     gallery: Array.isArray(values?.gallery) ? values.gallery.filter(Boolean) : [],
@@ -276,9 +279,8 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
   const [values, setValues] = useState(() => normalizeValues(initialValues))
   const [errors, setErrors] = useState({})
 
-  // Dynamic categories — seeded with defaults, replaced by whatever the
-  // API returns so the admin's own categories show up in the dropdown.
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES)
+  // The categories of the server. The admin can add one from the form.
+  const [categories, setCategories] = useState([])
   const [newCategory, setNewCategory] = useState('')
   const [categoryError, setCategoryError] = useState(null)
   const [addingCategory, setAddingCategory] = useState(false)
@@ -289,7 +291,7 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
     categoriesApi
       .list({ pageSize: 100 })
       .then((result) => {
-        if (active && Array.isArray(result?.items) && result.items.length) {
+        if (active && Array.isArray(result?.items)) {
           setCategories(result.items.map((item) => ({ id: item.id, name: item.name })))
         }
       })
@@ -333,7 +335,7 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
           ? current
           : [...current, { id: record.id, name: record.name }],
       )
-      update('segment', record.name)
+      update('segment', record.id)
       setNewCategory('')
     } catch (error) {
       setCategoryError(getApiErrorMessage(error))
@@ -343,7 +345,7 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
   }
 
   function handleCancelCategory() {
-    update('segment', segmentBackup || categories[0]?.name || '')
+    update('segment', segmentBackup || categories[0]?.id || '')
     setNewCategory('')
     setCategoryError(null)
   }
@@ -370,7 +372,7 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
 
     await onSubmit?.({
       name: values.name,
-      segment: values.segment,
+      category: values.segment || undefined,
       country: values.country,
       destination: values.destination,
       description: values.description,
@@ -390,21 +392,13 @@ export default function TourForm({ initialValues, submitLabel = 'Save tour packa
       durationDays: Number(values.durationDays) || 1,
       priceCurrency: values.priceCurrency,
       price: Number(values.price) || 0,
-      b2bPrice: b2bPriceNum === null ? null : Number(values.b2bPrice) || 0,
+      b2bPrice: b2bPriceNum === null ? undefined : Number(values.b2bPrice) || 0,
       seats: Number(values.seats) || 0,
       status: values.status,
     })
   }
 
-  // Keep legacy/renamed segment values visible in the dropdown.
-  const categoryOptions = categories.map((category) => ({ value: category.name, label: category.name }))
-  if (
-    values.segment &&
-    values.segment !== NEW_CATEGORY_VALUE &&
-    !categories.some((category) => category.name === values.segment)
-  ) {
-    categoryOptions.unshift({ value: values.segment, label: values.segment })
-  }
+  const categoryOptions = categories.map((category) => ({ value: category.id, label: category.name }))
   const currencySymbol = values.priceCurrency === 'USD' ? '$' : 'BDT'
 
   const durationNum = Number(values.durationDays) || 1

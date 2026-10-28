@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AlertCircle, Handshake } from 'lucide-react'
 import ModalShell, { Field } from '@/features/reports/components/ModalShell'
 import { Button } from '@/components/ui/button'
-import { todayISO } from '@/features/reports/accounting/dates'
+import { todayISO } from '@/features/reports/lib/dates'
 import { PAY_METHODS } from '../simple.api'
 
 const input =

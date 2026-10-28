@@ -1,25 +1,22 @@
-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  CalendarDays,
-  FileSpreadsheet,
-  RotateCcw,
-  X,
-} from "lucide-react";
+import { FileSpreadsheet, RotateCcw, X } from "lucide-react";
 
 import PageHeader from "../../../components/layout/PageHeader";
-import Loader from "../../../components/common/Loader";
 import ErrorState from "../../../components/common/ErrorState";
-import { TableCard, TableHeader } from "../../../components/re-table";
+import { TableCard, TableHeader, TableToolbar, TablePagination } from "../../../components/re-table";
 
 import VisaApplicationsTable from "../components/VisaApplicationsTable";
 import StatusChangeDialog from "../components/StatusChangeDialog";
 import AddApplicationPopover from "../components/AddApplicationPopover";
 
 import { visaApi } from "../visa.api";
-import { APP_ROUTES, VISA_STATUS_TONES } from "../../../utils/constants";
-import { getApiErrorMessage } from "../../../utils/helpers";
+import { useServerTable } from "../../../hooks/useServerTable";
+import { usePermission } from "../../../hooks/usePermission";
+import { useToast } from "../../../context/ToastContext";
+import { APP_ROUTES } from "../../../utils/constants";
+import { PERMISSIONS } from "../../../utils/permissions";
+import { errorMessage } from "../../../utils/errors";
 
 const inputClassName = [
   "h-9 w-full min-w-0 rounded-lg border border-slate-200",
@@ -29,435 +26,123 @@ const inputClassName = [
   "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10",
 ].join(" ");
 
+const EMPTY_FILTERS = { status: "", countryId: "", channel: "", staff: "", paymentStatus: "", from: "", to: "" };
+
 export default function VisaApplications() {
   const navigate = useNavigate();
+  const toast = useToast();
+  const { can, isAdmin } = usePermission();
 
-  const [rows, setRows] = useState([]);
-  const [statusConfigs, setStatusConfigs] = useState([]);
-  const [countryOptions, setCountryOptions] = useState([]);
-
-  const [filters, setFilters] = useState({
-    dateFrom: "",
-    dateTo: "",
-  });
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  const [actionError, setActionError] = useState("");
-
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [statuses, setStatuses] = useState([]);
+  const [countries, setCountries] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [statusChange, setStatusChange] = useState(null);
-  const [updatingIds, setUpdatingIds] = useState([]);
 
-  // --------------------------------------------------
-  // Data loading
-  // --------------------------------------------------
+  // The dates are checked here, so an impossible range is never sent.
+  const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
+  const sent = useMemo(() => (invalidRange ? { ...filters, from: "", to: "" } : filters), [filters, invalidRange]);
 
-  const load = useCallback(async ({ silent = false } = {}) => {
-    if (silent) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const [applications, statuses, countries] = await Promise.all([
-        visaApi.listApplications(),
-        visaApi.listStatusConfigs(),
-        visaApi.listCountries(),
-      ]);
-
-      setRows(applications.items ?? []);
-
-      setStatusConfigs(
-        (statuses.items ?? []).filter((status) => status.active)
-      );
-
-      setCountryOptions(
-        (countries.items ?? []).map((country) => ({
-          label: country.name,
-          value: country.id,
-        }))
-      );
-
-      setActionError("");
-    } catch (err) {
-      if (silent) {
-        setActionError(getApiErrorMessage(err));
-      } else {
-        setError(err);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const table = useServerTable({ table: "visa-applications", fetcher: visaApi.listApplications, filters: sent });
 
   useEffect(() => {
-    load();
-  }, [load]);
+    Promise.all([visaApi.listStatusConfigs(), visaApi.listCountries(), visaApi.listStaff()])
+      .then(([statusResult, countryResult, staffResult]) => {
+        setStatuses(statusResult.items);
+        setCountries(countryResult.items);
+        setStaff(Array.isArray(staffResult) ? staffResult : staffResult.items ?? []);
+      })
+      .catch((error) => toast.error(errorMessage(error)));
+  }, [toast]);
 
-  // --------------------------------------------------
-  // Derived data
-  // --------------------------------------------------
-
-  const statusOptions = useMemo(
-    () =>
-      statusConfigs.map((config) => ({
-        label: config.displayName,
-        value: config.key,
-        tone: VISA_STATUS_TONES[config.key] ?? "neutral",
-      })),
-    [statusConfigs]
-  );
-
-  const filteredRows = useMemo(() => {
-    const { dateFrom, dateTo } = filters;
-
-    return rows.filter((row) => {
-      if (!dateFrom && !dateTo) return true;
-      if (!row.submittedAt) return false;
-
-      const submittedDate = String(row.submittedAt).slice(0, 10);
-
-      if (dateFrom && submittedDate < dateFrom) return false;
-      if (dateTo && submittedDate > dateTo) return false;
-
-      return true;
-    });
-  }, [rows, filters]);
-
-  const hasActiveFilters = Boolean(
-    filters.dateFrom || filters.dateTo
-  );
-
-  const invalidDateRange = Boolean(
-    filters.dateFrom &&
-    filters.dateTo &&
-    filters.dateFrom > filters.dateTo
-  );
-
-  // --------------------------------------------------
-  // Filter handlers
-  // --------------------------------------------------
-
-  const updateFilter = (key, value) => {
-    setFilters((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+  const update = (key, value) => setFilters((previous) => ({ ...previous, [key]: value }));
+  const hasFilters = Object.values(filters).some(Boolean) || Boolean(table.search);
+  const clear = () => {
+    setFilters(EMPTY_FILTERS);
+    table.setSearch("");
   };
 
-  const clearFilters = () => {
-    setFilters({
-      dateFrom: "",
-      dateTo: "",
-    });
-  };
-
-  // --------------------------------------------------
-  // Status management
-  // --------------------------------------------------
-
-  const handleStatusChange = async (
-    application,
-    nextStatus,
-    customNote,
-    customDisplayName
-  ) => {
-    const status = nextStatus || application.status;
-    const hasCustomNote = customNote !== undefined;
-
-    if (!hasCustomNote && status === application.status) {
-      return;
-    }
-
-    if (
-      !hasCustomNote &&
-      ["action_required"].includes(status)
-    ) {
-      setStatusChange({
-        application,
-        presetStatus: status,
-      });
-      return;
-    }
-
-    if (updatingIds.includes(application.id)) return;
-
-    setUpdatingIds((previous) => [
-      ...previous,
-      application.id,
-    ]);
-
-    setActionError("");
-
-    try {
-      if (customDisplayName) {
-        try {
-          await visaApi.saveStatusConfig({
-            displayName: customDisplayName,
-            key: status,
-            category: "in_progress",
-            active: true,
-          });
-        } catch (err) {
-          console.warn("Could not register status config:", err);
-        }
-      }
-
-      await visaApi.changeStatus(application.id, {
-        status,
-        ...(hasCustomNote && {
-          note: customNote.trim() || undefined,
-        }),
-      });
-
-      setRows((previous) =>
-        previous.map((row) =>
-          row.id === application.id
-            ? {
-              ...row,
-              status,
-              ...(hasCustomNote && {
-                customNote: customNote.trim(),
-              }),
-            }
-            : row
-        )
-      );
-
-      // Refresh from server without blocking the table.
-      await load({ silent: true });
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-    } finally {
-      setUpdatingIds((previous) =>
-        previous.filter((id) => id !== application.id)
-      );
-    }
-  };
-
-
-  // --------------------------------------------------
-  // Create application
-  // --------------------------------------------------
-
-  const handleApplicationCreated = async (payload) => {
-    setActionError("");
-
-    try {
+  const handleCreated = useCallback(
+    async (payload) => {
       const created = await visaApi.createApplication(payload);
-
-      if (created?.id) {
-        setRows((previous) => [
-          created,
-          ...previous.filter((row) => row.id !== created.id),
-        ]);
-      } else {
-        await load({ silent: true });
-      }
-
+      toast.success(`Application ${created.number} created.`);
+      table.reload();
       return created;
-    } catch (err) {
-      setActionError(getApiErrorMessage(err));
-      throw err;
-    }
-  };
+    },
+    [toast, table],
+  );
 
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
+  const openStatus = useCallback((application) => setStatusChange({ application }), []);
+  const canCreate = can(PERMISSIONS.VISA_EDIT);
 
   return (
     <div className="w-full min-w-0 space-y-5">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Visa" },
-          { label: "Applications" },
-        ]}
-      />
+      <PageHeader breadcrumbs={[{ label: "Visa" }, { label: "Applications" }]} />
 
       <TableCard className="w-full min-w-0 overflow-hidden">
-        {loading ? (
-          <div className="py-16">
-            <Loader label="Loading visa applications..." />
+        <TableHeader
+          title="Visa Applications"
+          subtitle="Manage applications and track visa processing progress."
+          icon={FileSpreadsheet}
+          extraActions={canCreate ? <AddApplicationPopover onCreated={handleCreated} /> : null}
+        />
+
+        <TableToolbar
+          search={table.search}
+          onSearchChange={table.setSearch}
+          searchPlaceholder="Search number, passport, name, phone, email…"
+          filters={[
+            { id: "status", value: filters.status, placeholder: "All statuses", options: statuses.map((status) => ({ value: status.key, label: status.displayName })), onChange: (value) => update("status", value) },
+            { id: "countryId", value: filters.countryId, placeholder: "All countries", options: countries.map((country) => ({ value: country.id, label: country.name })), onChange: (value) => update("countryId", value) },
+            { id: "channel", value: filters.channel, placeholder: "All channels", options: [{ value: "b2c", label: "B2C" }, { value: "b2b", label: "B2B" }], onChange: (value) => update("channel", value) },
+            { id: "paymentStatus", value: filters.paymentStatus, placeholder: "Any payment", options: ["Paid", "Partial", "Unpaid"].map((value) => ({ value, label: value })), onChange: (value) => update("paymentStatus", value) },
+            { id: "staff", value: filters.staff, placeholder: "Any staff", options: [{ value: "unassigned", label: "Unassigned" }, ...staff.map((person) => ({ value: person.id ?? person._id, label: person.name }))], onChange: (value) => update("staff", value) },
+          ]}
+        >
+          <div className="flex items-end gap-2">
+            <input aria-label="From date" type="date" value={filters.from} max={filters.to || undefined} onChange={(event) => update("from", event.target.value)} className={`${inputClassName} w-40`} />
+            <input aria-label="To date" type="date" value={filters.to} min={filters.from || undefined} onChange={(event) => update("to", event.target.value)} className={`${inputClassName} w-40`} />
+            {hasFilters ? (
+              <button type="button" onClick={clear} className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800">
+                <X size={14} /> Clear
+              </button>
+            ) : null}
+            <button type="button" onClick={table.reload} disabled={table.refreshing} aria-label="Refresh applications" title="Refresh" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-50">
+              <RotateCcw size={15} className={table.refreshing ? "animate-spin" : ""} />
+            </button>
           </div>
-        ) : error ? (
+        </TableToolbar>
+        {invalidRange ? <p className="pb-2 text-xs text-red-600">The start date cannot be later than the end date.</p> : null}
+
+        {table.error ? (
           <div className="py-10">
-            <ErrorState
-              title="Unable to load applications"
-              message={getApiErrorMessage(error)}
-              onRetry={() => load()}
-            />
+            <ErrorState title="Unable to load applications" message={errorMessage(table.error)} onRetry={table.reload} />
           </div>
         ) : (
-          <div className="min-w-0">
-            {/* Page section header */}
-            <TableHeader
-              title="Visa Applications"
-              subtitle="Manage applications and track visa processing progress."
-              icon={FileSpreadsheet}
-              extraActions={
-                <AddApplicationPopover
-                  countryOptions={countryOptions}
-                  onCreated={handleApplicationCreated}
-                />
-              }
+          <>
+            <VisaApplicationsTable
+              rows={table.rows}
+              loading={table.loading}
+              refreshing={table.refreshing}
+              statuses={statuses}
+              isAdmin={isAdmin}
+              onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
+              onChangeStatus={can(PERMISSIONS.VISA_UPDATE) ? openStatus : undefined}
             />
-
-            {/* Filters */}
-            <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                  <div className="w-full sm:w-44">
-                    <label
-                      htmlFor="visa-date-from"
-                      className="mb-1.5 block text-xs font-medium text-slate-600"
-                    >
-                      From date
-                    </label>
-
-                    <div className="relative">
-                      <input
-                        id="visa-date-from"
-                        type="date"
-                        value={filters.dateFrom}
-                        max={filters.dateTo || undefined}
-                        onChange={(event) =>
-                          updateFilter(
-                            "dateFrom",
-                            event.target.value
-                          )
-                        }
-                        className={inputClassName}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="w-full sm:w-44">
-                    <label
-                      htmlFor="visa-date-to"
-                      className="mb-1.5 block text-xs font-medium text-slate-600"
-                    >
-                      To date
-                    </label>
-
-                    <input
-                      id="visa-date-to"
-                      type="date"
-                      value={filters.dateTo}
-                      min={filters.dateFrom || undefined}
-                      onChange={(event) =>
-                        updateFilter(
-                          "dateTo",
-                          event.target.value
-                        )
-                      }
-                      className={inputClassName}
-                    />
-                  </div>
-
-                  {hasActiveFilters && (
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
-                    >
-                      <X size={14} />
-                      Clear filters
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-3 lg:justify-end">
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <CalendarDays
-                      size={15}
-                      className="text-slate-400"
-                    />
-                    <span>
-                      {filteredRows.length}{" "}
-                      {filteredRows.length === 1
-                        ? "application"
-                        : "applications"}
-                      {hasActiveFilters ? " found" : " total"}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => load({ silent: true })}
-                    disabled={refreshing}
-                    aria-label="Refresh applications"
-                    title="Refresh applications"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <RotateCcw
-                      size={15}
-                      className={refreshing ? "animate-spin" : ""}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {invalidDateRange && (
-                <p className="mt-2 text-xs text-red-600">
-                  The start date cannot be later than the end date.
-                </p>
-              )}
-            </div>
-
-            {/* API feedback */}
-            {actionError && (
-              <div
-                role="alert"
-                className="mx-4 mt-4 flex items-start justify-between gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-5"
-              >
-                <span>{actionError}</span>
-
-                <button
-                  type="button"
-                  onClick={() => setActionError("")}
-                  aria-label="Dismiss error"
-                  className="shrink-0 text-red-500 hover:text-red-700"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            )}
-
-            {/* Applications table */}
-            <div className="min-w-0">
-              <VisaApplicationsTable
-                data={invalidDateRange ? [] : filteredRows}
-                statusOptions={statusOptions}
-                countryOptions={countryOptions}
-                onView={(row) =>
-                  navigate(
-                    APP_ROUTES.VISA_APPLICATION_DETAILS(row.id)
-                  )
-                }
-                onStatusChange={handleStatusChange}
-              />
-            </div>
-          </div>
+            <TablePagination {...table.paginationProps} itemLabel="applications" />
+          </>
         )}
       </TableCard>
 
-      {/* Status dialog */}
       <StatusChangeDialog
         open={Boolean(statusChange)}
         onClose={() => setStatusChange(null)}
         application={statusChange?.application}
-        statusOptions={statusConfigs}
-        initialStatus={statusChange?.presetStatus}
+        statusOptions={statuses}
         onSaved={() => {
           setStatusChange(null);
-          load({ silent: true });
+          toast.success("Status updated.");
+          table.reload();
         }}
       />
     </div>

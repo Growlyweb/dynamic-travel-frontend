@@ -1,4 +1,4 @@
-import { config } from '../../app/config'
+import { isMocked } from '../../app/config'
 import { apiClient } from '../../services/apiClient'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -67,11 +67,11 @@ const DEMO = {
 }
 
 export const dashboardApi = {
-  getOverview: () => (config.enableMocks ? DEMO.overview : apiClient.get('/dashboard/overview')),
-  getVisaTrend: () => (config.enableMocks ? DEMO.visaTrend : apiClient.get('/dashboard/visa-trend')),
-  getTourTrend: () => (config.enableMocks ? DEMO.tourTrend : apiClient.get('/dashboard/tour-trend')),
+  getOverview: () => (isMocked('dashboard') ? DEMO.overview : apiClient.get('/dashboard/overview')),
+  getVisaTrend: () => (isMocked('dashboard') ? DEMO.visaTrend : apiClient.get('/dashboard/visa-trend')),
+  getTourTrend: () => (isMocked('dashboard') ? DEMO.tourTrend : apiClient.get('/dashboard/tour-trend')),
   getRecentApplications: () =>
-    config.enableMocks ? DEMO.recentApplications : apiClient.get('/dashboard/recent-applications'),
+    isMocked('dashboard') ? DEMO.recentApplications : apiClient.get('/dashboard/recent-applications'),
   getRecentActivities: () =>
-    config.enableMocks ? DEMO.recentActivities : apiClient.get('/dashboard/recent-activities'),
+    isMocked('dashboard') ? DEMO.recentActivities : apiClient.get('/dashboard/recent-activities'),
 }

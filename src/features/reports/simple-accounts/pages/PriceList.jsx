@@ -4,7 +4,7 @@ import { BadgePercent } from 'lucide-react'
 
 import SimpleTabs from '../components/SimpleTabs'
 import { simpleApi } from '../simple.api'
-import { formatMoney, formatPct } from '@/features/reports/reports.api'
+import { formatMoney, formatPct } from '@/features/reports/lib/format'
 import { Table } from '@/components/re-table'
 
 const margin = (price, cost) => (price > 0 ? ((price - cost) / price) * 100 : 0)

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PAGINATION_PAGE_SIZES } from '../../utils/constants';
 
 /**
  * TablePagination Component
@@ -11,8 +12,12 @@ export function TablePagination({
   pageSize = 10,
   itemLabel = 'entries',
   onPageChange,
+  // Give both to let the person choose how many rows a page holds (50 to 500).
+  onPageSizeChange,
+  pageSizeOptions = PAGINATION_PAGE_SIZES,
   className = '',
 }) {
+  const [jump, setJump] = React.useState('');
   const totalPages = Math.max(1, Math.ceil(totalEntries / pageSize));
   const current = Math.min(Math.max(1, currentPage), totalPages);
 
@@ -41,13 +46,30 @@ export function TablePagination({
     >
       {/* Entries Info */}
       <div className="font-normal text-slate-600">
-        Showing <span className="font-medium text-slate-800">{startEntry}</span> to{' '}
-        <span className="font-medium text-slate-800">{endEntry}</span> of{' '}
-        <span className="font-medium text-slate-800">{totalEntries}</span> {itemLabel}
+        Showing <span className="font-medium text-slate-800">{startEntry.toLocaleString()}</span> to{' '}
+        <span className="font-medium text-slate-800">{endEntry.toLocaleString()}</span> of{' '}
+        <span className="font-medium text-slate-800">{totalEntries.toLocaleString()}</span> {itemLabel}
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center gap-1.5 select-none">
+      <div className="flex flex-wrap items-center gap-1.5 select-none">
+        {onPageSizeChange && (
+          <label className="mr-2 flex items-center gap-1.5 text-slate-600">
+            Rows per page
+            <select
+              value={pageSize}
+              onChange={(event) => onPageSizeChange(Number(event.target.value))}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700"
+              aria-label="Rows per page"
+            >
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {/* Prev Button */}
         <button
           type="button"
@@ -101,6 +123,29 @@ export function TablePagination({
         >
           <ChevronRight className="w-4 h-4" />
         </button>
+        {totalPages > 7 && onPageChange && (
+          <form
+            className="ml-2 flex items-center gap-1.5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const target = Number(jump);
+              if (target >= 1) onPageChange(Math.min(target, totalPages));
+              setJump('');
+            }}
+          >
+            <input
+              value={jump}
+              onChange={(event) => setJump(event.target.value.replace(/\D/g, ''))}
+              inputMode="numeric"
+              placeholder="Page"
+              aria-label="Go to page"
+              className="h-8 w-16 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-700"
+            />
+            <button type="submit" className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              Go
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

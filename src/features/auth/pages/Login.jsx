@@ -1,65 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../components/AuthLayout';
 import { PasswordInput } from '../components/PasswordInput';
 import { useAuth } from '../../../hooks/useAuth';
+import { errorMessage, fieldErrors } from '../../../utils/errors';
 
+// One sign-in for everyone who works here. The account decides what a person sees, so there is no role to pick.
 export default function Login() {
-  const { role: routeRole } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, ready } = useAuth();
 
-  const isStaff = routeRole === 'staff' || location.pathname.includes('/staff');
-  const activeRole = isStaff ? 'staff' : 'admin';
-  const isAdmin = !isStaff;
-
-  const [email, setEmail] = useState(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
-  const [password, setPassword] = useState(isStaff ? 'staff123' : 'admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fields, setFields] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // Sync state when switching routes (/dashboard/login/admin <-> /dashboard/login/staff)
-  useEffect(() => {
-    setEmail(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
-    setPassword(isStaff ? 'staff123' : 'admin123');
-    setError('');
-  }, [isStaff]);
+  const destination = location.state?.from || '/dashboard';
 
-  if (isAuthenticated) {
-    const from = location.state?.from || '/dashboard';
-    navigate(from, { replace: true });
-    return null;
-  }
+  if (ready && isAuthenticated) return <Navigate to={destination} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFields({});
 
-    if (!email.trim() || !password.trim()) {
+    if (!email.trim() || !password) {
       setError('Please enter both email and password.');
       return;
     }
 
     try {
       setLoading(true);
-      await login({ email, password, role: activeRole });
-      const from = location.state?.from || '/dashboard';
-      navigate(from, { replace: true });
+      await login({ email: email.trim(), password });
+      navigate(destination, { replace: true });
     } catch (err) {
-      setError(err?.message || 'Invalid credentials. Please check your email and password.');
+      setFields(fieldErrors(err));
+      setError(errorMessage(err, 'Invalid credentials. Please check your email and password.'));
     } finally {
       setLoading(false);
     }
   };
 
-  const title = isAdmin ? 'Admin Login' : 'Staff Login';
-  const subtitle = isAdmin ? 'Sign in to access admin system controls' : 'Sign in to access staff operations';
-  const switchPath = isAdmin ? '/dashboard/login/staff' : '/dashboard/login/admin';
-  const forgotPath = isAdmin ? '/dashboard/forgot-password/admin' : '/dashboard/forgot-password/staff';
-
   return (
-    <AuthLayout title={title} >
+    <AuthLayout title="Sign in" subtitle="Use the account you were given for the dashboard">
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         {error && <div className="auth-alert auth-alert-error">{error}</div>}
 
@@ -75,16 +60,18 @@ export default function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
+            autoFocus
             required
           />
+          {fields.email && <span className="auth-field-error">{fields.email}</span>}
         </div>
 
         <div className="auth-field">
           <div className="auth-label">
             <label htmlFor="auth-password">Password</label>
-            {/* <Link to={forgotPath} className="auth-link">
+            <Link to="/dashboard/forgot-password" className="auth-link">
               Forgot password?
-            </Link> */}
+            </Link>
           </div>
           <PasswordInput
             id="auth-password"
@@ -95,15 +82,9 @@ export default function Login() {
         </div>
 
         <button type="submit" className="auth-btn" disabled={loading}>
-          {loading ? <span className="spinner" /> : `Sign In as ${isAdmin ? 'Admin' : 'Staff'}`}
+          {loading ? <span className="spinner" /> : 'Sign in'}
         </button>
       </form>
-
-      {/* <div className="auth-footer">
-        <Link to={switchPath} className="auth-link">
-          {switchLabel}
-        </Link>
-      </div> */}
     </AuthLayout>
   );
 }

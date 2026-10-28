@@ -1,3 +1,5 @@
+import { errorMessage } from './errors'
+
 export function cn(...classes) {
   return classes.flat(Infinity).filter(Boolean).join(' ')
 }
@@ -39,6 +41,15 @@ export function toCsv(rows = [], columns = []) {
   return [header, body].filter(Boolean).join('\n')
 }
 
+// Makes text safe to put inside HTML that is built by hand, for example a printed receipt.
+export function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+}
+
 export function getApiErrorMessage(error, fallback = 'Something went wrong. Please try again.') {
-  return error?.data?.message || error?.message || fallback
+  return errorMessage(error, fallback)
 }

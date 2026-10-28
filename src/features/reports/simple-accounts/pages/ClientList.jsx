@@ -6,7 +6,7 @@ import { PlusCircle, UserRound } from 'lucide-react'
 import SimpleTabs from '../components/SimpleTabs'
 import BigCard from '../components/BigCard'
 import { simpleApi } from '../simple.api'
-import { formatMoney, formatPct } from '@/features/reports/reports.api'
+import { formatMoney, formatPct } from '@/features/reports/lib/format'
 import { Table } from '@/components/re-table'
 
 export default function ClientList({ kind = 'B2C' }) {

@@ -6,8 +6,8 @@ import { PlusCircle, Tags, Trash2 } from 'lucide-react'
 import SimpleTabs from '../components/SimpleTabs'
 import MonthNavigator from '@/features/reports/components/MonthNavigator'
 import { simpleApi } from '../simple.api'
-import { formatMoney } from '@/features/reports/reports.api'
-import { monthWindow } from '@/features/reports/accounting/dates'
+import { formatMoney } from '@/features/reports/lib/format'
+import { monthWindow } from '@/features/reports/lib/dates'
 import { Table } from '@/components/re-table'
 
 export default function Categories() {  const now = new Date()

@@ -3,7 +3,7 @@ import PageHeader from '../../../components/layout/PageHeader'
 import DataTable from '../../../components/tables/DataTable'
 import TablePagination from '../../../components/tables/TablePagination'
 import Badge from '../../../components/common/Badge'
-import { b2bApi } from '../b2b.api'
+import { b2bOperationsApi as b2bApi } from '../b2b.api'
 import { usePagination } from '../../../hooks/usePagination'
 import { formatDateTime, titleCase } from '../../../utils/formatters'
 

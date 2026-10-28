@@ -90,7 +90,6 @@ const TEMPLATES = {
 export default function RichChecklistEditor({
   value = "",
   onChange,
-  placeholder = "Write or decorate visa requirements and checklist here...",
 }) {
   const editor = useEditor({
     extensions: [

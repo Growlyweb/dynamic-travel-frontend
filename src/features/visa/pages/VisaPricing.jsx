@@ -13,8 +13,10 @@ import {
 import VisaTypeDialog from '../components/VisaTypeDialog';
 import { visaApi } from '../visa.api';
 import { formatDate, formatCurrency } from '../../../utils/formatters';
+import { useAction } from '../../../hooks/useAction';
 
 export default function VisaPricing() {
+  const run = useAction();
   const [countries, setCountries] = useState([]);
   const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,17 +32,13 @@ export default function VisaPricing() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const [countryResult, typeResult] = await Promise.all([
-        visaApi.listCountries(),
-        visaApi.listVisaTypes(),
-      ]);
-      setCountries(countryResult.items ?? []);
-      setTypes(typeResult.items ?? []);
-    } finally {
-      setLoading(false);
+    const { ok, value } = await run(() => Promise.all([visaApi.listCountries(), visaApi.listVisaTypes()]));
+    if (ok) {
+      setCountries(value[0].items ?? []);
+      setTypes(value[1].items ?? []);
     }
-  }, []);
+    setLoading(false);
+  }, [run]);
 
   useEffect(() => {
     load();

@@ -1,4 +1,4 @@
-import { formatCompact, formatMoney } from '../reports.api'
+import { formatCompact, formatMoney } from '../lib/format'
 
 /**
  * Revenue / total cost columns with a net-profit line on the same scale.

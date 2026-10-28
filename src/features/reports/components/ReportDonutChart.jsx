@@ -1,5 +1,5 @@
 import React from 'react'
-import { formatMoney } from '../reports.api'
+import { formatMoney } from '../lib/format'
 
 /**
  * ReportDonutChart

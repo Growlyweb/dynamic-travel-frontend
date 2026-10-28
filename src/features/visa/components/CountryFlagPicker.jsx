@@ -43,7 +43,6 @@ export default function CountryFlagPicker({
   onSelectCountry,
   onChangeName,
   onChangeCode,
-  onChangeFlag,
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");

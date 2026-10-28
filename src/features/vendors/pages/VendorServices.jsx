@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import ConfirmDialog from '@/components/common/ConfirmDialog'
 import { Plus, Edit, Trash2, CheckCircle2, XCircle, Search, Layers } from 'lucide-react'
 
-import { vendorApi } from '../vendor.api'
+import { vendorServicesApi as vendorApi } from '../vendorServices.api'
 import ServiceModal from '../components/ServiceModal'
 import { cn } from '@/utils/helpers'
 

@@ -106,7 +106,7 @@ export default function TourCard({ tour, onDelete }) {
 
   const showCover = tour.coverImage && !coverFailed
   const flag = getFlag(tour.country || tour.destination)
-  const canEdit = can('tours.edit')
+  const canEdit = can('TOUR_MANAGE')
 
   async function doDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }

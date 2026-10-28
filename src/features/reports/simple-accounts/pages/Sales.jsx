@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
-import {
-  HandCoins,
-  PlusCircle,
-  Search,
-} from 'lucide-react'
+import { HandCoins, PlusCircle, Search } from 'lucide-react'
 
 import SimpleTabs from '../components/SimpleTabs'
 import SaleModal from '../components/SaleModal'
@@ -13,13 +9,17 @@ import SaleViewModal from '../components/SaleViewModal'
 import MoneyReceiptModal from '../components/MoneyReceiptModal'
 import ReceiptViewModal from '../components/ReceiptViewModal'
 import AddCostModal from '../components/AddCostModal'
+import CancelSaleModal from '../components/CancelSaleModal'
 import { simpleApi } from '../simple.api'
-import { useAuth } from '@/hooks/useAuth'
-import { formatMoney } from '@/features/reports/reports.api'
-import { formatDateShort, firstOfMonth, todayISO } from '@/features/reports/accounting/dates'
+import { usePermission } from '@/hooks/usePermission'
+import { useServerTable } from '@/hooks/useServerTable'
+import { useToast } from '@/context/ToastContext'
+import { PERMISSIONS } from '@/utils/permissions'
+import { errorMessage } from '@/utils/errors'
+import { formatMoney } from '@/features/reports/lib/format'
+import { formatDateShort, firstOfMonth, todayISO } from '@/features/reports/lib/dates'
 import { Table, TableBadge, TablePagination } from '@/components/re-table'
 
-const PAGE_SIZE = 12
 const now = new Date()
 
 const statusOf = (row) => {
@@ -32,95 +32,63 @@ const statusOf = (row) => {
 const statusTone = { Paid: 'success', Partial: 'warning', Due: 'info', Cancelled: 'danger' }
 
 export default function Sales() {
-  const { user } = useAuth()
-  const canManage = ['admin', 'manager'].includes(user?.role)
-  const canSeeProfit = ['admin', 'manager'].includes(user?.role)
+  const { can } = usePermission()
+  const toast = useToast()
+  const canManage = can(PERMISSIONS.ACCOUNTS_EDIT)
+  const canCancel = can(PERMISSIONS.ACCOUNTS_VOID)
 
   const [filters, setFilters] = useState({
-    search: '',
     from: firstOfMonth(now.getFullYear(), now.getMonth()),
     to: todayISO(),
     category: '',
-    status: '',
   })
-  const [data, setData] = useState({ rows: [], summary: {} })
-  const [allSales, setAllSales] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(1)
   const [categories, setCategories] = useState([])
   const [priceList, setPriceList] = useState([])
+  const [dues, setDues] = useState([])
   const [saleOpen, setSaleOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [viewing, setViewing] = useState(null)
   const [receiptFor, setReceiptFor] = useState(null)
   const [receiptViewNo, setReceiptViewNo] = useState('')
   const [costFor, setCostFor] = useState(null)
-  const [notice, setNotice] = useState(null)
+  const [cancelling, setCancelling] = useState(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [result, categoryRows, prices, allSales] = await Promise.all([
-        simpleApi.listSales(filters),
-        simpleApi.getCategories(),
-        simpleApi.getPriceList(),
-        simpleApi.listSales({}),
-      ])
-      setData(result)
-      setCategories(categoryRows)
-      setPriceList(prices)
-      setAllSales(allSales.rows)
-    } catch (err) {
-      setNotice({ type: 'error', text: err?.message || 'Could not load sales.' })
-    } finally {
-      setLoading(false)
-    }
-  }, [filters])
+  const table = useServerTable({ table: 'accounts-sales', fetcher: simpleApi.listSales, filters })
+  const rows = table.rows
+  const summary = table.extras.summary ?? {}
 
   useEffect(() => {
-    load()
-  }, [load])
+    Promise.all([simpleApi.getCategories(), simpleApi.getPriceList()])
+      .then(([categoryRows, prices]) => {
+        setCategories(categoryRows)
+        setPriceList(prices)
+      })
+      .catch((error) => toast.error(errorMessage(error)))
+  }, [toast])
 
+  // The invoices that still owe money, for the money receipt form.
+  const loadDues = () => simpleApi.listDue({ pageSize: 500 }).then((result) => setDues(result.rows)).catch(() => setDues([]))
   useEffect(() => {
-    setPage(1)
-  }, [filters])
+    loadDues()
+  }, [])
 
-  useEffect(() => {
-    if (!notice) return
-    const timer = setTimeout(() => setNotice(null), 3200)
-    return () => clearTimeout(timer)
-  }, [notice])
-
-  const pages = Math.max(1, Math.ceil(data.rows.length / PAGE_SIZE))
-  const current = Math.min(page, pages)
-  const rows = useMemo(
-    () => data.rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [data.rows, current]
-  )
-
-  const setFilter = (key) => (event) => setFilters((currentFilters) => ({ ...currentFilters, [key]: event.target.value }))
+  const setFilter = (key) => (event) => setFilters((current) => ({ ...current, [key]: event.target.value }))
 
   const refresh = async (message) => {
-    if (message) setNotice({ type: 'success', text: message })
-    await load()
+    if (message) toast.success(message)
+    table.reload()
+    loadDues()
   }
 
-  const deleteSale = async (sale) => {
-    if (!window.confirm(`Delete sale ${sale.fileNo}? Its money and due will be removed.`)) return
-    try {
-      await simpleApi.deleteSale(sale.id)
-      await refresh('Sale deleted.')
-    } catch (err) {
-      setNotice({ type: 'error', text: err?.message || 'Could not delete the sale.' })
-    }
-  }
+  const current = table.page
+  const pageSize = table.pageSize
 
   const columns = [
     {
       key: 'sl',
       header: 'SL.',
       render: (row, index) => (
-        <span className="text-sm text-slate-500">{(current - 1) * PAGE_SIZE + index + 1}</span>
+        <span className="text-sm text-slate-500">{(current - 1) * pageSize + index + 1}</span>
       ),
     },
     {
@@ -150,7 +118,7 @@ export default function Sales() {
           <p className="truncate text-sm font-semibold text-[#2F80ED]">{row.partyName}</p>
           <p className="text-[11px] text-slate-500">{row.partyPhone || (row.partyType === 'B2B' ? 'B2B Agent' : 'B2C Customer')}</p>
           <p className="truncate text-[10px] text-slate-400">
-            Sales {row.salesBy || 'Admin'} · Created {row.createdBy || 'ABL Travel'}
+            Created by {row.createdByName || 'System'}
           </p>
         </div>
       ),
@@ -162,12 +130,11 @@ export default function Sales() {
       render: (row) => (
         <div className="whitespace-nowrap text-right">
           <p className="text-sm font-semibold tabular-nums text-slate-900">{formatMoney(row.sale)}</p>
-          {canSeeProfit ? (
-            <div className="text-[10px] tabular-nums text-slate-400">
-              <p>Cost {formatMoney(row.cost)}</p>
-              <p>Profit {formatMoney(row.profit)}</p>
-            </div>
-          ) : null}
+          <div className="text-[10px] tabular-nums text-slate-400">
+            {row.discount > 0 ? <p>Discount {formatMoney(row.discount)}</p> : null}
+            <p>Cost {formatMoney(row.cost)}</p>
+            <p>File profit {formatMoney(row.profit)}</p>
+          </div>
         </div>
       ),
     },
@@ -197,23 +164,6 @@ export default function Sales() {
       ),
     },
     {
-      key: 'receiptNo',
-      header: 'MR. No.',
-      render: (row) =>
-        row.receiptNo ? (
-          <button
-            type="button"
-            onClick={() => setReceiptViewNo(row.receiptNo)}
-            className="whitespace-nowrap text-sm font-semibold text-[#2F80ED] underline-offset-2 hover:underline"
-            title="View money receipt"
-          >
-            {row.receiptNo}
-          </button>
-        ) : (
-          <span className="whitespace-nowrap text-sm text-slate-400">—</span>
-        ),
-    },
-    {
       key: 'actions',
       header: 'Action',
       align: 'center',
@@ -238,16 +188,16 @@ export default function Sales() {
               Edit
             </button>
           ) : null}
-          {canManage && row.status !== 'Cancelled' ? (
+          {canCancel && row.status !== 'Cancelled' ? (
             <button
               type="button"
-              onClick={() => deleteSale(row)}
+              onClick={() => setCancelling(row)}
               className="rounded-md bg-[#DC2626] px-1.5 py-1.5 text-[10px] font-semibold text-white hover:bg-[#b91c1c]"
             >
-              Delete
+              Cancel
             </button>
           ) : null}
-          {row.due > 0 && row.status !== 'Cancelled' ? (
+          {canManage && row.due > 0 && row.status !== 'Cancelled' ? (
             <button
               type="button"
               onClick={() => setReceiptFor(row)}
@@ -306,8 +256,8 @@ export default function Sales() {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              value={filters.search}
-              onChange={setFilter('search')}
+              value={table.search}
+              onChange={(event) => table.setSearch(event.target.value)}
               placeholder="Search invoice, client, phone…"
               className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-base outline-none focus:border-[#2F80ED] focus:ring-2 focus:ring-primary/20"
             />
@@ -337,18 +287,22 @@ export default function Sales() {
             ))}
           </select>
         </div>
-        {/* <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
-          <span>{data.rows.length} sales</span>
-          <span>Selling {formatMoney(data.rows.reduce((sum, row) => sum + row.sale, 0))}</span>
-          {canSeeProfit ? <span>Profit {formatMoney(data.rows.reduce((sum, row) => sum + row.profit, 0))}</span> : null}
-          <span>Due {formatMoney(data.rows.reduce((sum, row) => sum + row.due, 0))}</span>
-        </div> */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-600">
+          <span>{Number(summary.count ?? 0).toLocaleString()} sales</span>
+          <span>Selling {formatMoney(summary.sale)}</span>
+          {summary.discount > 0 ? <span>Discount {formatMoney(summary.discount)}</span> : null}
+          <span>Cost {formatMoney(summary.cost)}</span>
+          <span>Profit {formatMoney(summary.profit)}</span>
+          <span>Received {formatMoney(summary.received)}</span>
+          <span>Due {formatMoney(summary.due)}</span>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center text-base text-slate-500">
-          Loading sales…
-        </div>
+      {table.error ? (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-700">
+          {errorMessage(table.error)}{' '}
+          <button type="button" onClick={table.reload} className="font-semibold underline">Try again</button>
+        </p>
       ) : (
         <>
           <p className="text-sm text-slate-500 lg:hidden">Swipe the table sideways to see all columns and actions.</p>
@@ -356,20 +310,15 @@ export default function Sales() {
             columns={columns}
             data={rows}
             dense
+            loading={table.loading}
+            refreshing={table.refreshing}
             headerClassName="bg-[#2F80ED] text-white"
             emptyText="No sales found"
             emptyDescription="Change the date or search, or create a new sale."
           />
+          <TablePagination {...table.paginationProps} itemLabel="sales" />
         </>
       )}
-
-      <TablePagination
-        currentPage={current}
-        totalEntries={data.rows.length}
-        pageSize={PAGE_SIZE}
-        itemLabel="sales"
-        onPageChange={setPage}
-      />
 
       <SaleModal
         open={saleOpen}
@@ -408,7 +357,7 @@ export default function Sales() {
         open={Boolean(receiptFor)}
         onOpenChange={(open) => !open && setReceiptFor(null)}
         sale={receiptFor && receiptFor.id ? receiptFor : null}
-        sales={allSales}
+        sales={dues}
         onSave={async (payload) => {
           const receipt = await simpleApi.addReceipt(payload)
           await refresh('Money receipt saved. Due updated.')
@@ -430,16 +379,15 @@ export default function Sales() {
         }}
       />
 
-      {notice ? (
-        <div
-          className={`fixed right-4 top-4 z-50 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ${notice.type === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-800'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            }`}
-        >
-          {notice.text}
-        </div>
-      ) : null}
+      <CancelSaleModal
+        open={Boolean(cancelling)}
+        onOpenChange={(open) => !open && setCancelling(null)}
+        sale={cancelling}
+        onConfirm={async (body) => {
+          await simpleApi.cancelSale(cancelling.id, body)
+          await refresh('Sale cancelled.')
+        }}
+      />
     </div>
   )
 }

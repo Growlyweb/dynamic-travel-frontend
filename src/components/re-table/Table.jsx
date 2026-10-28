@@ -16,6 +16,11 @@ export function Table({
   dense = false,
   onRowClick,
   className = '',
+  // The body scrolls inside a box of fixed height, so the page does not grow with the rows. `compact` is for dialogs.
+  compact = false,
+  maxHeight,
+  // True while a new page loads: the old rows stay and dim, so the table does not flicker.
+  refreshing = false,
 }) {
   const cellPadding = dense ? 'py-2 px-2' : 'py-3.5 px-4';
   const headPadding = dense ? 'py-2.5 px-2' : 'py-3.5 px-4';
@@ -33,7 +38,11 @@ export function Table({
 
   return (
     <div className={`w-full overflow-hidden rounded-xl border border-slate-200/90 shadow-2xs bg-white ${className}`}>
-      <div className="overflow-x-auto">
+      <div
+        className={`relative overflow-auto ${refreshing ? 'opacity-60 transition-opacity' : 'transition-opacity'}`}
+        style={{ maxHeight: maxHeight ?? (compact ? '18rem' : 'calc(100vh - 21rem)'), minHeight: compact ? undefined : '12rem' }}
+      >
+        {refreshing && <div className="sticky top-0 z-20 h-0.5 w-full animate-pulse bg-[#2F80ED]" />}
         <table className="w-full border-collapse text-sm">
           {/* Table Header */}
           <thead>
@@ -49,7 +58,7 @@ export function Table({
                       minWidth: col.minWidth,
                       maxWidth: col.maxWidth,
                     }}
-                    className={`${headPadding} font-semibold text-sm ${alignClass} ${col.headerClassName || ''}`}
+                    className={`sticky top-0 z-10 ${headerClassName} ${headPadding} font-semibold text-sm ${alignClass} ${col.headerClassName || ''}`}
                   >
                     {typeof col.header === 'function' ? col.header(col) : col.header}
                   </th>
