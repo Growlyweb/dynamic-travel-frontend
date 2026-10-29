@@ -54,7 +54,7 @@ import { cn } from '@/utils/helpers'
 
 const SECTION_ICONS = {
   Overview: LayoutDashboard,
-  Visa: Stamp,
+  Applications: Stamp,
   Tours: Luggage,
   'Partners · B2B': Handshake,
   'Customers · B2C': UserRound,

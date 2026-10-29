@@ -98,7 +98,7 @@ export default function ApplicationMessages({ application, onChanged }) {
       <ComposeDialog
         channel={dialog}
         application={application}
-        templates={templates.filter((template) => template.channel === dialog)}
+        templates={templates.filter((template) => template.channel === dialog && [application.serviceType, 'all'].includes(template.serviceType ?? 'visa'))}
         onClose={() => setDialog(null)}
         onSend={(body) => act(() => visaApi.sendMessage(application.id, body), dialog === 'email' ? 'Email sent.' : 'SMS prepared.').then(() => setDialog(null))}
         busy={busy}
@@ -128,7 +128,7 @@ function ComposeDialog({ channel, application, templates, onClose, onSend, busy 
       .replaceAll('{{applicantName}}', application.applicant.fullName)
       .replaceAll('{{applicationNumber}}', application.number)
       .replaceAll('{{country}}', application.country)
-      .replaceAll('{{visaType}}', application.visaType)
+      .replaceAll('{{visaType}}', application.visaType || application.serviceLabel)
       .replaceAll('{{status}}', application.status.replace(/_/g, ' '))
 
   return (

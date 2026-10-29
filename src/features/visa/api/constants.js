@@ -6,6 +6,16 @@ export const MESSAGE_VARIABLES = ['applicantName', 'applicationNumber', 'country
 export const MESSAGE_CHANNELS = ['email', 'sms']
 export const MESSAGE_STATUSES = ['pending', 'sent', 'failed']
 export const PAYMENT_METHODS = ['Bank Transfer', 'Cash', 'Credit / Debit Card', 'bKash / Nagad']
+export const SERVICE_OPTIONS = [
+  { value: 'visa', label: 'Visa' },
+  { value: 'ticket', label: 'Ticket' },
+  { value: 'hotel', label: 'Hotel' },
+  { value: 'tour', label: 'Tour Package' },
+]
+export const SERVICE_LABELS = Object.fromEntries(SERVICE_OPTIONS.map((option) => [option.value, option.label]))
+export const TEMPLATE_SERVICE_OPTIONS = [{ value: 'all', label: 'All services' }, ...SERVICE_OPTIONS]
+export const TRIP_TYPES = ['One Way', 'Round Way']
+export const TICKET_CLASSES = ['Economy', 'Premium Economy', 'Business', 'First Class']
 export const ENTRY_TYPES = [
   { value: 'single', label: 'Single entry' },
   { value: 'double', label: 'Double entry' },

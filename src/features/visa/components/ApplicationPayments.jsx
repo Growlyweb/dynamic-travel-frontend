@@ -87,7 +87,7 @@ export default function ApplicationPayments({ application, onChanged, onOpenAcco
       </div>
 
       <dl className="detail-list mt-2">
-        <div><dt>Price list</dt><dd>{formatCurrency(account.totalAmount, currency)}</dd></div>
+        <div><dt>{application.serviceType === 'visa' ? 'Price list' : 'Total'}</dt><dd>{formatCurrency(account.totalAmount, currency)}</dd></div>
         <div><dt>Discount</dt><dd>{formatCurrency(account.discountAmount, currency)}</dd></div>
         <div><dt>To pay</dt><dd className="strong">{formatCurrency(account.netAmount, currency)}</dd></div>
         <div><dt>Received</dt><dd>{formatCurrency(account.advancePaid, currency)}</dd></div>

@@ -55,6 +55,7 @@ export const APP_ROUTES = {
   VISA_TYPES: '/visa/types',
   VISA_PRICING: '/visa/pricing',
   VISA_CHECKLIST: '/visa/checklist',
+  VISA_DOCUMENT_CHECKLISTS: '/visa/checklist/documents',
   VISA_STATUSES: '/visa/statuses',
   VISA_STATUS: '/visa/status-board',
   VISA_QUOTATIONS: '/visa/quotations',
@@ -122,10 +123,10 @@ export const NAV_SECTIONS = [
     items: [{ to: APP_ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, end: true }],
   },
   {
-    label: 'Visa',
+    label: 'Applications',
     items: [
       { to: APP_ROUTES.VISA_OVERVIEW, label: 'Overview', icon: Gauge, permission: 'VISA_VIEW', end: true },
-      { to: APP_ROUTES.VISA_APPLICATIONS, label: 'Applications', icon: Stamp, permission: 'VISA_VIEW' },
+      { to: APP_ROUTES.VISA_APPLICATIONS, label: 'New Application', icon: Stamp, permission: 'VISA_VIEW' },
       // { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'VISA_VIEW' },
       // { to: APP_ROUTES.VISA_TYPES, label: 'Visa types', icon: Layers, permission: 'VISA_VIEW' },
       { to: APP_ROUTES.VISA_PRICING, label: 'Pricing', icon: Tags, permission: 'VISA_VIEW' },

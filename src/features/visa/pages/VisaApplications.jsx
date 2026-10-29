@@ -10,7 +10,7 @@ import VisaApplicationsTable from "../components/VisaApplicationsTable";
 import StatusChangeDialog from "../components/StatusChangeDialog";
 import AddApplicationPopover from "../components/AddApplicationPopover";
 
-import { visaApi } from "../visa.api";
+import { visaApi, SERVICE_OPTIONS } from "../visa.api";
 import { useServerTable } from "../../../hooks/useServerTable";
 import { usePermission } from "../../../hooks/usePermission";
 import { useToast } from "../../../context/ToastContext";
@@ -26,7 +26,7 @@ const inputClassName = [
   "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10",
 ].join(" ");
 
-const EMPTY_FILTERS = { status: "", countryId: "", channel: "", staff: "", paymentStatus: "", from: "", to: "" };
+const EMPTY_FILTERS = { serviceType: "", status: "", countryId: "", channel: "", staff: "", paymentStatus: "", from: "", to: "" };
 
 export default function VisaApplications() {
   const navigate = useNavigate();
@@ -72,7 +72,7 @@ export default function VisaApplications() {
     [toast, table],
   );
 
-  const openStatus = useCallback((application) => setStatusChange({ application }), []);
+  const openStatus = useCallback((application, initialStatus) => setStatusChange({ application, initialStatus }), []);
   const canCreate = can(PERMISSIONS.VISA_EDIT);
 
   return (
@@ -90,8 +90,9 @@ export default function VisaApplications() {
         <TableToolbar
           search={table.search}
           onSearchChange={table.setSearch}
-          searchPlaceholder="Search number, passport, name, phone, email…"
+          searchPlaceholder="Search number, passport, name, phone, hotel, route…"
           filters={[
+            { id: "serviceType", value: filters.serviceType, placeholder: "All services", options: SERVICE_OPTIONS, onChange: (value) => update("serviceType", value) },
             { id: "status", value: filters.status, placeholder: "All statuses", options: statuses.map((status) => ({ value: status.key, label: status.displayName })), onChange: (value) => update("status", value) },
             { id: "countryId", value: filters.countryId, placeholder: "All countries", options: countries.map((country) => ({ value: country.id, label: country.name })), onChange: (value) => update("countryId", value) },
             { id: "channel", value: filters.channel, placeholder: "All channels", options: [{ value: "b2c", label: "B2C" }, { value: "b2b", label: "B2B" }], onChange: (value) => update("channel", value) },
@@ -138,6 +139,7 @@ export default function VisaApplications() {
         open={Boolean(statusChange)}
         onClose={() => setStatusChange(null)}
         application={statusChange?.application}
+        initialStatus={statusChange?.initialStatus}
         statusOptions={statuses}
         onSaved={() => {
           setStatusChange(null);

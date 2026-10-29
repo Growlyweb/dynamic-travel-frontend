@@ -7,12 +7,12 @@ import Modal from '../../../components/common/Modal'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import { visaApi, MESSAGE_VARIABLES, MESSAGE_CHANNELS } from '../visa.api'
+import { visaApi, MESSAGE_VARIABLES, MESSAGE_CHANNELS, TEMPLATE_SERVICE_OPTIONS, SERVICE_LABELS } from '../visa.api'
 import { useAction } from '../../../hooks/useAction'
 import { truncate } from '../../../utils/formatters'
 import { errorMessage, fieldErrors } from '../../../utils/errors'
 
-const EMPTY_VALUES = { name: '', channel: 'email', trigger: '', subject: '', message: '', active: true }
+const EMPTY_VALUES = { name: '', channel: 'email', trigger: '', serviceType: 'all', subject: '', message: '', active: true }
 
 // Words the server fills in, shown with an example so a person sees what the applicant will read.
 const SAMPLE_VALUES = {
@@ -67,7 +67,7 @@ export default function MessageTemplates() {
 
   function openEdit(template) {
     setEditing(template)
-    setValues({ name: template.name, channel: template.channel, trigger: template.trigger, subject: template.subject ?? '', message: template.message, active: template.active })
+    setValues({ name: template.name, channel: template.channel, trigger: template.trigger, serviceType: template.serviceType ?? 'visa', subject: template.subject ?? '', message: template.message, active: template.active })
     setErrors({})
     setFormError(null)
     setDialogOpen(true)
@@ -84,6 +84,7 @@ export default function MessageTemplates() {
         name: values.name.trim(),
         channel: values.channel,
         trigger: values.trigger,
+        serviceType: values.serviceType,
         subject: values.channel === 'email' ? values.subject.trim() : undefined,
         message: values.message.trim(),
         active: values.active,
@@ -123,6 +124,7 @@ export default function MessageTemplates() {
           columns={[
             { key: 'name', header: 'Template', render: (row) => <span className="strong">{row.name}</span> },
             { key: 'channel', header: 'Channel', render: (row) => <Badge tone={row.channel === 'email' ? 'info' : 'neutral'}>{row.channel === 'email' ? 'Email' : 'SMS'}</Badge> },
+            { key: 'serviceType', header: 'Service', render: (row) => (row.serviceType === 'all' ? 'All services' : SERVICE_LABELS[row.serviceType] ?? row.serviceType) },
             { key: 'trigger', header: 'When', render: (row) => statusName[row.trigger] ?? row.trigger },
             { key: 'message', header: 'Message', render: (row) => <span className="muted small">{truncate(row.subject ? `${row.subject}: ${row.message}` : row.message, 80)}</span> },
             {
@@ -169,6 +171,14 @@ export default function MessageTemplates() {
             <Select label="Channel" value={values.channel} error={errors.channel} onChange={(event) => setValues({ ...values, channel: event.target.value })} options={MESSAGE_CHANNELS.map((channel) => ({ value: channel, label: channel === 'email' ? 'Email (sent by itself)' : 'SMS (sent by hand)' }))} />
             <Select label="When the application reaches" placeholder="Choose a status" value={values.trigger} error={errors.trigger} onChange={(event) => setValues({ ...values, trigger: event.target.value })} options={statuses.map((status) => ({ value: status.key, label: status.displayName }))} />
           </div>
+          <Select
+            label="Service"
+            value={values.serviceType}
+            error={errors.serviceType}
+            hint="A template for one service is used for that service. “All services” is used for any service that has no template of its own on the same channel."
+            onChange={(event) => setValues({ ...values, serviceType: event.target.value })}
+            options={TEMPLATE_SERVICE_OPTIONS}
+          />
           {values.channel === 'email' ? <Input label="Subject" value={values.subject} error={errors.subject} onChange={(event) => setValues({ ...values, subject: event.target.value })} /> : null}
           <div className="field">
             <label className="field__label" htmlFor="template-message">Message</label>
