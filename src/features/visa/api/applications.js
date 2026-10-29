@@ -43,28 +43,36 @@ export const toApplication = (raw) => {
 const toList = (result) => ({ ...result, items: result.items.map(toApplication) })
 
 // What the new application form collects, in what the server takes. The server calculates net, due and the payment status.
-const toCreateBody = (payload) => ({
-  clientType: payload.clientType,
-  partnerId: payload.partnerId || undefined,
-  name: payload.name,
-  phone: payload.phone,
-  email: payload.email || undefined,
-  passportNumber: payload.passportNumber,
-  passportExpiry: payload.passportExpiry || undefined,
-  countryId: payload.countryId,
-  visaTypeId: payload.visaTypeId,
-  entries: payload.entries,
-  visaDuration: payload.visaDuration,
-  currency: payload.currency,
-  totalAmount: payload.totalAmount,
-  totalOverrideReason: payload.totalOverrideReason || undefined,
-  discountAmount: payload.discountAmount,
-  advancePaid: payload.advancePaid,
-  paymentMethod: payload.advancePaid > 0 ? payload.paymentMethod : undefined,
-  vendorList: payload.vendorList,
-  assignedStaff: payload.assignedStaff || undefined,
-  confirmDuplicate: payload.confirmDuplicate || undefined,
-})
+// A visa sends its country and visa type; a ticket, hotel or tour sends its own block instead.
+const toCreateBody = (payload) => {
+  const visa = payload.serviceType === 'visa'
+  return {
+    serviceType: payload.serviceType,
+    clientType: payload.clientType,
+    partnerId: payload.partnerId || undefined,
+    name: payload.name,
+    phone: payload.phone,
+    email: payload.email || undefined,
+    passportNumber: payload.passportNumber || undefined,
+    passportExpiry: payload.passportExpiry || undefined,
+    countryId: visa ? payload.countryId : undefined,
+    visaTypeId: visa ? payload.visaTypeId : undefined,
+    entries: visa ? payload.entries : undefined,
+    visaDuration: visa ? payload.visaDuration : undefined,
+    ticket: payload.serviceType === 'ticket' ? payload.ticket : undefined,
+    hotel: payload.serviceType === 'hotel' ? payload.hotel : undefined,
+    tour: payload.serviceType === 'tour' ? payload.tour : undefined,
+    currency: payload.currency,
+    totalAmount: payload.totalAmount,
+    totalOverrideReason: payload.totalOverrideReason || undefined,
+    discountAmount: payload.discountAmount,
+    advancePaid: payload.advancePaid,
+    paymentMethod: payload.advancePaid > 0 ? payload.paymentMethod : undefined,
+    vendorList: payload.vendorList,
+    assignedStaff: payload.assignedStaff || undefined,
+    confirmDuplicate: payload.confirmDuplicate || undefined,
+  }
+}
 
 // Only what the server edits: the applicant, the passport, the entries and duration, the price and the staff member.
 const toUpdateBody = (patch) => {

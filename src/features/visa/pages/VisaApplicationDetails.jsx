@@ -67,6 +67,25 @@ function matchDocumentForItem(item, documents) {
   return best && best.score >= 0.4 ? best.document : null
 }
 
+// The details of a ticket, a hotel booking or a tour package, as the form collected them.
+function serviceRows(application) {
+  const { ticket, hotel, tour } = application
+  if (application.serviceType === 'ticket' && ticket) {
+    return [['Trip type', ticket.tripType], ['Travel class', ticket.travelClass], ['Departure', ticket.departure], ['Arrive', ticket.arrival]]
+  }
+  if (application.serviceType === 'hotel' && hotel) {
+    return [['Hotel', hotel.name], ['Country', hotel.country], ['City / location', hotel.city], ['Stay duration', hotel.stay]]
+  }
+  if (application.serviceType === 'tour' && tour) {
+    return [
+      ['Package', tour.packageName || '—'],
+      ['Duration', tour.duration],
+      ...tour.destinations.map((stop, index) => [`Destination ${index + 1}`, [stop.city, stop.country].filter(Boolean).join(', ')]),
+    ]
+  }
+  return []
+}
+
 function passportValidityWarning(passport) {
   if (!passport?.expiry) return null
   const expiry = new Date(passport.expiry)
@@ -98,10 +117,12 @@ export default function VisaApplicationDetails() {
     try {
       const applicationResult = await visaApi.getApplication(id)
       setApplication(applicationResult)
+      // Only a visa has a checklist and a visa type.
+      const isVisa = applicationResult.serviceType === 'visa'
       const [checklistResult, statusResult, typeResult, staffResult] = await Promise.all([
-        visaApi.getChecklist({ countryId: applicationResult.countryId, visaTypeId: applicationResult.visaTypeId, applicantType: applicationResult.applicant.applicantType }),
+        isVisa ? visaApi.getChecklist({ countryId: applicationResult.countryId, visaTypeId: applicationResult.visaTypeId, applicantType: applicationResult.applicant.applicantType }) : null,
         visaApi.listStatusConfigs(),
-        visaApi.listVisaTypes({ countryId: applicationResult.countryId }),
+        isVisa ? visaApi.listVisaTypes({ countryId: applicationResult.countryId }) : { items: [] },
         visaApi.listStaff(),
       ])
       setChecklist(checklistResult)
@@ -144,16 +165,22 @@ export default function VisaApplicationDetails() {
   if (error) return <ErrorState title="Could not load this application" message={errorMessage(error)} onRetry={load} />
   if (!application) return null
 
+  const isVisa = application.serviceType === 'visa'
   const isRejected = application.status === 'rejected'
-  const order = isRejected ? WORKFLOW_STEPS.length - 1 : STATUS_ORDER[application.status] ?? 0
-  const steps = WORKFLOW_STEPS.map((step, index) => ({
+  // Only a visa goes to an embassy; the other services skip that step.
+  const workflow = isVisa ? WORKFLOW_STEPS : WORKFLOW_STEPS.filter((step) => step.key !== 'submitted_to_embassy')
+  const embassyIndex = WORKFLOW_STEPS.findIndex((step) => step.key === 'submitted_to_embassy')
+  const statusOrder = STATUS_ORDER[application.status] ?? 0
+  const order = isRejected ? workflow.length - 1 : isVisa || statusOrder < embassyIndex ? statusOrder : statusOrder - 1
+  const steps = workflow.map((step, index) => ({
     label: isRejected && index === order ? 'Rejected' : step.label,
     state: index <= order ? 'done' : 'todo',
   }))
 
+  const detailRows = serviceRows(application)
   const applicant = application.applicant
   const passport = application.passport
-  const passportWarning = passportValidityWarning(passport)
+  const passportWarning = isVisa ? passportValidityWarning(passport) : null
   const price = application.price
   const canEdit = can(PERMISSIONS.VISA_EDIT)
   const canChangeStatus = can(PERMISSIONS.VISA_UPDATE) && nextStatuses(application.status, statusConfigs, { isAdmin }).length > 0
@@ -169,7 +196,7 @@ export default function VisaApplicationDetails() {
     <div className="stack">
       <PageHeader
         title={application.number}
-        description={`${applicant.fullName} · ${application.country} · ${application.visaType}`}
+        description={isVisa ? `${applicant.fullName} · ${application.country} · ${application.visaType}` : `${applicant.fullName} · ${application.serviceLabel} · ${application.serviceSummary}`}
         breadcrumbs={[
           { label: 'Visa', to: APP_ROUTES.VISA_APPLICATIONS },
           { label: 'Applications', to: APP_ROUTES.VISA_APPLICATIONS },
@@ -203,20 +230,24 @@ export default function VisaApplicationDetails() {
             <dd className="strong">{application.number}</dd>
           </div>
           <div>
-            <dt>Country / visa type</dt>
-            <dd>{application.country} — {application.visaType}</dd>
+            <dt>{isVisa ? 'Country / visa type' : 'Service'}</dt>
+            <dd>{isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}</dd>
           </div>
-          <div>
-            <dt>Passport number</dt>
-            <dd className="strong">{passport.number}</dd>
-          </div>
-          <div>
-            <dt>Passport expiry</dt>
-            <dd>
-              {formatDate(passport.expiry)}
-              {passportWarning ? <span className="small" style={{ color: 'var(--color-danger, #dc2626)' }}> · under 6 months</span> : null}
-            </dd>
-          </div>
+          {isVisa || passport.number ? (
+            <div>
+              <dt>Passport number</dt>
+              <dd className="strong">{passport.number || '—'}</dd>
+            </div>
+          ) : null}
+          {isVisa ? (
+            <div>
+              <dt>Passport expiry</dt>
+              <dd>
+                {formatDate(passport.expiry)}
+                {passportWarning ? <span className="small" style={{ color: 'var(--color-danger, #dc2626)' }}> · under 6 months</span> : null}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>Assigned staff</dt>
             <dd>
@@ -229,10 +260,12 @@ export default function VisaApplicationDetails() {
               />
             </dd>
           </div>
-          <div>
-            <dt>{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</dt>
-            <dd className="strong">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</dd>
-          </div>
+          {isVisa ? (
+            <div>
+              <dt>{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</dt>
+              <dd className="strong">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</dd>
+            </div>
+          ) : null}
         </dl>
         {passportWarning ? (
           <p className="alert alert--danger mt-3" style={{ padding: '8px 12px' }}>
@@ -277,6 +310,16 @@ export default function VisaApplicationDetails() {
               <div><dt>Applicant type</dt><dd>{applicant.applicantType}</dd></div>
             </dl>
           </div>
+          {!isVisa ? (
+            <div className="card">
+              <p className="card__title">{application.serviceLabel} details</p>
+              <dl className="detail-list mt-2">
+                {detailRows.map(([label, value]) => (
+                  <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                ))}
+              </dl>
+            </div>
+          ) : (
           <div className="card">
             <div className="row between">
               <p className="card__title" style={{ marginBottom: 0 }}>Passport</p>
@@ -303,6 +346,7 @@ export default function VisaApplicationDetails() {
               <p className="muted small mt-2" style={{ marginBottom: 0 }}>Online processing — no physical passport required.</p>
             ) : null}
           </div>
+          )}
         </div>
 
         {/* Progress + documents */}
@@ -315,8 +359,9 @@ export default function VisaApplicationDetails() {
         </div>
       </div>
 
-      <div className="grid grid--2">
+      <div className={isVisa ? 'grid grid--2' : undefined}>
         {/* Checklist */}
+        {isVisa ? (
         <div className="card">
           <p className="card__title">Checklist — {application.country} / {application.visaType} / {applicant.applicantType}</p>
           {checklist ? (
@@ -344,6 +389,7 @@ export default function VisaApplicationDetails() {
             <p className="muted small">No checklist configured for this combination.</p>
           )}
         </div>
+        ) : null}
 
         {/* Timeline */}
         <div className="card">
@@ -428,14 +474,16 @@ export default function VisaApplicationDetails() {
         onSaved={() => changed('Status updated.')}
       />
 
-      <PassportManageDialog
-        open={passportDialogOpen}
-        onClose={() => setPassportDialogOpen(false)}
-        application={application}
-        visaType={visaType}
-        staff={staff}
-        onSaved={() => changed('Passport updated.')}
-      />
+      {isVisa ? (
+        <PassportManageDialog
+          open={passportDialogOpen}
+          onClose={() => setPassportDialogOpen(false)}
+          application={application}
+          visaType={visaType}
+          staff={staff}
+          onSaved={() => changed('Passport updated.')}
+        />
+      ) : null}
 
     </div>
   )

@@ -35,6 +35,9 @@ const VisaApplicationDetails = lazy(
 const VisaChecklist = lazy(
   () => import("../features/visa/pages/VisaChecklist"),
 );
+const VisaDocumentChecklists = lazy(
+  () => import("../features/visa/pages/VisaDocumentChecklists"),
+);
 const VisaStatus = lazy(() => import("../features/visa/pages/VisaStatus"));
 const VisaStatuses = lazy(() => import("../features/visa/pages/VisaStatuses"));
 const VisaTypes = lazy(() => import("../features/visa/pages/VisaTypes"));
@@ -361,6 +364,14 @@ export function AppRoutes() {
             element={
               <RequirePermission permission="VISA_VIEW">
                 <VisaChecklist />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="visa/checklist/documents"
+            element={
+              <RequirePermission permission="VISA_VIEW">
+                <VisaDocumentChecklists />
               </RequirePermission>
             }
           />

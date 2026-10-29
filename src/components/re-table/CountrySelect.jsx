@@ -11,6 +11,8 @@ export function CountrySelect({
   countryCode = 'CN',
   onChange,
   className = '',
+  // Country codes the list is limited to, for a form that only accepts the countries of the visa catalog.
+  allowedCodes,
 }) {
   const [countries, setCountries] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -52,8 +54,10 @@ export function CountrySelect({
     flag: `https://flagcdn.com/w40/${(countryCode || 'cn').toLowerCase()}.png`,
   };
 
-  const filteredCountries = countries.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
+  const filteredCountries = countries.filter(
+    (c) =>
+      (!allowedCodes || allowedCodes.includes(c.code.toUpperCase())) &&
+      c.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
   );
 
   return (
