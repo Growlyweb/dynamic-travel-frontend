@@ -474,11 +474,7 @@ export function AppRoutes() {
           />
           <Route
             path="tours/custom/builder"
-            element={
-              <RequirePermission permission="TOURS_VIEW">
-                <CustomTourBuilder />
-              </RequirePermission>
-            }
+            element={<Navigate to="/tours/custom" replace />}
           />
           <Route
             path="tours/package/:id"
