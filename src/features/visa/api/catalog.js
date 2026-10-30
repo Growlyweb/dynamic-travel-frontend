@@ -26,9 +26,15 @@ export const catalogApi = {
 
   /* ── Visa types and their prices ── */
   listVisaTypes: (params = {}) => apiClient.get('/visa/types', { params: { ...ALL, ...params } }).then((result) => ({ ...result, items: result.items.map(toType) })),
-  saveVisaType: ({ id, validFrom, ...payload }) => {
-    const body = { ...payload, ...(validFrom ? { validFrom } : {}) }
-    return (id ? apiClient.patch(`/visa/types/${id}`, body) : apiClient.post('/visa/types', body)).then(toType)
+  saveVisaType: ({ id, _id, validFrom, createdAt, updatedAt, __v, country, ...payload }) => {
+    const cleanId = id || _id
+    const b2bNetPrice = payload.b2bNetPrice == null || payload.b2bNetPrice === '' ? 0 : Number(payload.b2bNetPrice)
+    const body = {
+      ...payload,
+      b2bNetPrice,
+      ...(validFrom ? { validFrom: String(validFrom).slice(0, 10) } : {}),
+    }
+    return (cleanId ? apiClient.patch(`/visa/types/${cleanId}`, body) : apiClient.post('/visa/types', body)).then(toType)
   },
   updateVisaType: (id, patch) => apiClient.patch(`/visa/types/${id}`, patch).then(toType),
   removeVisaType: (id) => apiClient.del(`/visa/types/${id}`),

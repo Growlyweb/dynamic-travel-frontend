@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../components/AuthLayout';
 import { PasswordInput } from '../components/PasswordInput';
@@ -11,13 +11,24 @@ export default function Login() {
   const navigate = useNavigate();
   const { login, isAuthenticated, ready } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const isStaff = location.pathname.includes('/staff');
+  const [email, setEmail] = useState(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
+  const [password, setPassword] = useState('Demo@12345');
   const [error, setError] = useState('');
   const [fields, setFields] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const destination = location.state?.from || '/dashboard';
+  useEffect(() => {
+    setEmail(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
+    setPassword('Demo@12345');
+    setError('');
+  }, [isStaff]);
+
+  const destination = useMemo(() => {
+    const from = location.state?.from;
+    if (!from || from.includes('/login')) return '/dashboard';
+    return from;
+  }, [location.state?.from]);
 
   if (ready && isAuthenticated) return <Navigate to={destination} replace />;
 

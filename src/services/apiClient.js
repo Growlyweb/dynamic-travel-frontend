@@ -117,7 +117,7 @@ async function request(path, options = {}) {
   if (response.status === 401 && RENEWABLE.has(data?.code) && !isAuthCall) {
     const session = await refreshSession()
     if (!session) {
-      endSession()
+      if (!window.location.pathname.includes('/login')) endSession()
       throw new ApiError('Your session has ended. Please sign in again.', { status: 401, code: 'SESSION_EXPIRED' })
     }
     response = await send(path, options)
@@ -191,5 +191,6 @@ export const apiClient = {
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
   patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
   del: (path, options) => request(path, { ...options, method: 'DELETE' }),
+  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
   download,
 }

@@ -4,6 +4,9 @@
  * and delivery stats with LocalStorage persistence.
  */
 
+import { apiClient } from '../../services/apiClient'
+import { config } from '../../app/config'
+
 const STORAGE_KEY = 'abl_marketing_data_v3';
 
 // Seed initial customers (First 10 match Image 1 exactly, followed by realistic generated records up to 1,250)
@@ -272,6 +275,11 @@ function saveMarketingState(state) {
 
 export const marketingApi = {
   getOverview: async () => {
+    if (!config.enableMocks) {
+      const res = await apiClient.get('/marketing/overview')
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     return {
       success: true,
@@ -284,6 +292,22 @@ export const marketingApi = {
   },
 
   getCustomers: async ({ page = 1, pageSize = 10, search = '', type = '', service = '' } = {}) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.get('/marketing/customers', {
+        params: { page, limit: pageSize, search: search || undefined, type: type || undefined, service: service || undefined }
+      })
+      const payload = res?.data ?? res
+      return {
+        success: true,
+        data: {
+          customers: payload.customers || [],
+          totalCount: payload.totalCount || 0,
+          page: payload.page || page,
+          pageSize: payload.pageSize || pageSize,
+          totalPages: payload.totalPages || 1,
+        },
+      }
+    }
     const state = loadMarketingState();
     let list = state.customers;
 
@@ -317,6 +341,13 @@ export const marketingApi = {
   },
 
   getAllCustomers: async ({ type = '', service = '' } = {}) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.get('/marketing/customers/all', {
+        params: { type: type || undefined, service: service || undefined }
+      })
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState()
     let list = state.customers
     if (type) list = list.filter((customer) => customer.type === type)
@@ -325,6 +356,17 @@ export const marketingApi = {
   },
 
   sendSms: async ({ customerId: _customerId, customerName, phone, message, templateId: _templateId }) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.post('/marketing/send-sms', {
+        customerId: _customerId ? String(_customerId) : undefined,
+        customerName,
+        phone,
+        message,
+        templateId: _templateId ? String(_templateId) : undefined
+      })
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-GB', {
@@ -357,6 +399,19 @@ export const marketingApi = {
   },
 
   sendEmail: async ({ customerId: _customerId, customerName, email, subject, message, sendCopyToMe = false, templateId: _templateId }) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.post('/marketing/send-email', {
+        customerId: _customerId ? String(_customerId) : undefined,
+        customerName,
+        email,
+        subject,
+        message,
+        sendCopyToMe,
+        templateId: _templateId ? String(_templateId) : undefined
+      })
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-GB', {
@@ -401,6 +456,20 @@ export const marketingApi = {
     scheduledAt = '',
     templateId = '',
   }) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.post('/marketing/campaigns', {
+        type,
+        recipientCount,
+        recipients,
+        subject,
+        message,
+        campaignName,
+        scheduledAt: scheduledAt || undefined,
+        templateId: templateId || undefined
+      })
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     const now = new Date();
     const formatDate = (date) =>
@@ -456,6 +525,11 @@ export const marketingApi = {
   },
 
   retryFailedCampaign: async (campaignId) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.post(`/marketing/campaigns/${campaignId}/retry`)
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState()
     const campaign = state.campaigns.find((item) => item.id === campaignId)
     if (!campaign) throw new Error('Campaign not found.')
@@ -467,6 +541,11 @@ export const marketingApi = {
   },
 
   saveTemplate: async (template) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.post('/marketing/templates', template)
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     const existingIndex = state.templates.findIndex((t) => t.id === template.id);
     if (existingIndex >= 0) {
@@ -482,6 +561,11 @@ export const marketingApi = {
   },
 
   deleteTemplate: async (templateId) => {
+    if (!config.enableMocks) {
+      const res = await apiClient.delete(`/marketing/templates/${templateId}`)
+      const payload = res?.data ?? res
+      return { success: true, data: payload }
+    }
     const state = loadMarketingState();
     state.templates = state.templates.filter((t) => t.id !== templateId);
     saveMarketingState(state);

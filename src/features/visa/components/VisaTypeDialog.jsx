@@ -31,8 +31,17 @@ const PASSPORT_REQUIREMENT_OPTIONS = Object.entries(PASSPORT_REQUIREMENT_LABELS)
 
 function valuesFromType(type) {
   if (!type) return { ...EMPTY_VALUES }
+  const cId = type.countryId ?? (typeof type.country === 'object' ? type.country?._id : type.country) ?? ''
+  let vFrom = ''
+  if (type.validFrom) {
+    try {
+      vFrom = new Date(type.validFrom).toISOString().slice(0, 10)
+    } catch {
+      vFrom = String(type.validFrom).slice(0, 10)
+    }
+  }
   return {
-    countryId: type.countryId ?? '',
+    countryId: cId,
     name: type.name ?? '',
     description: type.description ?? '',
     processingTime: type.processingTime ?? '',
@@ -43,7 +52,7 @@ function valuesFromType(type) {
     embassyFee: type.fees?.embassy == null ? '' : String(type.fees.embassy),
     serviceFee: type.fees?.service == null ? '' : String(type.fees.service),
     vat: type.fees?.vat == null ? '' : String(type.fees.vat),
-    validFrom: type.validFrom ?? '',
+    validFrom: vFrom,
     terms: type.terms ?? '',
     status: type.status ?? 'active',
     passportRequirement: type.passportRequirement ?? 'online_processing',
@@ -64,7 +73,8 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
 
   useEffect(() => {
     if (open) {
-      setValues({ ...valuesFromType(visaType), countryId: visaType?.countryId ?? defaultCountryId ?? '' })
+      const cId = visaType?.countryId ?? (typeof visaType?.country === 'object' ? visaType?.country?._id : visaType?.country) ?? defaultCountryId ?? ''
+      setValues({ ...valuesFromType(visaType), countryId: cId })
       setErrors({})
       setError(null)
     }
@@ -90,7 +100,8 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
     setError(null)
     try {
       const payload = {
-        id: visaType?.id,
+        id: visaType?.id ?? visaType?._id,
+        _id: visaType?._id ?? visaType?.id,
         countryId: values.countryId,
         name: values.name.trim(),
         description: values.description.trim(),
@@ -98,13 +109,13 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
         entries: values.entries,
         currency: values.currency,
         b2cPrice: Number(values.b2cPrice),
-        b2bNetPrice: values.b2bNetPrice === '' ? 0 : Number(values.b2bNetPrice),
+        b2bNetPrice: values.b2bNetPrice === '' || values.b2bNetPrice == null ? (values.b2cPrice ? Number(values.b2cPrice) : 0) : Number(values.b2bNetPrice),
         fees: {
           embassy: values.embassyFee === '' ? 0 : Number(values.embassyFee),
           service: values.serviceFee === '' ? 0 : Number(values.serviceFee),
           vat: values.vat === '' ? 0 : Number(values.vat),
         },
-        validFrom: values.validFrom || null,
+        validFrom: values.validFrom ? values.validFrom.slice(0, 10) : undefined,
         terms: values.terms.trim(),
         status: values.status,
         passportRequirement: values.passportRequirement,

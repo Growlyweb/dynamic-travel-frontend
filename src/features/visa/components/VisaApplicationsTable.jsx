@@ -40,14 +40,16 @@ export function VisaApplicationsTable({ rows = [], loading, refreshing, statuses
         key: "country",
         header: "Country",
         width: "170px",
-        render: (row) =>
-          row.country ? (
-            <span title={row.country}>
-              <TableCountryCell name={row.country} textClassName="font-semibold text-slate-800 text-sm truncate max-w-[90px]" />
+        render: (row) => {
+          const cName = row.countryName || row.country;
+          return cName ? (
+            <span title={cName}>
+              <TableCountryCell name={cName} code={row.countryCode} textClassName="font-semibold text-slate-800 text-sm truncate max-w-[90px]" />
             </span>
           ) : (
             "—"
-          ),
+          );
+        },
       },
       {
         key: "service",
@@ -55,9 +57,9 @@ export function VisaApplicationsTable({ rows = [], loading, refreshing, statuses
         width: "170px",
         render: (row) => (
           <div className="flex flex-col">
-            <span className="font-medium text-slate-800">{row.serviceLabel || "Visa"}</span>
-            <span className="text-xs text-slate-400 truncate max-w-[120px]" title={row.serviceSummary}>
-              {row.serviceSummary || "—"}
+            <span className="font-medium text-slate-800">{row.serviceLabel || row.visaTypeName || row.visaType || "Visa"}</span>
+            <span className="text-xs text-slate-400 truncate max-w-[120px]" title={row.serviceSummary || row.visaTypeName}>
+              {row.serviceSummary || row.visaTypeName || "—"}
             </span>
           </div>
         ),

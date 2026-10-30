@@ -1,10 +1,17 @@
 import { apiClient } from '../../services/apiClient'
 
 // A tour comes with its category as { id, name }. The form works with the category id.
-const toTour = (tour) =>
-  tour
-    ? { ...tour, categoryId: tour.category?.id ?? tour.category?._id ?? tour.category ?? '', categoryName: tour.category?.name ?? '' }
-    : tour
+const toTour = (tour) => {
+  if (!tour) return tour
+  const id = tour.id ?? tour._id
+  return {
+    ...tour,
+    id,
+    _id: id,
+    categoryId: tour.category?.id ?? tour.category?._id ?? tour.category ?? '',
+    categoryName: tour.category?.name ?? '',
+  }
+}
 
 // The server's request statuses, with the names the screens show.
 export const CUSTOM_REQUEST_STATUSES = [
@@ -15,7 +22,16 @@ export const CUSTOM_REQUEST_STATUSES = [
   { value: 'CANCELLED', label: 'Cancelled', tone: 'neutral' },
 ]
 
-const toRequest = (request) => (request ? { ...request, requestedAt: String(request.createdAt ?? '').slice(0, 10) } : request)
+const toRequest = (request) => {
+  if (!request) return request
+  const id = request.id ?? request._id
+  return {
+    ...request,
+    id,
+    _id: id,
+    requestedAt: String(request.createdAt ?? '').slice(0, 10),
+  }
+}
 
 export const toursApi = {
   list: (params = {}) => apiClient.get('/tours', { params }).then((result) => ({ ...result, items: result.items.map(toTour) })),
@@ -29,4 +45,5 @@ export const toursApi = {
   listCustom: (params = {}) => apiClient.get('/tours/custom-requests', { params }).then((result) => ({ ...result, items: result.items.map(toRequest) })),
   getCustom: (id) => apiClient.get(`/tours/custom-requests/${id}`).then(toRequest),
   setCustomStatus: (id, status, note) => apiClient.patch(`/tours/custom-requests/${id}/status`, { status, note: note || undefined }).then(toRequest),
+  updateCustom: (id, payload) => apiClient.patch(`/tours/custom-requests/${id}/status`, { status: payload?.status, note: payload?.note || undefined }).then(toRequest),
 }

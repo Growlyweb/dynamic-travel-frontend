@@ -11,7 +11,7 @@ export function NotificationProvider({ children }) {
     notificationsApi
       .list()
       .then((result) => {
-        if (active) setNotifications(result.items ?? [])
+        if (active) setNotifications(result.items ?? result.data ?? (Array.isArray(result) ? result : []))
       })
       .catch(() => {
         // Notifications are non-critical; ignore load failures.

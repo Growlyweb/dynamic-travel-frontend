@@ -181,7 +181,7 @@ export default function VisaPassportOperations() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
+                  onClick={() => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id || row._id))}
                 >
                   Application
                 </Button>

@@ -76,7 +76,7 @@ export default function VisaStatus() {
                   <p className="muted small" style={{ margin: 0 }}>{application.number} · {application.country}</p>
                   <p className="muted small" style={{ margin: 0 }}>{formatDate(application.submittedAt)} · {application.assignedStaff ?? 'Unassigned'}</p>
                   <div className="row" style={{ gap: 6, marginTop: 6 }}>
-                    <Button size="sm" variant="ghost" onClick={() => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(application.id))}>Open</Button>
+                    <Button size="sm" variant="ghost" onClick={() => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(application.id || application._id))}>Open</Button>
                     {can(PERMISSIONS.VISA_UPDATE) && nextStatuses(application.status, statuses, { isAdmin }).length ? (
                       <Button size="sm" variant="ghost" onClick={() => setStatusChange({ application })}>Move</Button>
                     ) : null}

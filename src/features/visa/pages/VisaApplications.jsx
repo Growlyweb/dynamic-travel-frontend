@@ -127,7 +127,7 @@ export default function VisaApplications() {
               refreshing={table.refreshing}
               statuses={statuses}
               isAdmin={isAdmin}
-              onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
+              onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id || row._id))}
               onChangeStatus={can(PERMISSIONS.VISA_UPDATE) ? openStatus : undefined}
             />
             <TablePagination {...table.paginationProps} itemLabel="applications" />

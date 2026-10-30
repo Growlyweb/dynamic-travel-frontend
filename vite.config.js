@@ -20,8 +20,18 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    open: true,
-
+    open: false,
+    watch: {
+      usePolling: true,
+      interval: 1000,
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
     allowedHosts: [
       '.trycloudflare.com',
       'abltravel.netlify.app',

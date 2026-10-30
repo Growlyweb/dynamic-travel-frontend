@@ -12,12 +12,29 @@ const DEMO_DOCUMENTS = [
 ]
 
 export const documentsApi = {
-  list: (params) => withMockList(DEMO_DOCUMENTS, params, { searchKeys: ['name', 'owner', 'type'] }),
-  get: (id) => withMock(DEMO_DOCUMENTS.find((document) => document.id === id) ?? DEMO_DOCUMENTS[0], () => apiClient.get(`/documents/${id}`)),
-  setStatus: (id, status) =>
-    withMock(() => {
-      const document = DEMO_DOCUMENTS.find((item) => item.id === id)
-      if (document) document.status = status
-      return document
-    }, () => apiClient.patch(`/documents/${id}`, { status })),
+  list: (params) =>
+    withMockList(
+      DEMO_DOCUMENTS,
+      params,
+      { searchKeys: ['name', 'owner', 'type'] },
+      () => apiClient.get('/documents', { params })
+    ),
+  get: (id) =>
+    withMock(
+      DEMO_DOCUMENTS.find((document) => document.id === id) ?? DEMO_DOCUMENTS[0],
+      async () => {
+        const res = await apiClient.get(`/documents/${id}`)
+        return res?.data ?? res
+      }
+    ),
+  setStatus: (id, status, reviewNote = '') =>
+    withMock(
+      () => {
+        const document = DEMO_DOCUMENTS.find((item) => item.id === id)
+        if (document) document.status = status
+        return document
+      },
+      () => apiClient.patch(`/documents/${id}/status`, { status, reviewNote })
+    ),
+  delete: (id) => apiClient.delete(`/documents/${id}`),
 }

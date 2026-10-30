@@ -138,7 +138,7 @@ export default function TourPackages() {
                 <div className="tc-grid">
                   {(items || []).map((tour) => (
                     <TourCard
-                      key={tour.id}
+                      key={tour.id || tour._id}
                       tour={tour}
                       onDelete={can('TOUR_MANAGE') ? handleDelete : undefined}
                     />

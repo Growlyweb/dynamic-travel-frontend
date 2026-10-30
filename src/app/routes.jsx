@@ -473,10 +473,46 @@ export function AppRoutes() {
             }
           />
           <Route
+            path="tours/custom/builder"
+            element={<Navigate to="/tours/custom" replace />}
+          />
+          <Route
+            path="tours/package/:id"
+            element={
+              <RequirePermission permission="TOURS_VIEW">
+                <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/packages/:id"
+            element={
+              <RequirePermission permission="TOURS_VIEW">
+                <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="tours/:id"
             element={
               <RequirePermission permission="TOURS_VIEW">
                 <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/package/:id/edit"
+            element={
+              <RequirePermission permission="TOUR_MANAGE">
+                <EditTour />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/packages/:id/edit"
+            element={
+              <RequirePermission permission="TOUR_MANAGE">
+                <EditTour />
               </RequirePermission>
             }
           />

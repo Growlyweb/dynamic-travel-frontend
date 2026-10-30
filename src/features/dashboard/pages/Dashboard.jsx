@@ -35,11 +35,11 @@ export default function Dashboard() {
         dashboardApi.getRecentActivities(),
       ])
       setData({
-        overview: overview ?? {},
-        visaTrend: Array.isArray(visaTrend) ? visaTrend : visaTrend?.items ?? [],
-        tourTrend: Array.isArray(tourTrend) ? tourTrend : tourTrend?.items ?? [],
-        recentApplications: Array.isArray(recentApplications) ? recentApplications : recentApplications?.items ?? [],
-        recentActivities: Array.isArray(recentActivities) ? recentActivities : recentActivities?.items ?? [],
+        overview: overview?.data ?? overview ?? {},
+        visaTrend: Array.isArray(visaTrend?.data) ? visaTrend.data : (Array.isArray(visaTrend) ? visaTrend : visaTrend?.items ?? []),
+        tourTrend: Array.isArray(tourTrend?.data) ? tourTrend.data : (Array.isArray(tourTrend) ? tourTrend : tourTrend?.items ?? []),
+        recentApplications: Array.isArray(recentApplications?.data) ? recentApplications.data : (Array.isArray(recentApplications) ? recentApplications : recentApplications?.items ?? []),
+        recentActivities: Array.isArray(recentActivities?.data) ? recentActivities.data : (Array.isArray(recentActivities) ? recentActivities : recentActivities?.items ?? []),
       })
     } catch (loadError) {
       setError(loadError)

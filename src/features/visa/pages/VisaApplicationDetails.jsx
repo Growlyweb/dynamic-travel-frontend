@@ -116,19 +116,27 @@ export default function VisaApplicationDetails() {
     setError(null)
     try {
       const applicationResult = await visaApi.getApplication(id)
+      if (!applicationResult) throw new Error('Application not found')
       setApplication(applicationResult)
-      // Only a visa has a checklist and a visa type.
-      const isVisa = applicationResult.serviceType === 'visa'
+      const isVisa = !applicationResult.serviceType || applicationResult.serviceType === 'visa'
+      const countryId = applicationResult.countryId || (typeof applicationResult.country === 'object' ? applicationResult.country?._id : applicationResult.country)
+      const visaTypeId = applicationResult.visaTypeId || (typeof applicationResult.visaType === 'object' ? applicationResult.visaType?._id : applicationResult.visaType)
+      const applicantType = applicationResult.applicant?.applicantType || 'individual'
+
       const [checklistResult, statusResult, typeResult, staffResult] = await Promise.all([
-        isVisa ? visaApi.getChecklist({ countryId: applicationResult.countryId, visaTypeId: applicationResult.visaTypeId, applicantType: applicationResult.applicant.applicantType }) : null,
-        visaApi.listStatusConfigs(),
-        isVisa ? visaApi.listVisaTypes({ countryId: applicationResult.countryId }) : { items: [] },
-        visaApi.listStaff(),
+        isVisa && countryId && visaTypeId
+          ? visaApi.getChecklist({ countryId, visaTypeId, applicantType }).catch(() => null)
+          : Promise.resolve(null),
+        visaApi.listStatusConfigs().catch(() => ({ items: [] })),
+        isVisa && countryId
+          ? visaApi.listVisaTypes({ countryId }).catch(() => ({ items: [] }))
+          : Promise.resolve({ items: [] }),
+        visaApi.listStaff ? visaApi.listStaff().catch(() => []) : Promise.resolve([]),
       ])
       setChecklist(checklistResult)
-      setStatusConfigs(statusResult.items ?? [])
-      setVisaType((typeResult.items ?? []).find((type) => type.id === applicationResult.visaTypeId) ?? null)
-      setStaff(staffResult)
+      setStatusConfigs(statusResult?.items ?? [])
+      setVisaType((typeResult?.items ?? []).find((type) => (type.id === visaTypeId || type._id === visaTypeId)) ?? null)
+      setStaff(staffResult ?? [])
     } catch (loadError) {
       setError(loadError)
     } finally {

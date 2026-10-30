@@ -66,8 +66,9 @@ export const APP_ROUTES = {
   TOURS: '/tours/packages',
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
-  TOUR_DETAILS: (id) => `/tours/${id}`,
-  TOUR_EDIT: (id) => `/tours/${id}/edit`,
+  TOUR_CUSTOM_BUILDER: '/tours/custom/builder',
+  TOUR_DETAILS: (id) => `/tours/package/${id}`,
+  TOUR_EDIT: (id) => `/tours/package/${id}/edit`,
 
   B2B_PARTNERS: '/b2b/partners',
   B2B_PARTNER_DETAILS: (id) => `/b2b/partners/${id}`,
