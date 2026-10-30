@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link, useLocation, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../components/AuthLayout';
 import { PasswordInput } from '../components/PasswordInput';
 import { useAuth } from '../../../hooks/useAuth';
@@ -15,21 +15,25 @@ export default function Login() {
   const isAdmin = !isStaff;
 
   const [email, setEmail] = useState(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
-  const [password, setPassword] = useState(isStaff ? 'staff123' : 'admin123');
+  const [password, setPassword] = useState('Demo@12345');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Sync state when switching routes (/dashboard/login/admin <-> /dashboard/login/staff)
   useEffect(() => {
     setEmail(isStaff ? 'staff@dynamic-travel.com' : 'admin@dynamic-travel.com');
-    setPassword(isStaff ? 'staff123' : 'admin123');
+    setPassword('Demo@12345');
     setError('');
   }, [isStaff]);
 
+  const targetDestination = useMemo(() => {
+    const from = location.state?.from;
+    if (!from || from.includes('/login')) return '/dashboard';
+    return from;
+  }, [location.state?.from]);
+
   if (isAuthenticated) {
-    const from = location.state?.from || '/dashboard';
-    navigate(from, { replace: true });
-    return null;
+    return <Navigate to={targetDestination} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -44,8 +48,7 @@ export default function Login() {
     try {
       setLoading(true);
       await login({ email, password, role: activeRole });
-      const from = location.state?.from || '/dashboard';
-      navigate(from, { replace: true });
+      navigate(targetDestination, { replace: true });
     } catch (err) {
       setError(err?.message || 'Invalid credentials. Please check your email and password.');
     } finally {

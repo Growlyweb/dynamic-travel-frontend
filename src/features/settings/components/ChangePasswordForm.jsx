@@ -3,6 +3,7 @@ import Button from '../../../components/common/Button'
 import Input from '../../../components/common/Input'
 import { validateResetPassword } from '../../auth/auth.validation'
 import { getApiErrorMessage } from '../../../utils/helpers'
+import { apiClient } from '../../../services/apiClient'
 
 export default function ChangePasswordForm() {
   const [values, setValues] = useState({ currentPassword: '', password: '', confirmPassword: '' })
@@ -25,8 +26,10 @@ export default function ChangePasswordForm() {
     setSaving(true)
     setFormError(null)
     try {
-      // Replace with your change-password API.
-      await new Promise((resolve) => setTimeout(resolve, 400))
+      await apiClient.post('/auth/change-password', {
+        currentPassword: values.currentPassword,
+        newPassword: values.password
+      })
       setSaved(true)
       setValues({ currentPassword: '', password: '', confirmPassword: '' })
     } catch (error) {

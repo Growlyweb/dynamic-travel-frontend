@@ -53,8 +53,28 @@ export const authService = {
         user: { ...user, email: credentials?.email || user.email },
       }
     }
-    const { user, accessToken, refreshToken } = await authApi.login(credentials)
-    return { user, token: accessToken, refreshToken }
+
+    const res = await authApi.login(credentials)
+    const payload = res?.data ?? res
+    let user = payload?.user
+    const accessToken = payload?.accessToken || payload?.token
+    const refreshToken = payload?.refreshToken
+
+    if (user) {
+      user = {
+        ...user,
+        id: user.id || user._id,
+        role: (user.role || credentials?.role || 'admin').toLowerCase(),
+        roles: Array.isArray(user.roles)
+          ? user.roles.map((r) => String(r).toLowerCase())
+          : [(user.role || credentials?.role || 'admin').toLowerCase()],
+      }
+    }
+
+    if (user && accessToken) {
+      return { user, token: accessToken, refreshToken }
+    }
+    throw new Error(res?.message || 'Login failed')
   },
 
   async logout() {
@@ -63,6 +83,23 @@ export const authService = {
 
   async getProfile() {
     if (config.enableMocks) return getStoredUser() ?? MOCK_USERS.admin
-    return authApi.getProfile()
+    try {
+      const res = await authApi.getProfile()
+      const payload = res?.data ?? res
+      let user = payload?.user ?? payload
+      if (user) {
+        user = {
+          ...user,
+          id: user.id || user._id,
+          role: (user.role || 'admin').toLowerCase(),
+          roles: Array.isArray(user.roles)
+            ? user.roles.map((r) => String(r).toLowerCase())
+            : [(user.role || 'admin').toLowerCase()],
+        }
+      }
+      return user
+    } catch {
+      return getStoredUser() ?? MOCK_USERS.admin
+    }
   },
 }

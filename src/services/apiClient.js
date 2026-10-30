@@ -45,8 +45,13 @@ async function request(path, { method = 'GET', body, params, headers, signal } =
 
   if (response.status === 401) {
     clearAuth()
-    if (!path.startsWith('/auth/')) window.location.assign('/login')
-    throw new ApiError('Your session has expired. Please sign in again.', { status: 401 })
+    if (!path.startsWith('/auth/') && !window.location.pathname.includes('/login')) {
+      window.location.replace('/dashboard/login/admin')
+    }
+    const isJson = response.headers.get('content-type')?.includes('application/json')
+    const data = isJson ? await response.json().catch(() => null) : null
+    const message = data?.message || (path.startsWith('/auth/login') ? 'Invalid email or password.' : 'Your session has expired. Please sign in again.')
+    throw new ApiError(message, { status: 401, data })
   }
 
   const isJson = response.headers.get('content-type')?.includes('application/json')
@@ -75,22 +80,43 @@ export function withMock(demo, requestFn) {
   return sleep(150).then(() => (typeof demo === 'function' ? demo() : JSON.parse(JSON.stringify(demo))))
 }
 
-export function withMockList(demoItems = [], params = {}, { searchKeys = ['name'] } = {}) {
-  return withMock(() => {
-    let items = [...demoItems]
-    const { search, status, role, page = 1, pageSize = config.defaultPageSize } = params
-    if (search) {
-      const query = String(search).toLowerCase()
-      items = items.filter((item) =>
-        searchKeys.some((key) => String(item[key] ?? '').toLowerCase().includes(query)),
-      )
+export function withMockList(demoItems = [], params = {}, options = {}, requestFn = null) {
+  if (typeof options === 'function') {
+    requestFn = options
+    options = {}
+  }
+  const { searchKeys = ['name'] } = options
+
+  return withMock(
+    () => {
+      let items = [...demoItems]
+      const { search, status, role, page = 1, pageSize = config.defaultPageSize } = params
+      if (search) {
+        const query = String(search).toLowerCase()
+        items = items.filter((item) =>
+          searchKeys.some((key) => String(item[key] ?? '').toLowerCase().includes(query)),
+        )
+      }
+      if (status) items = items.filter((item) => item.status === status)
+      if (role) items = items.filter((item) => item.role === role)
+      const total = items.length
+      const start = (Number(page) - 1) * Number(pageSize)
+      return { items: items.slice(start, start + Number(pageSize)), total, page: Number(page), pageSize: Number(pageSize) }
+    },
+    async () => {
+      if (typeof requestFn === 'function') {
+        const res = await requestFn()
+        const items = Array.isArray(res?.data)
+          ? res.data
+          : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []))
+        const total = res?.meta?.total ?? res?.total ?? items.length
+        const page = res?.meta?.page ?? res?.page ?? Number(params?.page || 1)
+        const pageSize = res?.meta?.limit ?? res?.pageSize ?? Number(params?.pageSize || config.defaultPageSize)
+        return { items, total, page, pageSize, data: items, meta: res?.meta }
+      }
+      return { items: [], total: 0, page: 1, pageSize: config.defaultPageSize }
     }
-    if (status) items = items.filter((item) => item.status === status)
-    if (role) items = items.filter((item) => item.role === role)
-    const total = items.length
-    const start = (Number(page) - 1) * Number(pageSize)
-    return { items: items.slice(start, start + Number(pageSize)), total, page: Number(page), pageSize: Number(pageSize) }
-  })
+  )
 }
 
 export const apiClient = {
@@ -99,4 +125,5 @@ export const apiClient = {
   put: (path, body, options) => request(path, { ...options, method: 'PUT', body }),
   patch: (path, body, options) => request(path, { ...options, method: 'PATCH', body }),
   del: (path, options) => request(path, { ...options, method: 'DELETE' }),
+  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
 }
