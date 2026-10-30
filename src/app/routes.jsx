@@ -541,10 +541,42 @@ export function AppRoutes() {
             }
           />
           <Route
+            path="tours/package/:id"
+            element={
+              <RequirePermission permission="tours.view">
+                <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/packages/:id"
+            element={
+              <RequirePermission permission="tours.view">
+                <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
             path="tours/:id"
             element={
               <RequirePermission permission="tours.view">
                 <TourDetails />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/package/:id/edit"
+            element={
+              <RequirePermission permission="tours.edit">
+                <EditTour />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="tours/packages/:id/edit"
+            element={
+              <RequirePermission permission="tours.edit">
+                <EditTour />
               </RequirePermission>
             }
           />

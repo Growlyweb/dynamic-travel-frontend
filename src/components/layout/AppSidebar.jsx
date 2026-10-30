@@ -74,6 +74,14 @@ function CollapsibleNavSection({ section, can, onNavigate }) {
   const items = section.items.filter((item) => !item.permission || can(item.permission))
 
   const isItemActive = (item) => {
+    if (item.to === APP_ROUTES.TOURS || item.to === '/tours/packages') {
+      return (
+        pathname === item.to ||
+        pathname.startsWith('/tours/packages') ||
+        pathname.startsWith('/tours/package') ||
+        (pathname.startsWith('/tours/') && !pathname.startsWith('/tours/custom'))
+      )
+    }
     return item.end ? pathname === item.to : pathname.startsWith(item.to)
   }
 

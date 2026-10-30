@@ -66,8 +66,8 @@ export const APP_ROUTES = {
   TOUR_CREATE: '/tours/new',
   TOUR_CUSTOM: '/tours/custom',
   TOUR_CUSTOM_BUILDER: '/tours/custom/builder',
-  TOUR_DETAILS: (id) => `/tours/${id}`,
-  TOUR_EDIT: (id) => `/tours/${id}/edit`,
+  TOUR_DETAILS: (id) => `/tours/package/${id}`,
+  TOUR_EDIT: (id) => `/tours/package/${id}/edit`,
 
   B2B_PARTNERS: '/b2b/partners',
   B2B_PARTNER_DETAILS: (id) => `/b2b/partners/${id}`,
@@ -140,10 +140,10 @@ export const NAV_SECTIONS = [
     items: [{ to: APP_ROUTES.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, end: true }],
   },
   {
-    label: 'Visa',
+    label: 'Applications',
     items: [
       { to: APP_ROUTES.VISA_OVERVIEW, label: 'Overview', icon: Gauge, permission: 'visa.view', end: true },
-      { to: APP_ROUTES.VISA_APPLICATIONS, label: 'Applications', icon: Stamp, permission: 'visa.view' },
+      { to: APP_ROUTES.VISA_APPLICATIONS, label: 'New Applications', icon: Stamp, permission: 'visa.view' },
       // { to: APP_ROUTES.VISA_COUNTRIES, label: 'Countries', icon: Globe, permission: 'visa.view' },
       // { to: APP_ROUTES.VISA_TYPES, label: 'Visa types', icon: Layers, permission: 'visa.view' },
       { to: APP_ROUTES.VISA_PRICING, label: 'Pricing', icon: Tags, permission: 'visa.view' },

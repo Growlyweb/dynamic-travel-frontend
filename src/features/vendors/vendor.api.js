@@ -16,6 +16,8 @@ import {
   COMPANY_INFO,
 } from '@/utils/exportEngine'
 import { reverseVendorJournal, syncVendorAccounting } from './vendor.accounting'
+import { apiClient } from '@/services/apiClient'
+import { config } from '@/app/config'
 
 const STORAGE_KEYS = {
   SERVICES: 'abl_vendor_services_v2',
@@ -451,6 +453,34 @@ export const vendorApi = {
 
   // ── Vendors CRUD ─────────────────────────────────────────────
   async getVendors(params = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/vendors', { params })
+        const raw = res?.data ?? (Array.isArray(res) ? res : [])
+        if (Array.isArray(raw) && raw.length) {
+          const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
+          const results = raw.map((v) => {
+            const serviceObjects = (v.services || [])
+              .map((sId) => services.find((s) => s.id === sId))
+              .filter(Boolean)
+            return {
+              ...v,
+              id: String(v._id || v.id),
+              vendorCode: v.code || v.vendorCode,
+              totalDue: v.due || 0,
+              totalBilled: v.billed || 0,
+              totalPaid: v.paid || 0,
+              serviceObjects,
+              serviceNames: serviceObjects.map((s) => s.name),
+              hasTransactions: (v.billed || 0) > 0 || (v.paid || 0) > 0,
+            }
+          })
+          return { success: true, data: results, total: res?.meta?.total ?? results.length }
+        }
+      } catch (err) {
+        console.warn('Backend /vendors error, falling back to local storage:', err)
+      }
+    }
     await vendorApi.syncAccounting()
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
     const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
@@ -517,6 +547,34 @@ export const vendorApi = {
   },
 
   async getVendor(id) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get(`/vendors/${id}`)
+        const v = res?.data ?? res
+        if (v && (v._id || v.id)) {
+          const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
+          const serviceObjects = (v.services || [])
+            .map((sId) => services.find((s) => s.id === sId))
+            .filter(Boolean)
+          return {
+            success: true,
+            data: {
+              ...v,
+              id: String(v._id || v.id),
+              vendorCode: v.code || v.vendorCode,
+              totalDue: v.due || 0,
+              totalBilled: v.billed || 0,
+              totalPaid: v.paid || 0,
+              serviceObjects,
+              serviceNames: serviceObjects.map((s) => s.name),
+              hasTransactions: (v.billed || 0) > 0 || (v.paid || 0) > 0,
+            },
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /vendors/:id error, falling back to local storage:', err)
+      }
+    }
     await vendorApi.syncAccounting()
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
     const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
@@ -681,6 +739,33 @@ export const vendorApi = {
 
   // ── Vendor Bills CRUD ────────────────────────────────────────
   async getBills(params = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/vendors/bills', { params })
+        const raw = res?.data ?? (Array.isArray(res) ? res : [])
+        if (Array.isArray(raw) && raw.length) {
+          const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
+          const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
+          return {
+            success: true,
+            data: raw.map((b) => {
+              const vendor = vendors.find((v) => v.id === b.vendorId)
+              const service = services.find((s) => s.id === b.serviceId)
+              return {
+                ...b,
+                id: String(b._id || b.id),
+                billNo: b.billNo || b.invoiceRef || `BIL-${String(b._id || b.id).slice(-4)}`,
+                vendorName: b.vendorName || vendor?.name || 'Vendor',
+                serviceName: b.serviceName || service?.name || b.service || 'Service',
+              }
+            }),
+            total: res?.meta?.total ?? raw.length,
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /vendors/bills error, falling back to local storage:', err)
+      }
+    }
     await vendorApi.syncAccounting()
     let bills = loadStorage(STORAGE_KEYS.BILLS, DEFAULT_BILLS)
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
@@ -811,6 +896,36 @@ export const vendorApi = {
 
   // ── Vendor Payments CRUD ─────────────────────────────────────
   async getPayments(params = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/vendors/payments', { params })
+        const raw = res?.data ?? (Array.isArray(res) ? res : [])
+        if (Array.isArray(raw) && raw.length) {
+          const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)
+          const services = withDefaultServices(loadStorage(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES))
+          return {
+            success: true,
+            data: raw.map((p) => {
+              const vendor = vendors.find((v) => v.id === p.vendorId)
+              const service = services.find((s) => s.id === p.serviceId)
+              return {
+                ...p,
+                id: String(p._id || p.id),
+                voucherNo: p.voucherNo || `VCH-${String(p._id || p.id).slice(-4)}`,
+                isAdvance: Boolean(p.isAdvance),
+                paymentType: p.paymentType || (p.isAdvance ? 'advance' : 'regular'),
+                advancePurpose: p.advancePurpose || '',
+                vendorName: p.vendorName || vendor?.name || 'Vendor',
+                serviceName: p.serviceName || service?.name || 'Service',
+              }
+            }),
+            total: res?.meta?.total ?? raw.length,
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /vendors/payments error, falling back to local storage:', err)
+      }
+    }
     await vendorApi.syncAccounting()
     let payments = loadStorage(STORAGE_KEYS.PAYMENTS, DEFAULT_PAYMENTS)
     const vendors = loadStorage(STORAGE_KEYS.VENDORS, DEFAULT_VENDORS)

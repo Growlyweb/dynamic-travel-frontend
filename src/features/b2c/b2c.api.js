@@ -8,6 +8,20 @@ const DEMO_CUSTOMERS = [
 ]
 
 export const b2cApi = {
-  list: (params) => withMockList(DEMO_CUSTOMERS, params, { searchKeys: ['name', 'email', 'country'] }),
-  get: (id) => withMock(DEMO_CUSTOMERS.find((customer) => customer.id === id) ?? DEMO_CUSTOMERS[0], () => apiClient.get(`/b2c/customers/${id}`)),
+  list: (params) =>
+    withMockList(
+      DEMO_CUSTOMERS,
+      params,
+      { searchKeys: ['name', 'email', 'country'] },
+      () => apiClient.get('/customers', { params })
+    ),
+  get: (id) =>
+    withMock(
+      DEMO_CUSTOMERS.find((customer) => customer.id === id) ?? DEMO_CUSTOMERS[0],
+      async () => {
+        const res = await apiClient.get(`/customers/${id}`)
+        return res?.data?.customer ?? res?.data ?? res
+      }
+    ),
+  setStatus: (id, status) => apiClient.patch(`/admin/customers/${id}/status`, { status }),
 }

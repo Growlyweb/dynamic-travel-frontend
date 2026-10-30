@@ -31,6 +31,8 @@ import {
 import { nextFileNo, postJournal } from '../accounting/posting.js'
 import { loadState, saveState } from '../accounting/storage.js'
 import { vendorApi } from '@/features/vendors/vendor.api'
+import { apiClient } from '@/services/apiClient'
+import { config } from '@/app/config'
 
 export const SIMPLE_CATEGORIES = [
   { label: 'Visa', type: 'Visa', segment: 'visa', revenue: '4010', costAccount: '5010', prefix: 'VF', color: '#0879E8' },
@@ -319,6 +321,15 @@ export const simpleApi = {
   },
 
   async getHome({ year, month } = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/accounts/home', { params: { year, month } })
+        if (res?.data) return res.data
+        if (res && typeof res === 'object' && res.sale !== undefined) return res
+      } catch (err) {
+        console.warn('Backend /accounts/home error, falling back to local state:', err)
+      }
+    }
     try {
       await vendorApi.syncAccounting()
     } catch {
@@ -462,6 +473,24 @@ export const simpleApi = {
   },
 
   async listSales(filters = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/accounts/sales', { params: filters })
+        const rawItems = res?.data ?? res?.rows
+        if (Array.isArray(rawItems)) {
+          return {
+            rows: rawItems.map((row) => ({
+              ...row,
+              daysWaiting: row.due > 0 ? Math.max(0, daysBetween(row.date, todayISO())) : 0,
+            })),
+            summary: res.meta?.summary || { totalSale: 0, totalCost: 0, totalProfit: 0, totalDue: 0 },
+            total: res.meta?.total
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /accounts/sales error, falling back to local state:', err)
+      }
+    }
     const state = loadState()
     const { rows, summary } = buildFiles(state, filters)
     return {
@@ -473,7 +502,30 @@ export const simpleApi = {
     }
   },
 
-  async listDue() {
+  async listDue(params = {}) {
+    if (!config.enableMocks) {
+      try {
+        const res = await apiClient.get('/accounts/dues', { params })
+        const rawItems = res?.data ?? res?.rows
+        if (Array.isArray(rawItems)) {
+          const rows = rawItems.map((row) => ({
+            ...row,
+            daysWaiting: Math.max(0, daysBetween(row.date, todayISO())),
+          }))
+          return {
+            rows,
+            totals: res.meta?.totals || {
+              due: rows.reduce((sum, row) => sum + row.due, 0),
+              b2b: rows.filter((row) => row.partyType === 'B2B').reduce((sum, row) => sum + row.due, 0),
+              b2c: rows.filter((row) => row.partyType === 'B2C').reduce((sum, row) => sum + row.due, 0),
+              count: rows.length,
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Backend /accounts/dues error, falling back to local state:', err)
+      }
+    }
     const state = loadState()
     const { rows } = buildFiles(state, {})
     const dues = rows
