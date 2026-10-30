@@ -14,7 +14,7 @@ import {
 
 import PageHeader from '@/components/layout/PageHeader'
 import { Table, TableBadge, TablePagination } from '@/components/re-table'
-import { formatMoney } from '@/features/reports/reports.api'
+import { formatMoney } from '@/features/reports/lib/format'
 import { marketingApi } from '../marketing.api'
 import ManageTemplatesModal from '../components/ManageTemplatesModal'
 import CampaignDetailsModal from '../components/CampaignDetailsModal'

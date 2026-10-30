@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../../../components/layout/PageHeader'
 import DataTable from '../../../components/tables/DataTable'
 import Button from '../../../components/common/Button'
@@ -7,63 +7,57 @@ import Modal from '../../../components/common/Modal'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
-import { visaApi, VISA_PARTNERS } from '../visa.api'
+import TablePagination from '../../../components/tables/TablePagination'
+import { visaApi } from '../visa.api'
+import { useServerTable } from '../../../hooks/useServerTable'
+import { useAction } from '../../../hooks/useAction'
 import { formatDate, formatCurrency } from '../../../utils/formatters'
+import { errorMessage, fieldErrors } from '../../../utils/errors'
+import { escapeHtml as esc } from '../../../utils/helpers'
 
-const QUOTATION_STATUS_TONES = { draft: 'neutral', sent: 'info', accepted: 'success', expired: 'warning' }
+const QUOTATION_STATUS_TONES = { draft: 'neutral', sent: 'info', accepted: 'success', rejected: 'danger', expired: 'warning' }
 
 export default function VisaQuotations() {
-  const [rows, setRows] = useState([])
+  const run = useAction()
   const [countries, setCountries] = useState([])
   const [visaTypes, setVisaTypes] = useState([])
-  const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [viewing, setViewing] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [quotationResult, countryResult, typeResult] = await Promise.all([
-        visaApi.listQuotations(),
-        visaApi.listCountries(),
-        visaApi.listVisaTypes(),
-      ])
-      setRows(quotationResult.items ?? [])
-      setCountries(countryResult.items ?? [])
-      setVisaTypes(typeResult.items ?? [])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const table = useServerTable({ table: 'visa-quotations', fetcher: visaApi.listQuotations })
+  const rows = table.rows
+  const loading = table.loading
 
   useEffect(() => {
-    load()
-  }, [load])
+    run(() => Promise.all([visaApi.listCountries(), visaApi.listVisaTypes()])).then(({ ok, value }) => {
+      if (ok) {
+        setCountries(value[0].items ?? [])
+        setVisaTypes(value[1].items ?? [])
+      }
+    })
+  }, [run])
 
   async function setStatus(quotation, status) {
-    await visaApi.updateQuotation(quotation.id, { status })
-    await load()
+    const { ok } = await run(() => visaApi.changeQuotationStatus(quotation.id, status), { success: `Quotation ${status}.` })
+    if (ok) table.reload()
   }
 
   async function handleDelete() {
     if (!pendingDelete) return
     setDeleting(true)
-    try {
-      await visaApi.removeQuotation(pendingDelete.id)
-      setPendingDelete(null)
-      await load()
-    } finally {
-      setDeleting(false)
-    }
+    const { ok } = await run(() => visaApi.removeQuotation(pendingDelete.id), { success: 'Quotation deleted.' })
+    setPendingDelete(null)
+    if (ok) table.reload()
+    setDeleting(false)
   }
 
   /** Opens a print-friendly quotation document in a new tab (spec #11: Generate PDF → Share). */
   function printQuotation(quotation) {
     const printWindow = window.open('', '_blank', 'width=800,height=900')
     if (!printWindow) return
-    printWindow.document.write(`<!doctype html><html><head><title>${quotation.number}</title>
+    printWindow.document.write(`<!doctype html><html><head><title>${esc(quotation.number)}</title>
       <style>
         body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 40px; }
         .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 16px; }
@@ -80,21 +74,21 @@ export default function VisaQuotations() {
         <div><div class="brand">Dynamic Travel</div><div class="muted">Visa Services · Dhaka, Bangladesh</div></div>
         <div style="text-align:right">
           <div class="brand" style="font-size:16px">QUOTATION</div>
-          <div class="muted">${quotation.number}<br/>Date: ${formatDate(quotation.createdAt)}<br/>Valid until: ${formatDate(quotation.validUntil)}</div>
+          <div class="muted">${esc(quotation.number)}<br/>Date: ${formatDate(quotation.createdAt)}<br/>Valid until: ${formatDate(quotation.validUntil)}</div>
         </div>
       </div>
-      <p style="margin-top:20px"><strong>B2B Partner:</strong> ${quotation.partner}<br/><strong>Client:</strong> ${quotation.clientName}</p>
+      <p style="margin-top:20px"><strong>B2B Partner:</strong> ${esc(quotation.partner)}<br/><strong>Client:</strong> ${esc(quotation.clientName)}</p>
       <table>
         <thead><tr><th>Service</th><th>Country</th><th>Qty</th><th>Net price</th><th>Amount</th></tr></thead>
         <tbody>
-          <tr><td>${quotation.visaType}</td><td>${quotation.country}</td><td>${quotation.quantity}</td><td>${formatCurrency(quotation.netPrice, quotation.currency)}</td><td>${formatCurrency(quotation.netPrice * quotation.quantity, quotation.currency)}</td></tr>
+          <tr><td>${esc(quotation.visaType)}</td><td>${esc(quotation.country)}</td><td>${quotation.quantity}</td><td>${formatCurrency(quotation.netPrice, quotation.currency)}</td><td>${formatCurrency(quotation.netPrice * quotation.quantity, quotation.currency)}</td></tr>
           <tr><td>Additional service fee</td><td>—</td><td>—</td><td>—</td><td>${formatCurrency(quotation.additionalFee, quotation.currency)}</td></tr>
         </tbody>
       </table>
       <table class="totals">
-        <tr><td></td><td style="text-align:right">Grand total (${quotation.currency})</td><td class="grand" style="text-align:right">${formatCurrency(quotation.total, quotation.currency)}</td></tr>
+        <tr><td></td><td style="text-align:right">Grand total (${esc(quotation.currency)})</td><td class="grand" style="text-align:right">${formatCurrency(quotation.total, quotation.currency)}</td></tr>
       </table>
-      ${quotation.notes ? `<p class="muted" style="margin-top:16px"><strong>Notes:</strong> ${quotation.notes}</p>` : ''}
+      ${quotation.notes ? `<p class="muted" style="margin-top:16px"><strong>Notes:</strong> ${esc(quotation.notes)}</p>` : ''}
       <p class="footer">This quotation is generated from the partner net price configured in our system and is valid until ${formatDate(quotation.validUntil)}. Prices may change after this date.</p>
       <script>window.onload = function () { window.print(); }</script>
       </body></html>`)
@@ -113,6 +107,7 @@ export default function VisaQuotations() {
       <div className="card">
         <DataTable
           loading={loading}
+          refreshing={table.refreshing}
           data={rows}
           emptyTitle="No quotations yet"
           emptyDescription="Create a quotation for a B2B partner to share with their client."
@@ -162,7 +157,10 @@ export default function VisaQuotations() {
                     <Button size="sm" variant="subtle" onClick={() => setStatus(row, 'sent')}>Mark sent</Button>
                   ) : null}
                   {row.status === 'sent' ? (
-                    <Button size="sm" variant="subtle" onClick={() => setStatus(row, 'accepted')}>Mark accepted</Button>
+                    <>
+                      <Button size="sm" variant="subtle" onClick={() => setStatus(row, 'accepted')}>Mark accepted</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setStatus(row, 'rejected')}>Mark rejected</Button>
+                    </>
                   ) : null}
                   <Button size="sm" variant="danger" onClick={() => setPendingDelete(row)}>Delete</Button>
                 </span>
@@ -170,6 +168,7 @@ export default function VisaQuotations() {
             },
           ]}
         />
+        <TablePagination {...table.paginationProps} />
       </div>
 
       <CreateQuotationDialog
@@ -177,7 +176,7 @@ export default function VisaQuotations() {
         onClose={() => setCreateOpen(false)}
         countries={countries}
         visaTypes={visaTypes}
-        onSaved={load}
+        onSaved={table.reload}
       />
 
       <Modal
@@ -221,6 +220,8 @@ export default function VisaQuotations() {
 }
 
 function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved }) {
+  const [partners, setPartners] = useState([])
+  const [formError, setFormError] = useState(null)
   const [values, setValues] = useState({ partner: '', clientName: '', countryId: '', visaTypeId: '', quantity: '1', additionalFee: '0', validUntil: '', notes: '' })
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
@@ -229,6 +230,8 @@ function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved })
     if (open) {
       setValues({ partner: '', clientName: '', countryId: '', visaTypeId: '', quantity: '1', additionalFee: '0', validUntil: '', notes: '' })
       setErrors({})
+      setFormError(null)
+      visaApi.listPartners().then(setPartners).catch(() => setPartners([]))
     }
   }, [open])
 
@@ -258,21 +261,21 @@ function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved })
     if (Object.keys(next).length) return
     setSaving(true)
     try {
-      const country = countries.find((item) => item.id === values.countryId)
       await visaApi.createQuotation({
-        partner: values.partner,
+        partnerId: values.partner,
         clientName: values.clientName.trim(),
         countryId: values.countryId,
         visaTypeId: values.visaTypeId,
-        country: country?.name ?? '',
-        visaType: selectedType?.name ?? '',
         quantity: Number(values.quantity) || 1,
         additionalFee: Number(values.additionalFee) || 0,
-        validUntil: values.validUntil || null,
+        validUntil: values.validUntil || undefined,
         notes: values.notes.trim(),
       })
       onSaved?.()
       onClose()
+    } catch (error) {
+      setErrors(fieldErrors(error))
+      setFormError(errorMessage(error))
     } finally {
       setSaving(false)
     }
@@ -293,6 +296,7 @@ function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved })
       }
     >
       <form onSubmit={handleSubmit} className="stack">
+        {formError ? <div className="alert alert--danger">{formError}</div> : null}
         <div className="grid grid--2">
           <Select
             label="B2B partner"
@@ -300,7 +304,7 @@ function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved })
             error={errors.partner}
             onChange={(event) => setValue('partner', event.target.value)}
             placeholder="Select partner"
-            options={VISA_PARTNERS.map((partner) => ({ value: partner, label: partner }))}
+            options={partners.map((partner) => ({ value: partner.id ?? partner._id, label: partner.companyName ?? partner.name }))}
           />
           <Input
             label="Client / applicant name"
@@ -368,7 +372,7 @@ function CreateQuotationDialog({ open, onClose, countries, visaTypes, onSaved })
             <p className="small" style={{ margin: 0 }}>
               Net {formatCurrency(selectedType.b2bNetPrice ?? 0, selectedType.currency)} × {Number(values.quantity) || 1}{' '}
               + fees {formatCurrency(Number(values.additionalFee) || 0, selectedType.currency)} ={' '}
-              <strong>{formatCurrency(computedTotal, selectedType.currency)}</strong> (calculated by the backend, not editable)
+              <strong>{formatCurrency(computedTotal, selectedType.currency)}</strong> (the server works this out again when it saves)
             </p>
           </div>
         ) : null}

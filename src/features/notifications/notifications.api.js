@@ -1,4 +1,7 @@
-import { apiClient, withMockList } from '../../services/apiClient'
+import { apiClient, withModuleMock } from '../../services/apiClient'
+
+// Notifications are not on the server yet, so they show demo data: VITE_MOCK_MODULES=notifications.
+const { withMock, withMockList } = withModuleMock('notifications')
 
 const DEMO_NOTIFICATIONS = [
   { id: 'ntf_1', type: 'visa', title: 'Visa application approved', body: "Sara Ali's Schengen visa was approved.", createdAt: '2026-10-02T09:24:00Z', read: false },
@@ -8,14 +11,7 @@ const DEMO_NOTIFICATIONS = [
 ]
 
 export const notificationsApi = {
-  list: (params) =>
-    withMockList(
-      DEMO_NOTIFICATIONS,
-      params,
-      { searchKeys: ['title', 'body'] },
-      () => apiClient.get('/notifications', { params })
-    ),
-  markAsRead: (id) => apiClient.patch(`/notifications/${id}`, { read: true }),
-  markAllRead: () => apiClient.post('/notifications/mark-all-read'),
-  delete: (id) => apiClient.delete(`/notifications/${id}`),
+  list: (params) => withMockList(DEMO_NOTIFICATIONS, params, { searchKeys: ['title'] }),
+  markAsRead: (id) => withMock({ ok: true }, () => apiClient.patch(`/notifications/${id}`, { read: true })),
+  markAllRead: () => withMock({ ok: true }, () => apiClient.post('/notifications/mark-all-read')),
 }

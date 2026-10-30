@@ -4,7 +4,9 @@ import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
-import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_METHOD_LABELS, PICKUP_LOCATION_TYPES } from '../visa.api'
+import { visaApi, PASSPORT_STATUS_LABELS, PASSPORT_METHOD_LABELS, PASSPORT_REQUIREMENT_LABELS, PICKUP_LOCATION_TYPES } from '../visa.api'
+import { errorMessage } from '../../../utils/errors'
+import { escapeHtml as esc } from '../../../utils/helpers'
 
 const TRACKING_STATUSES = Object.entries(PASSPORT_STATUS_LABELS)
   .filter(([key]) => key !== 'not_required')
@@ -19,7 +21,6 @@ const EMPTY_PICKUP = {
   area: '',
   landmark: '',
   preferredDate: '',
-  preferredTime: '',
 }
 
 /**
@@ -49,7 +50,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
   const method = application.passportSubmissionMethod ?? 'online'
   const status = application.passportStatus ?? 'not_required'
   const requirement = visaType?.passportRequirement ?? 'online_processing'
-  const physicalRequired = requirement === 'physical_required' || requirement === 'physical_optional' || requirement === 'country_specific'
+  const physicalRequired = requirement === 'physical_required'
   const pickupRequest = application.pickupRequest
 
   async function run(update) {
@@ -59,7 +60,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
       const updated = await visaApi.updatePassport(application.id, update)
       onSaved?.(updated ?? undefined)
     } catch (updateError) {
-      setError(updateError?.message ?? 'Could not update the passport record.')
+      setError(errorMessage(updateError, 'Could not update the passport record.'))
     } finally {
       setSaving(false)
     }
@@ -80,7 +81,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
     const printWindow = window.open('', '_blank', 'width=720,height=840')
     if (!printWindow) return
     const received = application.passportReceived
-    printWindow.document.write(`<!doctype html><html><head><title>Passport Receipt — ${application.number}</title>
+    printWindow.document.write(`<!doctype html><html><head><title>Passport Receipt — ${esc(application.number)}</title>
       <style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:40px}
       .brand{font-size:20px;font-weight:700;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:20px}
       table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:8px 10px;border-bottom:1px solid #ddd;font-size:14px}
@@ -88,13 +89,13 @@ export default function PassportManageDialog({ open, onClose, application, visaT
       .note{margin-top:24px;font-size:12px;color:#555}</style></head><body>
       <div class="brand">Passport Submission Receipt — Dynamic Travel</div>
       <table>
-        <tr><td>Application No</td><td>${application.number}</td></tr>
-        <tr><td>Applicant</td><td>${application.applicant.fullName}</td></tr>
-        <tr><td>Passport No</td><td>${application.passportReceived?.passportNumber || application.passport.number}</td></tr>
-        <tr><td>Country / Visa Type</td><td>${application.country} — ${application.visaType}</td></tr>
-        <tr><td>Received</td><td>${received?.receivedDate ?? application.passportCollection?.collectedAt ?? '—'}</td></tr>
-        <tr><td>Received By</td><td>${received?.receivedBy ?? application.passportCollection?.collectorName ?? 'Visa Processing Staff'}</td></tr>
-        <tr><td>Status</td><td>${PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus}</td></tr>
+        <tr><td>Application No</td><td>${esc(application.number)}</td></tr>
+        <tr><td>Applicant</td><td>${esc(application.applicant.fullName)}</td></tr>
+        <tr><td>Passport No</td><td>${esc(application.passportReceived?.passportNumber || application.passport.number)}</td></tr>
+        <tr><td>Country / Visa Type</td><td>${esc(application.country)} — ${esc(application.visaType)}</td></tr>
+        <tr><td>Received</td><td>${esc(received?.receivedDate ?? application.passportCollection?.collectedDate ?? '—')}</td></tr>
+        <tr><td>Received By</td><td>${esc(received?.receivedBy ?? application.passportCollection?.collectorName ?? 'Visa Processing Staff')}</td></tr>
+        <tr><td>Status</td><td>${esc(PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus)}</td></tr>
       </table>
       <p class="note">Please keep this receipt and present it when collecting your passport. Original passports are stored securely in our office.</p>
       <script>window.onload = function () { window.print(); }</script>
@@ -125,7 +126,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
             <Badge tone="info">{PASSPORT_METHOD_LABELS[method] ?? method}</Badge>
             <Badge tone={status === 'not_received' ? 'danger' : 'primary'}>{PASSPORT_STATUS_LABELS[status] ?? status}</Badge>
           </div>
-          <span className="muted small">Requirement: {requirement === 'physical_required' ? 'Physical Passport Required' : requirement === 'online_processing' ? 'Online Processing' : requirement === 'physical_optional' ? 'Physical Submission Optional' : 'Country Specific'}</span>
+          <span className="muted small">Requirement: {PASSPORT_REQUIREMENT_LABELS[requirement] ?? requirement}</span>
         </div>
 
         {!physicalRequired ? (
@@ -150,10 +151,7 @@ export default function PassportManageDialog({ open, onClose, application, visaT
               <Input label="Landmark" value={pickup.landmark} onChange={(event) => setPickup((current) => ({ ...current, landmark: event.target.value }))} />
             </div>
             <Input label="Full address" value={pickup.address} onChange={(event) => setPickup((current) => ({ ...current, address: event.target.value }))} />
-            <div className="grid grid--2">
-              <Input label="Preferred pickup date" type="date" value={pickup.preferredDate} onChange={(event) => setPickup((current) => ({ ...current, preferredDate: event.target.value }))} />
-              <Input label="Preferred pickup time" value={pickup.preferredTime} placeholder="11:00–13:00" onChange={(event) => setPickup((current) => ({ ...current, preferredTime: event.target.value }))} />
-            </div>
+            <Input label="Preferred pickup date" type="date" value={pickup.preferredDate} onChange={(event) => setPickup((current) => ({ ...current, preferredDate: event.target.value }))} />
             <div className="grid grid--2">
               <Button onClick={() => selectMethod('pickup')} loading={saving}>Create pickup request</Button>
               <Button variant="ghost" onClick={() => selectMethod('office')} loading={saving}>Applicant will visit office</Button>
@@ -172,15 +170,15 @@ export default function PassportManageDialog({ open, onClose, application, visaT
                   <div><dt>Location</dt><dd>{pickupRequest.locationType} — {pickupRequest.address}{pickupRequest.landmark ? ` (${pickupRequest.landmark})` : ''}</dd></div>
                   <div><dt>Contact</dt><dd>{pickupRequest.contactName} · {pickupRequest.phone}</dd></div>
                   <div><dt>District / area</dt><dd>{pickupRequest.district} · {pickupRequest.area}</dd></div>
-                  <div><dt>Preferred</dt><dd>{pickupRequest.preferredDate || '—'} {pickupRequest.preferredTime ?? ''}</dd></div>
+                  <div><dt>Preferred</dt><dd>{pickupRequest.preferredDate || '—'}</dd></div>
                   <div>
                     <dt>Assigned staff</dt>
                     <dd>
                       <Select
-                        value={pickupRequest.assignedStaff ?? ''}
+                        value={pickupRequest.assignedStaffId ?? ''}
                         aria-label="Pickup staff"
                         onChange={(event) => run({ assignedStaff: event.target.value || null })}
-                        options={[{ value: '', label: 'Unassigned' }, ...(staff ?? []).map((name) => ({ value: name, label: name }))]}
+                        options={[{ value: '', label: 'Unassigned' }, ...(staff ?? []).map((person) => ({ value: person.id ?? person._id, label: person.name }))]}
                       />
                     </dd>
                   </div>
@@ -225,8 +223,15 @@ export default function PassportManageDialog({ open, onClose, application, visaT
                       loading={saving}
                       onClick={() =>
                         method === 'pickup'
-                          ? run({ passportStatus: 'picked_up', details: { ...collection, collectorName: collection.collectorName || pickupRequest?.assignedStaff || 'Pickup staff' } })
-                          : run({ passportStatus: 'received_at_office', details: { ...officeReceive, receivedBy: officeReceive.receivedBy || 'Office staff' } })
+                          ? run({
+                              passportStatus: 'picked_up',
+                              details: {
+                                collectedDate: collection.collectionDate,
+                                collectorName: collection.collectorName || pickupRequest?.assignedStaff || 'Pickup staff',
+                                remarks: [collection.collectionTime && `at ${collection.collectionTime}`, collection.remarks].filter(Boolean).join(' · '),
+                              },
+                            })
+                          : run({ passportStatus: 'received_at_office', details: { receivedDate: officeReceive.receivedDate, receivedBy: officeReceive.receivedBy || 'Office staff', passportNumber: officeReceive.passportNumber, remarks: officeReceive.remarks } })
                       }
                     >
                       {method === 'pickup' ? 'Confirm passport collected' : 'Confirm passport received'}

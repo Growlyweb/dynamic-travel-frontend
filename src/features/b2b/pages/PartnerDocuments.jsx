@@ -1,134 +1,53 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import PageHeader from '../../../components/layout/PageHeader'
-import DataTable from '../../../components/tables/DataTable'
-import TablePagination from '../../../components/tables/TablePagination'
-import TableActions from '../../../components/tables/TableActions'
-import Badge from '../../../components/common/Badge'
+import Loader from '../../../components/common/Loader'
+import ErrorState from '../../../components/common/ErrorState'
+import PartnerDocumentList from '../components/PartnerDocumentList'
 import { b2bApi } from '../b2b.api'
-import { usePagination } from '../../../hooks/usePagination'
-import { formatDate } from '../../../utils/formatters'
+import { errorMessage } from '../../../utils/errors'
 
-const STATUS_TONES = { verified: 'success', pending: 'warning', rejected: 'danger' }
-
+// The documents of one partner (opened from the partner's page or the applications list).
 export default function PartnerDocuments() {
   const [searchParams] = useSearchParams()
   const partnerId = searchParams.get('partnerId') || ''
-  const [rows, setRows] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const { page, pageSize, goToPage, changePageSize } = usePagination()
+  const [partner, setPartner] = useState(null)
+  const [loading, setLoading] = useState(Boolean(partnerId))
+  const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    if (!partnerId) return
+    setError(null)
     try {
-      const result = await b2bApi.listDocuments({ page, pageSize, partnerId: partnerId || undefined })
-      setRows(result.items ?? [])
-      setTotal(result.total ?? 0)
-    } catch (err) {
-      setError(err?.message || 'Could not load documents.')
+      setPartner(await b2bApi.getPartner(partnerId))
+    } catch (failure) {
+      setError(failure)
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, partnerId])
+  }, [partnerId])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const verify = async (id) => {
-    try {
-      await b2bApi.verifyDocument(id)
-      await load()
-    } catch (err) {
-      setError(err?.message || 'Could not verify the document.')
-    }
-  }
-
-  const reject = async (id) => {
-    try {
-      await b2bApi.rejectDocument(id)
-      await load()
-    } catch (err) {
-      setError(err?.message || 'Could not reject the document.')
-    }
-  }
-
   return (
     <div className="stack">
-      <PageHeader
-        title="Partner documents"
-        description="Verify Trade License, Business Card and other business documents before activating a partner."
-        breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Documents' }]}
-      />
-
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-
-      {partnerId ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          Showing documents for one partner application. Verify every uploaded document to unlock approval.
+      <PageHeader title="Partner documents" description="Verify the trade license and business documents of a partner." breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Documents' }]} />
+      {!partnerId ? (
+        <div className="card">
+          <p className="muted">Documents are checked partner by partner. Open a partner on the <Link to="/b2b/partners" className="strong">Partners</Link> page to see theirs.</p>
         </div>
-      ) : null}
-
-      <div className="card">
-        <DataTable
-          loading={loading}
-          data={rows}
-          emptyTitle="No documents uploaded"
-          columns={[
-            {
-              key: 'name',
-              header: 'Document',
-              render: (row) => (
-                <div>
-                  <p className="strong">{row.name}</p>
-                  <p className="text-xs capitalize text-slate-400">{row.type.replace('_', ' ')}</p>
-                </div>
-              ),
-            },
-            { key: 'partner', header: 'Partner' },
-            { key: 'uploadedAt', header: 'Uploaded', render: (row) => formatDate(row.uploadedAt) },
-            {
-              key: 'status',
-              header: 'Status',
-              render: (row) => <Badge tone={STATUS_TONES[row.status] ?? 'neutral'}>{row.status}</Badge>,
-            },
-            {
-              key: 'actions',
-              header: '',
-              align: 'right',
-              render: (row) => (
-                <div className="flex items-center justify-end gap-2">
-                  {row.dataUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => window.open(row.dataUrl, '_blank', 'noopener,noreferrer')}
-                      className="text-xs font-semibold text-[#2F80ED] hover:underline"
-                    >
-                      View
-                    </button>
-                  ) : null}
-                  <TableActions
-                    actions={[
-                      ...(row.status !== 'verified' ? [{ label: 'Verify', onClick: () => verify(row.id) }] : []),
-                      ...(row.status !== 'rejected' ? [{ label: 'Reject', tone: 'danger', onClick: () => reject(row.id) }] : []),
-                    ]}
-                  />
-                </div>
-              ),
-            },
-          ]}
-        />
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          onPageChange={goToPage}
-          onPageSizeChange={changePageSize}
-        />
-      </div>
+      ) : loading ? (
+        <Loader label="Loading documents…" />
+      ) : error ? (
+        <ErrorState title="Could not load the documents" message={errorMessage(error)} onRetry={load} />
+      ) : (
+        <div className="card">
+          <p className="card__title">{partner.company}</p>
+          <PartnerDocumentList partner={partner} onChanged={load} />
+        </div>
+      )}
     </div>
   )
 }

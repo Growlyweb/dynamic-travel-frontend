@@ -26,8 +26,6 @@ import {
 export function RichTextEditor({
   value = '',
   onChange,
-  placeholder = 'Please prepare the following documents for visa application...',
-  minHeight = '130px',
   className = '',
 }) {
   const editor = useEditor({
@@ -64,14 +62,6 @@ export function RichTextEditor({
       </div>
     );
   }
-
-  const currentHeading = editor.isActive('heading', { level: 1 })
-    ? 'Heading 1'
-    : editor.isActive('heading', { level: 2 })
-    ? 'Heading 2'
-    : editor.isActive('heading', { level: 3 })
-    ? 'Heading 3'
-    : 'Paragraph';
 
   const handleHeadingChange = (e) => {
     const val = e.target.value;

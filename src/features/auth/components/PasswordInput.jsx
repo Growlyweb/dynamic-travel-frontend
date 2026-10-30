@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-export const PasswordInput = ({ id, value, onChange, placeholder = '••••••••', error, name = 'password', autoFocus = false }) => {
+export const PasswordInput = ({ id, value, onChange, placeholder = '••••••••', error, name = 'password', autoFocus = false, autoComplete }) => {
   const [show, setShow] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export const PasswordInput = ({ id, value, onChange, placeholder = '••••
         onChange={onChange}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        autoComplete="current-password"
+        autoComplete={autoComplete ?? (name === 'new-password' ? 'new-password' : 'current-password')}
       />
       <button
         type="button"

@@ -5,6 +5,7 @@ import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import { visaApi, PASSPORT_REQUIREMENT_LABELS } from '../visa.api'
 import { VISA_TYPE_OPTIONS } from '../../../utils/constants'
+import { errorMessage } from '../../../utils/errors'
 
 const EMPTY_VALUES = {
   countryId: '',
@@ -99,7 +100,6 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
     setError(null)
     try {
       const payload = {
-        ...(visaType ?? {}),
         id: visaType?.id ?? visaType?._id,
         _id: visaType?._id ?? visaType?.id,
         countryId: values.countryId,
@@ -126,7 +126,8 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
       onSaved?.(saved)
       onClose()
     } catch (saveError) {
-      setError(saveError?.message ?? 'Could not save the visa type.')
+      setErrors(saveError?.fields ?? {})
+      setError(errorMessage(saveError, 'Could not save the visa type.'))
     } finally {
       setSaving(false)
     }
@@ -137,7 +138,7 @@ export default function VisaTypeDialog({ open, onClose, visaType, countries, def
       open={open}
       onClose={onClose}
       title={visaType ? `Edit ${visaType.name}` : 'Add visa type'}
-      description="Prices entered here are what B2C customers and B2B partners see. The backend recalculates the final price by role — never trust the frontend."
+      description="Prices entered here are what B2C customers and B2B partners see. An application copies the price when it is created, so changing it later does not change files already made."
       size="lg"
       footer={
         <>

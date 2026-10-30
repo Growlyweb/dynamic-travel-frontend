@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, HandCoins } from 'lucide-react'
 import ModalShell, { Field } from '@/features/reports/components/ModalShell'
 import { Button } from '@/components/ui/button'
-import { formatMoney } from '@/features/reports/reports.api'
-import { todayISO } from '@/features/reports/accounting/dates'
+import { formatMoney } from '@/features/reports/lib/format'
+import { todayISO } from '@/features/reports/lib/dates'
 import { PAY_METHODS } from '../simple.api'
 
 const input =

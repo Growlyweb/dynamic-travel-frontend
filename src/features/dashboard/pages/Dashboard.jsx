@@ -55,8 +55,8 @@ export default function Dashboard() {
   if (loading) return <Loader fullPage label="Loading dashboard…" />
   if (error) return <ErrorState title="Could not load the dashboard" message={getApiErrorMessage(error)} onRetry={load} />
 
-  const showVisa = can('visa.view')
-  const showTours = can('tours.view')
+  const showVisa = can('VISA_VIEW')
+  const showTours = can('TOURS_VIEW')
 
   return (
     <div className="stack bg-background">

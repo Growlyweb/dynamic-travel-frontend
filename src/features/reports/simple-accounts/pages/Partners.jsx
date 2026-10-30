@@ -7,10 +7,13 @@ import SimpleTabs from '../components/SimpleTabs'
 import PartnerModal from '../components/PartnerModal'
 import BigCard from '../components/BigCard'
 import { simpleApi } from '../simple.api'
-import { formatMoney, formatPct } from '@/features/reports/reports.api'
-import { formatDateShort } from '@/features/reports/accounting/dates'
+import { formatMoney, formatPct } from '@/features/reports/lib/format'
+import { formatDateShort } from '@/features/reports/lib/dates'
+import { usePermission } from '@/hooks/usePermission'
 
 export default function Partners() {
+  // Partner capital is an administrator's job.
+  const { isAdmin } = usePermission()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState({ open: false, partner: 'A', direction: 'in' })
@@ -58,6 +61,7 @@ export default function Partners() {
         description="Two partners. Money in, money out, share of capital and share of this month's profit."
         breadcrumbs={[{ label: 'Accounts', to: '/accounts' }, { label: 'Partners' }]}
         actions={
+          isAdmin ? (
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => openModal('A', 'in')} className="h-11 gap-2 px-4 text-base">
               <ArrowDownLeft className="size-5 text-emerald-600" /> Partner A Money In
@@ -66,6 +70,7 @@ export default function Partners() {
               <ArrowUpRight className="size-5" /> Partner A Money Out
             </Button>
           </div>
+          ) : null
         }
       />
 
@@ -109,6 +114,7 @@ export default function Partners() {
                 {formatMoney((data.monthProfit * partner.share) / 100)}
               </p>
             </div>
+            {isAdmin ? (
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
@@ -125,6 +131,7 @@ export default function Partners() {
                 Money Out
               </button>
             </div>
+            ) : null}
           </div>
         ))}
       </div>

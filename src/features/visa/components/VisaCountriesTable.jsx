@@ -19,40 +19,14 @@ import {
 import { visaApi } from "../visa.api";
 import VisaCountryViewDialog from "./VisaCountryViewDialog";
 import VisaCountryFormDialog from "./VisaCountryFormDialog";
-import { DEFAULT_SAMPLE_DOCS } from "./SampleMediaManager";
-
-const DEFAULT_SAMPLE_CHECKLISTS = {
-  CN: `<h3>China Visa Requirements</h3>
-<ul>
-  <li><strong>Original Passport:</strong> Minimum 6 months validity with at least 2 consecutive blank pages.</li>
-  <li><strong>Photographs:</strong> 2 recent studio photos (33mm x 48mm, white background, matte finish).</li>
-  <li><strong>Bank Solvency & Statement:</strong> Last 6 months bank statement with authorized seal and minimum balance BDT 200,000+.</li>
-  <li><strong>Invitation Letter:</strong> Official Duly Authorized Invitation from Chinese entity (for business).</li>
-</ul>
-<blockquote><strong>Embassy Note:</strong> Fingerprint biometrics required at the Visa Application Center.</blockquote>`,
-
-  AE: `<h3>UAE / Dubai eVisa Requirements</h3>
-<ul>
-  <li><strong>Passport Bio-page Scan:</strong> High-resolution color scan of original passport (valid 6+ months).</li>
-  <li><strong>Digital Photograph:</strong> 4.3cm x 5.5cm white background passport photo.</li>
-  <li><strong>Return Air Ticket:</strong> Confirmed roundtrip booking with Emirates, Flydubai, or any airline.</li>
-  <li><strong>Hotel Voucher:</strong> Confirmed stay in Dubai / Abu Dhabi / Sharjah.</li>
-</ul>
-<blockquote><strong>Express Processing:</strong> 100% online eVisa issued within 24 to 72 hours.</blockquote>`,
-
-  MY: `<h3>Malaysia eVisa Requirements</h3>
-<ul>
-  <li><strong>Passport Scan:</strong> Front bio-page and previous Malaysian visa pages if applicable.</li>
-  <li><strong>Passport Size Photo:</strong> Digital studio portrait with white backdrop.</li>
-  <li><strong>Flight Itinerary:</strong> Confirmed return flight tickets.</li>
-  <li><strong>Accommodation Proof:</strong> Hotel booking confirmation.</li>
-</ul>`,
-};
+import { useToast } from "../../../context/ToastContext";
+import { errorMessage } from "../../../utils/errors";
 
 export function VisaCountriesTable({
   data: initialData,
   onDataChange,
 }) {
+  const toast = useToast();
   const [countries, setCountries] = useState(initialData || []);
   const [loading, setLoading] = useState(!initialData);
   const [search, setSearch] = useState("");
@@ -70,23 +44,15 @@ export function VisaCountriesTable({
     setLoading(true);
     try {
       const res = await visaApi.listCountries();
-      const items = (res.items || []).map((country) => ({
-        ...country,
-        flag: country.flag || "🌐",
-        status: country.status || "active",
-        processingMode: country.processingMode || (country.code === "AE" || country.code === "MY" || country.code === "TH" ? "eVisa (Online)" : "Embassy Appointment"),
-        processingTime: country.processingTime || "5–7 working days",
-        richChecklist: country.richChecklist || DEFAULT_SAMPLE_CHECKLISTS[country.code] || `<h3>Mandatory Requirements for ${country.name}</h3><ul><li><strong>Original Passport:</strong> Minimum 6 months validity from travel date.</li><li><strong>Photographs:</strong> 2 recent studio photos (white background).</li><li><strong>Financial Solvency:</strong> Last 6 months bank statement and certificate.</li></ul>`,
-        sampleDocs: country.sampleDocs && country.sampleDocs.length > 0 ? country.sampleDocs : [...DEFAULT_SAMPLE_DOCS],
-      }));
+      const items = (res.items || []).map((country) => ({ ...country, flag: country.flag || "🌐" }));
       setCountries(items);
       onDataChange?.(items);
     } catch (err) {
-      console.error("Failed to load visa countries:", err);
+      toast.error(errorMessage(err, "Could not load the countries."));
     } finally {
       setLoading(false);
     }
-  }, [onDataChange]);
+  }, [onDataChange, toast]);
 
   useEffect(() => {
     if (!initialData) {
@@ -126,31 +92,15 @@ export function VisaCountriesTable({
         prev.map((c) => (c.id === country.id ? { ...c, status: nextStatus } : c))
       );
     } catch (err) {
-      console.error("Failed to toggle country status:", err);
+      toast.error(errorMessage(err));
     }
   };
 
   // Save (Create or Edit)
   const handleSaveCountry = async (savedPayload) => {
-    const saved = await visaApi.saveCountry(savedPayload);
-    // Enrich local state
-    setCountries((prev) => {
-      const exists = prev.some((c) => c.id === saved.id);
-      if (exists) {
-        return prev.map((c) => (c.id === saved.id ? { ...c, ...savedPayload } : c));
-      }
-      return [
-        {
-          ...savedPayload,
-          id: saved.id || `vc_${Date.now()}`,
-          flag: savedPayload.flag || "🌐",
-          sampleDocs: savedPayload.sampleDocs || [...DEFAULT_SAMPLE_DOCS],
-        },
-        ...prev,
-      ];
-    });
-    // Trigger external callback if present
-    onDataChange?.(countries);
+    await visaApi.saveCountry(savedPayload);
+    toast.success(`${savedPayload.name} saved.`);
+    await loadCountries();
   };
 
   // Delete Country
@@ -162,7 +112,8 @@ export function VisaCountriesTable({
       setCountries((prev) => prev.filter((c) => c.id !== deletingCountry.id));
       setDeletingCountry(null);
     } catch (err) {
-      console.error("Failed to delete country:", err);
+      toast.error(errorMessage(err));
+      setDeletingCountry(null);
     } finally {
       setIsDeleting(false);
     }
@@ -332,11 +283,11 @@ export function VisaCountriesTable({
                       <td className="py-3.5 px-4">
                         <div>
                           <div className="font-semibold text-slate-800 dark:text-slate-200">
-                            {country.processingMode || "Online / Embassy"}
+                            {country.processingMode || "—"}
                           </div>
                           <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
                             <Clock className="h-3 w-3 text-slate-400" />
-                            <span>{country.processingTime || "5–7 working days"}</span>
+                            <span>{country.processingTime || "—"}</span>
                           </div>
                         </div>
                       </td>

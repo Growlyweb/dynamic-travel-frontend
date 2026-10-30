@@ -48,13 +48,13 @@ import {
 import { usePermission } from '@/hooks/usePermission'
 import { useAuth } from '@/hooks/useAuth'
 import { APP_ROUTES, NAV_SECTIONS } from '@/utils/constants'
-import { ROLE_LABELS } from '@/utils/roles'
+import { roleText } from '@/utils/roles'
 import { initials } from '@/utils/formatters'
 import { cn } from '@/utils/helpers'
 
 const SECTION_ICONS = {
   Overview: LayoutDashboard,
-  Visa: Stamp,
+  Applications: Stamp,
   Tours: Luggage,
   'Partners · B2B': Handshake,
   'Customers · B2C': UserRound,
@@ -282,7 +282,7 @@ export default function AppSidebar({ onNavigate }) {
                         {user?.name ?? 'Signed out'}
                       </span>
                       <span className="truncate text-[11.5px] text-muted-foreground">
-                        {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
+                        {roleText(user)}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
@@ -309,7 +309,7 @@ export default function AppSidebar({ onNavigate }) {
                           {user?.name ?? 'Signed out'}
                         </span>
                         {/* <span className="pt-1 truncate text-xs font-medium text-primary">
-                          {ROLE_LABELS[user?.role] ?? user?.role ?? '—'}
+                          {roleText(user)}
                         </span> */}
                         <span className="truncate text-[11px] text-muted-foreground">
                           {user?.email ?? 'ABL Travel Portal'}

@@ -17,6 +17,7 @@ const text = cva("", {
     defaultVariants: { variant: "body" },
 })
 
-export function Text({ as: Comp = "p", variant, className, ...props }) {
-    return <Comp className={cn(text({ variant }), className)} {...props} />
+export function Text({ as = "p", variant, className, ...props }) {
+    const Component = as
+    return <Component className={cn(text({ variant }), className)} {...props} />
 }

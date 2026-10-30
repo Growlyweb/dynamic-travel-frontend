@@ -8,8 +8,10 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import VisaTypeDialog from '../components/VisaTypeDialog'
 import { visaApi } from '../visa.api'
 import { formatCurrency } from '../../../utils/formatters'
+import { useAction } from '../../../hooks/useAction'
 
 export default function VisaTypes() {
+  const run = useAction()
   const [countries, setCountries] = useState([])
   const [types, setTypes] = useState([])
   const [countryId, setCountryId] = useState('')
@@ -21,17 +23,13 @@ export default function VisaTypes() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const [countryResult, typeResult] = await Promise.all([
-        visaApi.listCountries(),
-        visaApi.listVisaTypes(countryId ? { countryId } : {}),
-      ])
-      setCountries(countryResult.items ?? [])
-      setTypes(typeResult.items ?? [])
-    } finally {
-      setLoading(false)
+    const { ok, value } = await run(() => Promise.all([visaApi.listCountries(), visaApi.listVisaTypes(countryId ? { countryId } : {})]))
+    if (ok) {
+      setCountries(value[0].items ?? [])
+      setTypes(value[1].items ?? [])
     }
-  }, [countryId])
+    setLoading(false)
+  }, [countryId, run])
 
   useEffect(() => {
     load()
@@ -43,20 +41,17 @@ export default function VisaTypes() {
   )
 
   async function toggleStatus(type) {
-    await visaApi.updateVisaType(type.id, { status: type.status === 'active' ? 'paused' : 'active' })
-    await load()
+    const { ok } = await run(() => visaApi.updateVisaType(type.id, { status: type.status === 'active' ? 'paused' : 'active' }))
+    if (ok) await load()
   }
 
   async function handleDelete() {
     if (!pendingDelete) return
     setDeleting(true)
-    try {
-      await visaApi.removeVisaType(pendingDelete.id)
-      setPendingDelete(null)
-      await load()
-    } finally {
-      setDeleting(false)
-    }
+    const { ok } = await run(() => visaApi.removeVisaType(pendingDelete.id), { success: 'Visa type deleted.' })
+    setPendingDelete(null)
+    if (ok) await load()
+    setDeleting(false)
   }
 
   function openCreate() {

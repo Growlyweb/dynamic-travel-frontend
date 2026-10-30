@@ -1,7 +1,9 @@
-import { todayISO } from '../reports/accounting/dates'
+const todayISO = () => new Date().toISOString().slice(0, 10)
 import { SAMPLE_IMAGE_DATA_URL } from './sampleImage'
 import { apiClient } from '../../services/apiClient'
+import { isAdminSession } from '../../services/authStorage'
 import { config } from '../../app/config'
+import { sleep } from '../../utils/helpers'
 
 /**
  * B2B partner onboarding + portal data layer.
@@ -911,5 +913,72 @@ export const b2bApi = {
     savePartners()
     saveDocuments()
     return { success: true }
+  },
+
+  async decide(id, decision, note) {
+    if (!config.enableMocks) {
+      const res = await apiClient.patch(`/admin/b2b/${id}/approval`, { decision, note: note || undefined })
+      return res?.data ?? res
+    }
+    const partner = partnersStore.find((item) => item.id === id)
+    if (partner) {
+      partner.status = String(decision).toLowerCase()
+      partner.reviewNote = note || ''
+      savePartners()
+    }
+    return partner ? publicPartner(partner) : null
+  },
+
+  async updatePartner(id, patch) {
+    return this.updatePartnerProfile(id, patch)
+  },
+
+  async reviewDocument(partnerId, documentId, { status, note } = {}) {
+    if (!config.enableMocks) {
+      const res = await apiClient.patch(
+        isAdminSession() ? `/admin/b2b/${partnerId}/documents/${documentId}` : `/staff/partners/${partnerId}/documents/${documentId}`,
+        { status: status ? status.toUpperCase() : undefined, note: note || undefined }
+      )
+      return res?.data ?? res
+    }
+    if (String(status).toLowerCase() === 'verified' || String(status).toUpperCase() === 'APPROVED') {
+      return this.verifyDocument(documentId, partnerId)
+    }
+    return this.rejectDocument(documentId, note, partnerId)
+  },
+
+  async downloadDocument(partnerId, documentId) {
+    return apiClient.download(`/documents/partners/${partnerId}/${documentId}`)
+  },
+}
+
+export const b2bOperationsApi = {
+  async listPickups(params = {}) {
+    await sleep(150)
+    const list = DEMO_PICKUPS
+    const current = params.page || 1
+    const size = params.pageSize || 50
+    const start = (Number(current) - 1) * Number(size)
+    return { items: list.slice(start, start + Number(size)), total: list.length, page: Number(current), pageSize: Number(size), totalPages: Math.max(Math.ceil(list.length / Number(size)), 1) }
+  },
+  async listCommissions(params = {}) {
+    await sleep(150)
+    const list = DEMO_COMMISSIONS
+    const current = params.page || 1
+    const size = params.pageSize || 50
+    const start = (Number(current) - 1) * Number(size)
+    return { items: list.slice(start, start + Number(size)), total: list.length, page: Number(current), pageSize: Number(size), totalPages: Math.max(Math.ceil(list.length / Number(size)), 1) }
+  },
+  async listWithdrawals(params = {}) {
+    await sleep(150)
+    const current = params.page || 1
+    const size = params.pageSize || 50
+    const start = (Number(current) - 1) * Number(size)
+    return { items: withdrawalsStore.slice(start, start + Number(size)), total: withdrawalsStore.length, page: Number(current), pageSize: Number(size), totalPages: Math.max(Math.ceil(withdrawalsStore.length / Number(size)), 1) }
+  },
+  async setWithdrawalStatus(id, status) {
+    await sleep(150)
+    withdrawalsStore = withdrawalsStore.map((item) => (item.id === id ? { ...item, status } : item))
+    return withdrawalsStore.find((item) => item.id === id)
   },
 }

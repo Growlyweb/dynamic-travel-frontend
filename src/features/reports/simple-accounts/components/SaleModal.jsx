@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Save } from 'lucide-react'
 import ModalShell, { Field } from '@/features/reports/components/ModalShell'
 import { Button } from '@/components/ui/button'
-import { formatMoney } from '@/features/reports/reports.api'
-import { todayISO } from '@/features/reports/accounting/dates'
-import { PAY_METHODS, SIMPLE_CATEGORIES } from '../simple.api'
+import { formatMoney } from '@/features/reports/lib/format'
+import { todayISO } from '@/features/reports/lib/dates'
+import { PAY_METHODS } from '../simple.api'
 
 const input =
   'h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#2F80ED] focus:ring-2 focus:ring-primary/20'
@@ -18,6 +18,7 @@ const blank = () => ({
   phone: '',
   category: 'Visa',
   selling: '',
+  discount: '',
   cost: '',
   received: '',
   method: 'cash',
@@ -40,9 +41,10 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
         clientType: sale.partyType === 'B2B' ? 'B2B' : 'B2C',
         agencyName: sale.partyType === 'B2B' ? sale.partyName || '' : '',
         clientName: sale.applicant || sale.partyName || '',
-        phone: sale.detail || '',
+        phone: sale.partyPhone || '',
         category: sale.category || 'Visa',
         selling: String(sale.sale || ''),
+        discount: String(sale.discount || ''),
         cost: String(sale.cost || ''),
         received: String(sale.received || ''),
         method: 'cash',
@@ -57,16 +59,18 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
 
   const numbers = useMemo(() => {
     const selling = Number(form.selling) || 0
+    const discount = Number(form.discount) || 0
     const cost = Number(form.cost) || 0
     const received = isEdit ? Number(sale?.received) || 0 : Number(form.received) || 0
     return {
       selling,
+      discount,
       cost,
-      profit: selling - cost,
+      profit: selling - discount - cost,
       received,
-      due: Math.max(0, selling - received),
+      due: Math.max(0, selling - discount - received),
     }
-  }, [form.selling, form.cost, form.received, isEdit, sale])
+  }, [form.selling, form.discount, form.cost, form.received, isEdit, sale])
 
   const suggested = priceList.find((item) => item.label === form.category)
 
@@ -95,8 +99,12 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
       setError('Selling price must be greater than zero.')
       return
     }
-    if (!isEdit && numbers.received > numbers.selling) {
-      setError('Received cannot be more than the selling price.')
+    if (numbers.discount > numbers.selling) {
+      setError('The discount cannot be more than the selling price.')
+      return
+    }
+    if (!isEdit && numbers.received > numbers.selling - numbers.discount) {
+      setError('Received cannot be more than the amount to pay.')
       return
     }
     setSaving(true)
@@ -104,6 +112,7 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
       await onSave({
         ...form,
         selling: numbers.selling,
+        discount: numbers.discount,
         cost: numbers.cost,
         received: isEdit ? undefined : numbers.received,
       })
@@ -200,7 +209,7 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
               className={input}
             />
             <datalist id="sale-categories">
-              {[...new Set([...SIMPLE_CATEGORIES.map((item) => item.label), ...categories.map((item) => item.label)])].map(
+              {[...new Set(categories.map((item) => item.label))].map(
                 (label) => (
                   <option key={label} value={label} />
                 )
@@ -235,6 +244,17 @@ export default function SaleModal({ open, onOpenChange, sale, categories = [], p
               required
               value={form.selling}
               onChange={set('selling')}
+              placeholder="0"
+              className={`${input} text-right text-lg font-semibold`}
+            />
+          </Field>
+          <Field label="Discount (optional)">
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={form.discount}
+              onChange={set('discount')}
               placeholder="0"
               className={`${input} text-right text-lg font-semibold`}
             />

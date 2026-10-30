@@ -1,8 +1,8 @@
 import { Eye, HandCoins, Pencil, PlusCircle } from 'lucide-react'
 import ModalShell from '@/features/reports/components/ModalShell'
 import { Button } from '@/components/ui/button'
-import { formatMoney } from '@/features/reports/reports.api'
-import { formatDateShort } from '@/features/reports/accounting/dates'
+import { formatMoney } from '@/features/reports/lib/format'
+import { formatDateShort } from '@/features/reports/lib/dates'
 
 export default function SaleViewModal({ open, onOpenChange, sale, onEdit, onReceipt, onCost }) {
   return (

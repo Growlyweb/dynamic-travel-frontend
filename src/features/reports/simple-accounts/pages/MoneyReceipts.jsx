@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import PageHeader from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { CalendarDays, Download, Eye, HandCoins, Search, Trash2 } from 'lucide-react'
@@ -7,84 +7,48 @@ import SimpleTabs from '../components/SimpleTabs'
 import BigCard from '../components/BigCard'
 import MoneyReceiptModal from '../components/MoneyReceiptModal'
 import ReceiptViewModal from '../components/ReceiptViewModal'
+import ReasonModal from '../components/ReasonModal'
 import { simpleApi } from '../simple.api'
-import { formatMoney } from '@/features/reports/reports.api'
-import { formatDateShort } from '@/features/reports/accounting/dates'
+import { usePermission } from '@/hooks/usePermission'
+import { useServerTable } from '@/hooks/useServerTable'
+import { useToast } from '@/context/ToastContext'
+import { PERMISSIONS } from '@/utils/permissions'
+import { errorMessage } from '@/utils/errors'
+import { formatMoney } from '@/features/reports/lib/format'
+import { formatDateShort } from '@/features/reports/lib/dates'
 import { printSimpleReceipt } from '../receipts.print'
 import { Table, TablePagination } from '@/components/re-table'
 
-const PAGE_SIZE = 10
-
 export default function MoneyReceipts() {
-  const [data, setData] = useState({ rows: [], summary: {} })
-  const [sales, setSales] = useState([])
-  const [filters, setFilters] = useState({ from: '', to: '', search: '' })
-  const [page, setPage] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const { can } = usePermission()
+  const toast = useToast()
+  const canReceive = can(PERMISSIONS.ACCOUNTS_EDIT)
+  const canVoid = can(PERMISSIONS.ACCOUNTS_VOID)
+
+  const [dates, setDates] = useState({ from: '', to: '' })
+  const [dues, setDues] = useState([])
   const [receiptOpen, setReceiptOpen] = useState(false)
   const [viewNo, setViewNo] = useState('')
-  const [notice, setNotice] = useState(null)
+  const [voiding, setVoiding] = useState(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [receipts, saleRows] = await Promise.all([
-        simpleApi.listReceipts(filters),
-        simpleApi.listSales({}),
-      ])
-      setData(receipts)
-      setSales(saleRows.rows)
-    } catch (err) {
-      setNotice({ type: 'error', text: err?.message || 'Could not load money receipts.' })
-    } finally {
-      setLoading(false)
-    }
-  }, [filters])
+  const table = useServerTable({ table: 'accounts-receipts', fetcher: simpleApi.listReceipts, filters: dates })
+  const summary = table.extras.summary ?? {}
+  const current = table.page
+  const pageSize = table.pageSize
 
+  // The invoices that still owe money, for the receipt form.
+  const loadDues = () => simpleApi.listDue({ pageSize: 500 }).then((result) => setDues(result.rows)).catch((error) => toast.error(errorMessage(error)))
   useEffect(() => {
-    load()
-  }, [load])
-
-  useEffect(() => {
-    setPage(1)
-  }, [filters])
-
-  useEffect(() => {
-    if (!notice) return
-    const timer = setTimeout(() => setNotice(null), 3200)
-    return () => clearTimeout(timer)
-  }, [notice])
-
-  const pages = Math.max(1, Math.ceil(data.rows.length / PAGE_SIZE))
-  const current = Math.min(page, pages)
-  const rows = useMemo(
-    () => data.rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE),
-    [data.rows, current]
-  )
-
-  const remove = async (receipt) => {
-    if (
-      !window.confirm(
-        `Delete receipt ${receipt.no}? The client due will go up by ${formatMoney(receipt.totalApplied)} and the money will be removed from ${receipt.paymentType}.`
-      )
-    ) {
-      return
-    }
-    try {
-      await simpleApi.deleteReceipt(receipt.id)
-      await load()
-      setNotice({ type: 'success', text: 'Money receipt deleted. Due and money were reversed.' })
-    } catch (err) {
-      setNotice({ type: 'error', text: err?.message || 'Could not delete the receipt.' })
-    }
-  }
+    loadDues()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const columns = [
     {
       key: 'sl',
       header: 'SL.',
       render: (row, index) => (
-        <span className="text-sm text-slate-500">{(current - 1) * PAGE_SIZE + index + 1}</span>
+        <span className="text-sm text-slate-500">{(current - 1) * pageSize + index + 1}</span>
       ),
     },
     {
@@ -140,7 +104,7 @@ export default function MoneyReceipts() {
     },
     {
       key: 'manualNo',
-      header: 'Manual Receipt No',
+      header: 'Paper Receipt No',
       render: (row) => <span className="text-sm text-slate-500">{row.manualNo || '—'}</span>,
     },
     {
@@ -176,13 +140,15 @@ export default function MoneyReceipts() {
           >
             <Download className="size-3" /> Print
           </button>
-          <button
-            type="button"
-            onClick={() => remove(row)}
-            className="inline-flex items-center gap-1 rounded-md bg-[#DC2626] px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-[#b91c1c]"
-          >
-            <Trash2 className="size-3" /> Delete
-          </button>
+          {canVoid ? (
+            <button
+              type="button"
+              onClick={() => setVoiding(row)}
+              className="inline-flex items-center gap-1 rounded-md bg-[#DC2626] px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-[#b91c1c]"
+            >
+              <Trash2 className="size-3" /> Void
+            </button>
+          ) : null}
         </div>
       ),
     },
@@ -195,30 +161,32 @@ export default function MoneyReceipts() {
         description="Every payment received, with its MR number, client, account and printable receipt."
         breadcrumbs={[{ label: 'Accounts', to: '/accounts' }, { label: 'Money Receipts' }]}
         actions={
-          <Button
-            onClick={() => setReceiptOpen(true)}
-            className="h-11 gap-2 bg-[#2F80ED] px-5 text-base text-white hover:bg-[#1d6fd0]"
-          >
-            <HandCoins className="size-5" /> Add Money Receipt
-          </Button>
+          canReceive ? (
+            <Button
+              onClick={() => setReceiptOpen(true)}
+              className="h-11 gap-2 bg-[#2F80ED] px-5 text-base text-white hover:bg-[#1d6fd0]"
+            >
+              <HandCoins className="size-5" /> Add Money Receipt
+            </Button>
+          ) : null
         }
       />
 
       <SimpleTabs />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <BigCard label="Total Received" value={formatMoney(data.summary.total || 0)} hint={`${data.summary.count || 0} receipts`} tone="green" />
-        <BigCard label="Cash" value={formatMoney(data.summary.cash || 0)} hint="Cash receipts" tone="blue" />
-        <BigCard label="Bank" value={formatMoney(data.summary.bank || 0)} hint="Bank receipts" tone="slate" />
-        <BigCard label="bKash" value={formatMoney(data.summary.bkash || 0)} hint="Mobile wallet" tone="amber" />
+        <BigCard label="Total Received" value={formatMoney(summary.total || 0)} hint={`${summary.count || 0} receipts`} tone="green" />
+        <BigCard label="Cash" value={formatMoney(summary.cash || 0)} hint="Cash receipts" tone="blue" />
+        <BigCard label="Bank" value={formatMoney(summary.bank || 0)} hint="Bank receipts" tone="slate" />
+        <BigCard label="bKash" value={formatMoney(summary.bkash || 0)} hint="Mobile wallet" tone="amber" />
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <input
-            value={filters.search}
-            onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+            value={table.search}
+            onChange={(event) => table.setSearch(event.target.value)}
             placeholder="Search MR no, client, invoice or phone…"
             className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-10 pr-3 text-base outline-none focus:border-[#2F80ED]"
           />
@@ -227,21 +195,24 @@ export default function MoneyReceipts() {
           <CalendarDays className="size-4 text-slate-400" />
           <input
             type="date"
-            value={filters.from}
-            onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))}
+            value={dates.from}
+            onChange={(event) => setDates((value) => ({ ...value, from: event.target.value }))}
             className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#2F80ED]"
           />
           <span className="text-sm text-slate-400">to</span>
           <input
             type="date"
-            value={filters.to}
-            onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))}
+            value={dates.to}
+            onChange={(event) => setDates((value) => ({ ...value, to: event.target.value }))}
             className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-[#2F80ED]"
           />
-          {filters.from || filters.to || filters.search ? (
+          {dates.from || dates.to || table.search ? (
             <button
               type="button"
-              onClick={() => setFilters({ from: '', to: '', search: '' })}
+              onClick={() => {
+                setDates({ from: '', to: '' })
+                table.setSearch('')
+              }}
               className="h-11 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
             >
               Clear
@@ -250,52 +221,62 @@ export default function MoneyReceipts() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white py-20 text-center text-base text-slate-500">
-          Loading money receipts…
-        </div>
+      {table.error ? (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-sm text-rose-700">
+          {errorMessage(table.error)}{' '}
+          <button type="button" onClick={table.reload} className="font-semibold underline">Try again</button>
+        </p>
       ) : (
-        <Table
-          columns={columns}
-          data={rows}
-          dense
-          headerClassName="bg-[#2F80ED] text-white"
-          emptyText="No money receipts yet"
-          emptyDescription="Receive a payment from a sale and it will appear here."
-        />
+        <>
+          <Table
+            columns={columns}
+            data={table.rows}
+            dense
+            loading={table.loading}
+            refreshing={table.refreshing}
+            headerClassName="bg-[#2F80ED] text-white"
+            emptyText="No money receipts yet"
+            emptyDescription="Receive a payment from a sale and it will appear here."
+          />
+          <TablePagination {...table.paginationProps} itemLabel="receipts" />
+        </>
       )}
-
-      <TablePagination
-        currentPage={current}
-        totalEntries={data.rows.length}
-        pageSize={PAGE_SIZE}
-        itemLabel="receipts"
-        onPageChange={setPage}
-      />
 
       <MoneyReceiptModal
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
-        sales={sales}
+        sales={dues}
         onSave={async (payload) => {
           const receipt = await simpleApi.addReceipt(payload)
-          await load()
+          table.reload()
+          loadDues()
           setViewNo(receipt.no)
-          setNotice({ type: 'success', text: 'Money receipt saved.' })
+          toast.success('Money receipt saved.')
         }}
       />
 
+      <ReasonModal
+        open={Boolean(voiding)}
+        onOpenChange={(open) => !open && setVoiding(null)}
+        title={`Void receipt ${voiding?.no ?? ''}`}
+        subtitle="The receipt stays in the history, marked as voided."
+        confirmLabel="Void receipt"
+        onConfirm={async (reason) => {
+          await simpleApi.voidReceipt(voiding.id, reason)
+          table.reload()
+          loadDues()
+          toast.success('Receipt voided. The client due is back.')
+        }}
+      >
+        {voiding ? (
+          <p className="text-sm text-slate-600">
+            The client due goes up by {formatMoney(voiding.totalApplied)} and the money is taken out of {voiding.paymentType}.
+          </p>
+        ) : null}
+      </ReasonModal>
+
       <ReceiptViewModal open={Boolean(viewNo)} onOpenChange={(open) => !open && setViewNo('')} receiptNo={viewNo} />
 
-      {notice ? (
-        <div
-          className={`fixed right-4 top-4 z-50 rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ${
-            notice.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
-          }`}
-        >
-          {notice.text}
-        </div>
-      ) : null}
     </div>
   )
 }

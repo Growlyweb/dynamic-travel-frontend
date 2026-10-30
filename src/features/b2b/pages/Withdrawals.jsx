@@ -5,7 +5,7 @@ import TablePagination from '../../../components/tables/TablePagination'
 import TableActions from '../../../components/tables/TableActions'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import Badge from '../../../components/common/Badge'
-import { b2bApi } from '../b2b.api'
+import { b2bOperationsApi as b2bApi } from '../b2b.api'
 import { usePagination } from '../../../hooks/usePagination'
 import { formatDate, formatCurrency } from '../../../utils/formatters'
 

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { MONTH_NAMES } from '../accounting/dates'
+import { MONTH_NAMES } from '../lib/dates'
 
 const selectClass =
   'h-8 rounded-lg border border-slate-200 bg-white px-2 text-[11.5px] font-semibold text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15'

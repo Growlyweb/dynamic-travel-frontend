@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BadgeCheck, Banknote, Clock3, UserX } from 'lucide-react'
 import PageHeader from '../../../components/layout/PageHeader'
 import DataTable from '../../../components/tables/DataTable'
+import TablePagination from '../../../components/tables/TablePagination'
+import ErrorState from '../../../components/common/ErrorState'
 import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
 import Modal from '../../../components/common/Modal'
@@ -10,6 +12,8 @@ import Select from '../../../components/common/Select'
 import StatCard from '../../../components/charts/StatCard'
 import { membershipApi, MEMBERSHIP_STATUSES, PAYMENT_METHODS } from '../membership.api'
 import { b2cApi } from '../../b2c/b2c.api'
+import { useServerTable } from '../../../hooks/useServerTable'
+import { errorMessage } from '../../../utils/errors'
 import { formatDate, formatCurrency, formatNumber } from '../../../utils/formatters'
 
 const STATUS_TONES = { active: 'success', pending: 'warning', expired: 'neutral', cancelled: 'danger' }
@@ -18,11 +22,8 @@ const PAYMENT_TONES = { paid: 'success', unpaid: 'warning', refunded: 'info' }
 const PAYMENT_METHOD_LABELS = { bkash: 'bKash', nagad: 'Nagad', bank: 'Bank', cash: 'Cash', online: 'Online' }
 
 export default function MembershipMembers() {
-  const [rows, setRows] = useState([])
   const [plans, setPlans] = useState([])
   const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [planId, setPlanId] = useState('')
   const [expiringOnly, setExpiringOnly] = useState(false)
@@ -37,36 +38,30 @@ export default function MembershipMembers() {
   const [actionSaving, setActionSaving] = useState(false)
   const [actionError, setActionError] = useState(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [membershipResult, planResult, statResult] = await Promise.all([
-        membershipApi.listMemberships(),
-        membershipApi.listPlans(),
-        membershipApi.getStats(),
-      ])
-      setRows(membershipResult.items ?? [])
-      setPlans(planResult.items ?? [])
-      setStats(statResult)
-    } finally {
-      setLoading(false)
-    }
+  const table = useServerTable({
+    table: 'memberships',
+    fetcher: membershipApi.listMemberships,
+    filters: { status, planId, expiringIn: expiringOnly ? 7 : undefined },
+  })
+  const search = table.search
+  const setSearch = table.setSearch
+
+  // The plans and the counters change with the list, so they are read again after every change.
+  const loadSide = useCallback(async () => {
+    const [planResult, statResult] = await Promise.all([membershipApi.listPlans(), membershipApi.getStats()])
+    setPlans(planResult.items ?? [])
+    setStats(statResult)
   }, [])
 
   useEffect(() => {
-    load()
-  }, [load])
+    loadSide().catch(() => {})
+  }, [loadSide])
 
-  const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    return rows.filter((row) => {
-      if (status && row.status !== status) return false
-      if (planId && row.planId !== planId) return false
-      if (expiringOnly && !(row.status === 'active' && row.daysLeft >= 0 && row.daysLeft <= 7)) return false
-      if (query && !`${row.customerName} ${row.customerPhone} ${row.customerEmail}`.toLowerCase().includes(query)) return false
-      return true
-    })
-  }, [rows, search, status, planId, expiringOnly])
+  const load = useCallback(async () => {
+    table.reload()
+    await loadSide()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadSide, table.reload])
 
   async function handleCancel() {
     if (!cancelling) return
@@ -78,7 +73,7 @@ export default function MembershipMembers() {
       setCancelReason('')
       await load()
     } catch (cancelError) {
-      setActionError(cancelError?.message ?? 'Could not cancel the membership.')
+      setActionError(errorMessage(cancelError, 'Could not cancel the membership.'))
     } finally {
       setActionSaving(false)
     }
@@ -93,7 +88,7 @@ export default function MembershipMembers() {
       setExtending(null)
       await load()
     } catch (extendError) {
-      setActionError(extendError?.message ?? 'Could not extend the membership.')
+      setActionError(errorMessage(extendError, 'Could not extend the membership.'))
     } finally {
       setActionSaving(false)
     }
@@ -108,7 +103,7 @@ export default function MembershipMembers() {
       setDeletingMember(null)
       await load()
     } catch (err) {
-      setActionError(err?.message ?? 'Could not delete the membership.')
+      setActionError(errorMessage(err, 'Could not delete the membership.'))
     } finally {
       setActionSaving(false)
     }
@@ -166,8 +161,9 @@ export default function MembershipMembers() {
         </div>
 
         <DataTable
-          loading={loading}
-          data={filteredRows}
+          loading={table.loading}
+          refreshing={table.refreshing}
+          data={table.rows}
           emptyTitle="No memberships match your filters"
           columns={[
             {
@@ -246,6 +242,8 @@ export default function MembershipMembers() {
             },
           ]}
         />
+        {table.error ? <ErrorState title="Could not load the memberships" message={errorMessage(table.error)} onRetry={table.reload} /> : null}
+        <TablePagination {...table.paginationProps} />
       </div>
 
       <AddMembershipDialog open={addOpen} onClose={() => setAddOpen(false)} plans={plans} onSaved={load} />
@@ -357,7 +355,7 @@ function AddMembershipDialog({ open, onClose, plans, onSaved }) {
       setValues({ customerId: '', planId: '', paymentMethod: 'bkash', trxId: '', startDate: '' })
       setErrors({})
       setError(null)
-      b2cApi.list().then((result) => setCustomers(result.items ?? []))
+      b2cApi.list({ pageSize: 500 }).then((result) => setCustomers(result.items ?? []))
     }
   }, [open])
 
@@ -385,7 +383,7 @@ function AddMembershipDialog({ open, onClose, plans, onSaved }) {
       onSaved?.()
       onClose()
     } catch (createError) {
-      setError(createError?.message ?? 'Could not create the membership.')
+      setError(errorMessage(createError, 'Could not create the membership.'))
     } finally {
       setSaving(false)
     }

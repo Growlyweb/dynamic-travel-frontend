@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import PageHeader from '../../../components/layout/PageHeader'
 import DataTable from '../../../components/tables/DataTable'
 import TablePagination from '../../../components/tables/TablePagination'
@@ -6,31 +6,16 @@ import TableActions from '../../../components/tables/TableActions'
 import Badge from '../../../components/common/Badge'
 import Button from '../../../components/common/Button'
 import Modal from '../../../components/common/Modal'
-import { toursApi } from '../tours.api'
-import { usePagination } from '../../../hooks/usePagination'
+import { toursApi, CUSTOM_REQUEST_STATUSES } from '../tours.api'
+import { useServerTable } from '../../../hooks/useServerTable'
+import { useToast } from '../../../context/ToastContext'
+import { errorMessage } from '../../../utils/errors'
 import { formatDate, formatNumber, initials } from '../../../utils/formatters'
 import { downloadPdf, formatDurationNights, padDay } from '../../../utils/itineraryPdf'
 import { config } from '../../../app/config'
 
-const STATUS_TONES = {
-  NEW: 'warning',
-  IN_REVIEW: 'info',
-  QUOTED: 'info',
-  CONFIRMED: 'success',
-  CANCELLED: 'neutral',
-  pending: 'warning',
-  quoted: 'info',
-  booked: 'success',
-  closed: 'neutral',
-}
-
-const STATUS_OPTIONS = [
-  { value: 'NEW', label: 'Pending' },
-  { value: 'IN_REVIEW', label: 'In Review' },
-  { value: 'QUOTED', label: 'Quoted' },
-  { value: 'CONFIRMED', label: 'Booked' },
-  { value: 'CANCELLED', label: 'Closed' },
-]
+const STATUS_TONES = Object.fromEntries(CUSTOM_REQUEST_STATUSES.map((status) => [status.value, status.tone]))
+const STATUS_OPTIONS = CUSTOM_REQUEST_STATUSES
 
 const HOTEL_LABELS = {
   budget: 'Budget / Guesthouse',
@@ -88,9 +73,7 @@ function requestPdf(request) {
 
 /* ── Status Selector Dropdown ───────────────────────────── */
 function StatusDropdown({ value, onChange }) {
-  const norm = (value || 'NEW').toUpperCase()
-  const val = norm === 'PENDING' ? 'NEW' : norm === 'BOOKED' ? 'CONFIRMED' : norm === 'CLOSED' ? 'CANCELLED' : norm
-  const tone = STATUS_TONES[val] ?? 'neutral'
+  const tone = STATUS_TONES[value] ?? 'neutral'
   const toneColors = {
     warning: { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
     info: { bg: '#e0f2fe', text: '#0369a1', border: '#7dd3fc' },
@@ -101,7 +84,7 @@ function StatusDropdown({ value, onChange }) {
 
   return (
     <select
-      value={val}
+      value={value}
       onChange={(e) => onChange(e.target.value)}
       style={{
         background: style.bg,
@@ -187,7 +170,7 @@ function ItineraryModal({ request, onClose, onStatusChange }) {
             <div style={{ marginTop: 4 }}>
               <StatusDropdown
                 value={request.status}
-                onChange={(newStatus) => onStatusChange(request.id || request._id, newStatus)}
+                onChange={(newStatus) => onStatusChange(request.id, newStatus)}
               />
             </div>
           </div>
@@ -291,39 +274,21 @@ function ItineraryModal({ request, onClose, onStatusChange }) {
 
 /* ── CustomTours Main Page Component ─────────────────────── */
 export default function CustomTours() {
-  const [rows, setRows] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const toast = useToast()
   const [active, setActive] = useState(null)
-  const { page, pageSize, goToPage, changePageSize } = usePagination()
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const result = await toursApi.listCustom({ page, pageSize })
-      setRows(result.items ?? [])
-      setTotal(result.total ?? 0)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, pageSize])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const table = useServerTable({ table: 'custom-tours', fetcher: toursApi.listCustom })
+  const rows = table.rows
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const updated = await toursApi.updateCustom(id, { status: newStatus })
-      const statusToSet = updated?.status || newStatus
-      setRows((prev) =>
-        prev.map((r) => ((r.id === id || r._id === id) ? { ...r, status: statusToSet } : r))
-      )
-      if (active && (active.id === id || active._id === id)) {
-        setActive((prev) => ({ ...prev, status: statusToSet }))
+      await toursApi.setCustomStatus(id, newStatus)
+      toast.success('Status updated.')
+      table.reload()
+      if (active && active.id === id) {
+        setActive((prev) => ({ ...prev, status: newStatus }))
       }
     } catch (err) {
-      console.error('Failed to update status', err)
+      toast.error(errorMessage(err))
     }
   }
 
@@ -337,7 +302,8 @@ export default function CustomTours() {
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <DataTable
-          loading={loading}
+          loading={table.loading}
+          refreshing={table.refreshing}
           data={rows}
           emptyTitle="No custom requests"
           emptyDescription="Custom itinerary requests from website visitors will appear here."
@@ -431,7 +397,7 @@ export default function CustomTours() {
               render: (row) => (
                 <StatusDropdown
                   value={row.status}
-                  onChange={(newStatus) => handleStatusChange(row.id || row._id, newStatus)}
+                  onChange={(newStatus) => handleStatusChange(row.id, newStatus)}
                 />
               ),
             },
@@ -459,13 +425,7 @@ export default function CustomTours() {
           ]}
         />
         <div style={{ padding: '0 16px 14px' }}>
-          <TablePagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={goToPage}
-            onPageSizeChange={changePageSize}
-          />
+          <TablePagination {...table.paginationProps} />
         </div>
       </div>
 

@@ -8,6 +8,8 @@ import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
 import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import { visaApi, STATUS_CATEGORIES } from '../visa.api'
+import { useAction } from '../../../hooks/useAction'
+import { errorMessage } from '../../../utils/errors'
 
 const CATEGORY_TONES = {
   in_progress: 'info',
@@ -33,6 +35,7 @@ function valuesFromConfig(config) {
 }
 
 export default function VisaStatuses() {
+  const run = useAction()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -45,13 +48,10 @@ export default function VisaStatuses() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const result = await visaApi.listStatusConfigs()
-      setRows(result.items ?? [])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    const { ok, value } = await run(() => visaApi.listStatusConfigs())
+    if (ok) setRows(value.items ?? [])
+    setLoading(false)
+  }, [run])
 
   useEffect(() => {
     load()
@@ -100,26 +100,25 @@ export default function VisaStatuses() {
       })
       setDialogOpen(false)
       await load()
+    } catch (error) {
+      setErrors({ ...(error?.fields ?? {}), form: errorMessage(error) })
     } finally {
       setSaving(false)
     }
   }
 
   async function toggleActive(config) {
-    await visaApi.updateStatusConfig(config.id, { active: !config.active })
-    await load()
+    const { ok } = await run(() => visaApi.updateStatusConfig(config.id, { active: !config.active }))
+    if (ok) await load()
   }
 
   async function handleDelete() {
     if (!pendingDelete) return
     setDeleting(true)
-    try {
-      await visaApi.removeStatusConfig(pendingDelete.id)
-      setPendingDelete(null)
-      await load()
-    } finally {
-      setDeleting(false)
-    }
+    const { ok } = await run(() => visaApi.removeStatusConfig(pendingDelete.id), { success: 'Status deleted.' })
+    setPendingDelete(null)
+    if (ok) await load()
+    setDeleting(false)
   }
 
   return (
@@ -166,7 +165,7 @@ export default function VisaStatuses() {
               header: 'Active',
               render: (row) => (
                 <label className="checkbox">
-                  <input type="checkbox" checked={row.active} onChange={() => toggleActive(row)} />
+                  <input type="checkbox" checked={row.active} disabled={row.isSystem} onChange={() => toggleActive(row)} />
                   {row.active ? 'Active' : 'Inactive'}
                 </label>
               ),
@@ -205,6 +204,7 @@ export default function VisaStatuses() {
         }
       >
         <form onSubmit={handleSubmit} className="stack">
+          {errors.form ? <div className="alert alert--danger">{errors.form}</div> : null}
           <div className="grid grid--2">
             <Input
               label="Display name"
@@ -248,6 +248,8 @@ export default function VisaStatuses() {
             <Select
               label="Category"
               value={values.category}
+              disabled={Boolean(editing?.isSystem)}
+              hint={editing?.isSystem ? 'A system status keeps its category.' : undefined}
               onChange={(event) => setValue('category', event.target.value)}
               options={STATUS_CATEGORIES.map((category) => ({
                 value: category,
@@ -267,6 +269,7 @@ export default function VisaStatuses() {
                 <input
                   type="checkbox"
                   checked={values.active}
+                  disabled={Boolean(editing?.isSystem)}
                   onChange={(event) => setValue('active', event.target.checked)}
                 />
                 Active and available for selection

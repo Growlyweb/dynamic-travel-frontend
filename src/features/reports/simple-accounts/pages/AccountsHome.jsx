@@ -25,7 +25,7 @@ import AgingBars from '@/features/reports/components/AgingBars'
 import SaleModal from '../components/SaleModal'
 import MoneyReceiptModal from '../components/MoneyReceiptModal'
 import { simpleApi } from '../simple.api'
-import { formatMoney, formatPct } from '@/features/reports/reports.api'
+import { formatMoney, formatPct } from '@/features/reports/lib/format'
 
 export default function AccountsHome() {
   const now = new Date()
@@ -48,7 +48,7 @@ export default function AccountsHome() {
         simpleApi.getHome(period),
         simpleApi.getCategories(),
         simpleApi.getPriceList(),
-        simpleApi.listSales({}),
+        simpleApi.listDue({ pageSize: 500 }),
       ])
       setData(home)
       setCategories(categoryRows)
@@ -146,13 +146,14 @@ export default function AccountsHome() {
         <BigCard
           label="Cost Price"
           value={formatMoney(data.cost)}
+          hint={data.unallocatedCost > 0 ? `Includes ${formatMoney(data.unallocatedCost)} not tied to a sale` : undefined}
           icon={ReceiptText}
           tone="amber"
         />
         <BigCard
           label="Profit"
           value={formatMoney(data.profit)}
-          hint={`After ${formatMoney(data.officeExpenses)} office expenses · ${formatPct(data.margin)}`}
+          hint={`After ${formatMoney(data.officeExpenses)} office expenses · ${formatPct(data.margin)} margin`}
           icon={Banknote}
           tone={data.profit >= 0 ? 'green' : 'red'}
         />
@@ -236,7 +237,7 @@ export default function AccountsHome() {
       </div>
 
       <SectionCard title="How Old Client Dues Are" subtitle="Red money needs a reminder today.">
-        <AgingBars aging={data.aging} total={data.totalDue} columns={4} />
+        <AgingBars aging={data.aging} total={data.totalDue} columns={5} />
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -1,106 +1,35 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { usePermission } from '../../../hooks/usePermission'
 import PageHeader from '../../../components/layout/PageHeader'
 import TablePagination from '../../../components/tables/TablePagination'
 import Input from '../../../components/common/Input'
 import Select from '../../../components/common/Select'
-import Button from '../../../components/common/Button'
 import PartnerTable from '../components/PartnerTable'
-import CreatePartnerModal from '../components/CreatePartnerModal'
 import { b2bApi } from '../b2b.api'
-import { useDebounce } from '../../../hooks/useDebounce'
-import { usePagination } from '../../../hooks/usePagination'
+import { useServerTable } from '../../../hooks/useServerTable'
 import { APP_ROUTES, PARTNER_STATUSES } from '../../../utils/constants'
-import { titleCase } from '../../../utils/formatters'
 
+const label = (value) => value.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase())
+
+// Partners register on the website. They are not created here: staff review them and decide.
 export default function Partners() {
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
+  const { isAdmin } = usePermission()
   const [status, setStatus] = useState('')
-  const [rows, setRows] = useState([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [createOpen, setCreateOpen] = useState(false)
-
-  const debouncedSearch = useDebounce(search, 350)
-  const { page, pageSize, goToPage, changePageSize } = usePagination()
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await b2bApi.listPartners({ page, pageSize, search: debouncedSearch, status: status || undefined })
-      setRows(result.items ?? [])
-      setTotal(result.total ?? 0)
-    } catch (loadError) {
-      setError(loadError)
-    } finally {
-      setLoading(false)
-    }
-  }, [page, pageSize, debouncedSearch, status])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  useEffect(() => {
-    goToPage(1)
-  }, [debouncedSearch, status, goToPage])
+  const table = useServerTable({ table: 'b2b-partners', fetcher: b2bApi.listPartners, filters: { status } })
 
   return (
     <div className="stack">
-      <PageHeader
-        title="Partners"
-        // description="B2B agencies reselling your tours and visa services."
-        breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Partners' }]}
-        actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" /> Create partner portal
-          </Button>
-        }
-      />
+      <PageHeader title="Partners" breadcrumbs={[{ label: 'Partners · B2B' }, { label: 'Partners' }]} />
       <div className="card stack">
         <div className="filters">
-          <Input
-            label="Search"
-            type="search"
-            placeholder="Name, company or country…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <Select
-            label="Status"
-            placeholder="All statuses"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-            options={PARTNER_STATUSES.map((value) => ({ value, label: titleCase(value) }))}
-          />
+          <Input label="Search" type="search" placeholder="Company or license number…" value={table.search} onChange={(event) => table.setSearch(event.target.value)} />
+          <Select label="Status" placeholder="All statuses" value={status} onChange={(event) => setStatus(event.target.value)} options={PARTNER_STATUSES.map((value) => ({ value, label: label(value) }))} />
         </div>
-        <PartnerTable
-          rows={rows}
-          loading={loading}
-          error={error}
-          onRetry={load}
-          onView={(row) => navigate(APP_ROUTES.B2B_PARTNER_DETAILS(row.id))}
-        />
-        <TablePagination
-          page={page}
-          pageSize={pageSize}
-          total={total}
-          onPageChange={goToPage}
-          onPageSizeChange={changePageSize}
-        />
+        <PartnerTable rows={table.rows} loading={table.loading} refreshing={table.refreshing} error={table.error} onRetry={table.reload} onView={isAdmin ? (row) => navigate(APP_ROUTES.B2B_PARTNER_DETAILS(row.id)) : undefined} />
+        <TablePagination {...table.paginationProps} />
       </div>
-
-      <CreatePartnerModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreated={async () => {
-          await load()
-        }}
-      />
     </div>
   )
 }

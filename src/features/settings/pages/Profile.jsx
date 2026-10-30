@@ -1,101 +1,61 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PageHeader from '../../../components/layout/PageHeader'
 import Input from '../../../components/common/Input'
-import Select from '../../../components/common/Select'
 import Button from '../../../components/common/Button'
+import Loader from '../../../components/common/Loader'
+import { settingsApi } from '../settings.api'
 import { useAuth } from '../../../hooks/useAuth'
-import { CURRENCIES } from '../../../utils/constants'
-import { apiClient } from '../../../services/apiClient'
-import { getApiErrorMessage } from '../../../utils/helpers'
-
-const TIMEZONES = ['UTC', 'Europe/London', 'Europe/Paris', 'Asia/Dubai', 'Asia/Kolkata', 'America/New_York']
+import { useToast } from '../../../context/ToastContext'
+import { roleText } from '../../../utils/roles'
+import { errorMessage, fieldErrors } from '../../../utils/errors'
 
 export default function Profile() {
-  const { user } = useAuth()
-  const [values, setValues] = useState({
-    name: user?.name ?? '',
-    email: user?.email ?? '',
-    phone: user?.phone ?? '',
-    timezone: 'UTC',
-  })
-  const [saved, setSaved] = useState(false)
+  const { user, reload } = useAuth()
+  const toast = useToast()
+  const [values, setValues] = useState(null)
+  const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (user) {
-      setValues((v) => ({
-        ...v,
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      }))
-    }
-  }, [user])
-
-  function update(name, value) {
-    setSaved(false)
-    setValues((current) => ({ ...current, [name]: value }))
-  }
+    settingsApi
+      .getProfile()
+      .then((result) => setValues({ name: result.user.name ?? '', phone: result.user.phone ?? '', email: result.user.email ?? '' }))
+      .catch((error) => {
+        toast.error(errorMessage(error))
+        setValues({ name: user?.name ?? '', phone: '', email: user?.email ?? '' })
+      })
+  }, [toast, user])
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (values.name.trim().length < 2) return setErrors({ name: 'Enter your name.' })
     setSaving(true)
-    setError(null)
-    setSaved(false)
+    setErrors({})
     try {
-      await apiClient.patch('/admin/profile', {
-        name: values.name,
-        phone: values.phone || undefined
-      })
-      setSaved(true)
-    } catch (err) {
-      setError(getApiErrorMessage(err))
+      await settingsApi.updateProfile({ name: values.name.trim(), phone: values.phone.trim() || undefined })
+      await reload()
+      toast.success('Profile updated.')
+    } catch (error) {
+      setErrors(fieldErrors(error))
+      toast.error(errorMessage(error))
     } finally {
       setSaving(false)
     }
   }
 
+  if (!values) return <Loader fullPage label="Loading profile…" />
+
   return (
     <div className="stack">
-      <PageHeader
-        title="Profile"
-        description="Your personal information."
-        breadcrumbs={[{ label: 'Settings' }, { label: 'Profile' }]}
-      />
+      <PageHeader title="Profile" description="Your name and phone number." breadcrumbs={[{ label: 'Settings' }, { label: 'Profile' }]} />
 
       <form className="card stack" onSubmit={handleSubmit} noValidate style={{ maxWidth: 560 }}>
-        {error ? <div className="alert alert--danger">{error}</div> : null}
-        {saved ? <div className="alert alert--success">Profile updated.</div> : null}
-        <Input label="Full name" value={values.name} onChange={(event) => update('name', event.target.value)} />
-        <Input
-          label="Email"
-          type="email"
-          value={values.email}
-          disabled
-        />
-        <Input
-          label="Phone"
-          type="tel"
-          placeholder="+880 171 000 0000"
-          value={values.phone}
-          onChange={(event) => update('phone', event.target.value)}
-        />
-        <Select
-          label="Timezone"
-          value={values.timezone}
-          onChange={(event) => update('timezone', event.target.value)}
-          options={TIMEZONES.map((zone) => ({ value: zone, label: zone }))}
-        />
-        <Select
-          label="Default currency"
-          defaultValue="USD"
-          options={CURRENCIES.map((currency) => ({ value: currency, label: currency }))}
-        />
+        <Input label="Full name" value={values.name} error={errors.name} onChange={(event) => setValues({ ...values, name: event.target.value })} />
+        <Input label="Phone" type="tel" placeholder="+8801712345678" value={values.phone} error={errors.phone} onChange={(event) => setValues({ ...values, phone: event.target.value })} />
+        <Input label="Email" type="email" value={values.email} disabled hint="Ask an administrator to change your email." />
+        <Input label="Access" value={roleText(user)} disabled />
         <div>
-          <Button type="submit" disabled={saving}>
-            {saving ? 'Saving...' : 'Save changes'}
-          </Button>
+          <Button type="submit" loading={saving}>Save changes</Button>
         </div>
       </form>
     </div>

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, PlusCircle } from 'lucide-react'
 import ModalShell, { Field } from '@/features/reports/components/ModalShell'
 import { Button } from '@/components/ui/button'
-import { formatMoney } from '@/features/reports/reports.api'
-import { todayISO } from '@/features/reports/accounting/dates'
+import { formatMoney } from '@/features/reports/lib/format'
+import { todayISO } from '@/features/reports/lib/dates'
 
 const input =
   'h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 outline-none transition focus:border-[#2F80ED] focus:ring-2 focus:ring-primary/20'
