@@ -71,7 +71,19 @@ function matchDocumentForItem(item, documents) {
 function serviceRows(application) {
   const { ticket, hotel, tour } = application
   if (application.serviceType === 'ticket' && ticket) {
-    return [['Trip type', ticket.tripType], ['Travel class', ticket.travelClass], ['Departure', ticket.departure], ['Arrive', ticket.arrival]]
+    const base = [
+      ['Trip type', ticket.tripType],
+      ['Travel class', ticket.travelClass],
+    ]
+    if (ticket.tripType === 'Multi City' && Array.isArray(ticket.legs) && ticket.legs.length > 0) {
+      ticket.legs.forEach((leg, index) => {
+        base.push([`Flight ${index + 1}`, `${leg.departure} → ${leg.arrival}`])
+      })
+    } else {
+      base.push(['Departure', ticket.departure])
+      base.push(['Arrive', ticket.arrival])
+    }
+    return base
   }
   if (application.serviceType === 'hotel' && hotel) {
     return [['Hotel', hotel.name], ['Country', hotel.country], ['City / location', hotel.city], ['Stay duration', hotel.stay]]
