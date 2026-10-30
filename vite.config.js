@@ -20,10 +20,11 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
-    open: true,
+    open: false,
     watch: {
       usePolling: true,
-      interval: 300,
+      interval: 1000,
+      ignored: ['**/node_modules/**', '**/dist/**', '**/.git/**'],
     },
     proxy: {
       '/api': {
