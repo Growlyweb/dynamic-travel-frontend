@@ -34,10 +34,18 @@ const EMPTY = {
   confirmDuplicate: '',
 }
 
-const EMPTY_TICKET = { tripType: TRIP_TYPES[0], departure: '', arrival: '', travelClass: TICKET_CLASSES[0] }
+const newKey = () => Math.random().toString(36).slice(2)
+const emptyLeg = (departure = '', arrival = '') => ({ key: newKey(), departure, arrival })
+const emptyTicket = () => ({
+  tripType: TRIP_TYPES[0],
+  departure: '',
+  arrival: '',
+  travelClass: TICKET_CLASSES[0],
+  legs: [emptyLeg('', ''), emptyLeg('', '')],
+})
+const EMPTY_TICKET = emptyTicket()
 const EMPTY_HOTEL = { name: '', country: 'United Arab Emirates', countryCode: 'AE', city: '', stay: '' }
 
-const newKey = () => Math.random().toString(36).slice(2)
 const emptyStop = (country = 'United Arab Emirates', countryCode = 'AE', city = 'Dubai') => ({ key: newKey(), country, countryCode, city })
 const emptyTour = () => ({ packageName: '', duration: '5 Days / 4 Nights', destinations: [emptyStop()] })
 const emptyLine = (service = 'visa', { country, countryCode } = FIRST_COUNTRY) => ({ key: newKey(), vendorId: '', name: '', service, country, countryCode, price: '', fromList: false })
@@ -256,7 +264,7 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
   useEffect(() => {
     if (!open) return
     setValues(EMPTY)
-    setTicket(EMPTY_TICKET)
+    setTicket(emptyTicket())
     setHotel(EMPTY_HOTEL)
     setTour(emptyTour())
     setLines([emptyLine()])
@@ -312,8 +320,54 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
   }
 
   function patchTicket(patch, key) {
-    setTicket((current) => ({ ...current, ...patch }))
-    clearErrors(`ticket.${key}`)
+    setTicket((current) => {
+      const next = { ...current, ...patch }
+      if (patch.tripType === 'Multi City') {
+        if (!Array.isArray(next.legs) || next.legs.length < 2) {
+          next.legs = [
+            emptyLeg(current.departure || '', current.arrival || ''),
+            emptyLeg(current.arrival || '', ''),
+          ]
+        }
+      }
+      return next
+    })
+    if (key) clearErrors(`ticket.${key}`)
+  }
+
+  function addLeg() {
+    setTicket((current) => {
+      const lastArrival = current.legs?.[current.legs.length - 1]?.arrival || ''
+      return {
+        ...current,
+        legs: [...(current.legs || []), emptyLeg(lastArrival, '')],
+      }
+    })
+  }
+
+  function removeLeg(key) {
+    setTicket((current) => {
+      if ((current.legs || []).length <= 2) return current
+      return {
+        ...current,
+        legs: current.legs.filter((leg) => leg.key !== key),
+      }
+    })
+  }
+
+  function changeLeg(key, field, value) {
+    setTicket((current) => ({
+      ...current,
+      legs: (current.legs || []).map((leg) => (leg.key === key ? { ...leg, [field]: value } : leg)),
+    }))
+    setErrors((current) => {
+      const next = { ...current }
+      Object.keys(next).forEach((k) => {
+        if (k.startsWith('ticket.legs.')) delete next[k]
+      })
+      delete next['ticket.legs']
+      return next
+    })
   }
 
   function patchHotel(patch, key) {
@@ -442,8 +496,19 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
       if (!values.countryId) found.countryId = 'Please choose a country'
       if (!values.visaTypeId) found.visaTypeId = 'Please choose a visa type'
     } else if (values.serviceType === 'ticket') {
-      if (!ticket.departure.trim()) found['ticket.departure'] = 'Please enter the departure place'
-      if (!ticket.arrival.trim()) found['ticket.arrival'] = 'Please enter the arrival place'
+      if (ticket.tripType === 'Multi City') {
+        if (!ticket.legs || ticket.legs.length < 2) {
+          found['ticket.legs'] = 'Multi City requires at least 2 flight segments'
+        } else {
+          ticket.legs.forEach((leg, index) => {
+            if (!leg.departure?.trim()) found[`ticket.legs.${index}.departure`] = 'Departure is required'
+            if (!leg.arrival?.trim()) found[`ticket.legs.${index}.arrival`] = 'Arrival is required'
+          })
+        }
+      } else {
+        if (!ticket.departure.trim()) found['ticket.departure'] = 'Please enter the departure place'
+        if (!ticket.arrival.trim()) found['ticket.arrival'] = 'Please enter the arrival place'
+      }
     } else if (values.serviceType === 'hotel') {
       if (!hotel.name.trim()) found['hotel.name'] = 'Please enter the hotel name'
       if (!hotel.country) found['hotel.country'] = 'Please choose a country'
@@ -464,7 +529,26 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
   }
 
   const detailsOf = () => {
-    if (values.serviceType === 'ticket') return { ticket: { ...ticket, departure: ticket.departure.trim(), arrival: ticket.arrival.trim() } }
+    if (values.serviceType === 'ticket') {
+      if (ticket.tripType === 'Multi City') {
+        const cleanLegs = (ticket.legs || []).map(({ departure, arrival }) => ({
+          departure: departure.trim(),
+          arrival: arrival.trim(),
+        }))
+        const departure = cleanLegs[0]?.departure || ''
+        const arrival = cleanLegs[cleanLegs.length - 1]?.arrival || ''
+        return {
+          ticket: {
+            tripType: ticket.tripType,
+            travelClass: ticket.travelClass,
+            departure,
+            arrival,
+            legs: cleanLegs,
+          },
+        }
+      }
+      return { ticket: { ...ticket, departure: ticket.departure.trim(), arrival: ticket.arrival.trim() } }
+    }
     if (values.serviceType === 'hotel') return { hotel: { ...hotel, name: hotel.name.trim(), city: hotel.city.trim(), stay: hotel.stay.trim() } }
     if (values.serviceType === 'tour') {
       return {
@@ -655,15 +739,88 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
                   </Field>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Departure" htmlFor="ticket-from" required error={errors['ticket.departure']}>
-                    <input id="ticket-from" type="text" value={ticket.departure} onChange={(event) => patchTicket({ departure: event.target.value }, 'departure')} placeholder="e.g. Dhaka (DAC)" className={inputClass(errors['ticket.departure'])} />
-                  </Field>
+                {ticket.tripType !== 'Multi City' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field label="Departure" htmlFor="ticket-from" required error={errors['ticket.departure']}>
+                      <input id="ticket-from" type="text" value={ticket.departure} onChange={(event) => patchTicket({ departure: event.target.value }, 'departure')} placeholder="e.g. Dhaka (DAC)" className={inputClass(errors['ticket.departure'])} />
+                    </Field>
 
-                  <Field label="Arrive" htmlFor="ticket-to" required error={errors['ticket.arrival']}>
-                    <input id="ticket-to" type="text" value={ticket.arrival} onChange={(event) => patchTicket({ arrival: event.target.value }, 'arrival')} placeholder="e.g. Dubai (DXB)" className={inputClass(errors['ticket.arrival'])} />
-                  </Field>
-                </div>
+                    <Field label="Arrive" htmlFor="ticket-to" required error={errors['ticket.arrival']}>
+                      <input id="ticket-to" type="text" value={ticket.arrival} onChange={(event) => patchTicket({ arrival: event.target.value }, 'arrival')} placeholder="e.g. Dubai (DXB)" className={inputClass(errors['ticket.arrival'])} />
+                    </Field>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        Flight Routes / Destinations ({ticket.legs?.length || 0})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={addLeg}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0066FF] hover:text-[#0055D6] cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Add Flight</span>
+                      </button>
+                    </div>
+
+                    {(ticket.legs || []).map((leg, index) => (
+                      <div key={leg.key} className="space-y-1">
+                        <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                          <span className="text-xs font-bold text-slate-400 w-5">#{index + 1}</span>
+
+                          <div className="flex-1 w-full">
+                            <input
+                              type="text"
+                              value={leg.departure}
+                              onChange={(e) => changeLeg(leg.key, 'departure', e.target.value)}
+                              placeholder={`Flight ${index + 1} Depart (e.g. Dhaka (DAC))`}
+                              className={inputClass(errors[`ticket.legs.${index}.departure`])}
+                            />
+                            {errors[`ticket.legs.${index}.departure`] && (
+                              <span className="text-xs text-rose-500 mt-1 block font-medium">
+                                {errors[`ticket.legs.${index}.departure`]}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="text-slate-400 font-bold hidden sm:inline">→</span>
+
+                          <div className="flex-1 w-full">
+                            <input
+                              type="text"
+                              value={leg.arrival}
+                              onChange={(e) => changeLeg(leg.key, 'arrival', e.target.value)}
+                              placeholder={`Flight ${index + 1} Arrive (e.g. Dubai (DXB))`}
+                              className={inputClass(errors[`ticket.legs.${index}.arrival`])}
+                            />
+                            {errors[`ticket.legs.${index}.arrival`] && (
+                              <span className="text-xs text-rose-500 mt-1 block font-medium">
+                                {errors[`ticket.legs.${index}.arrival`]}
+                              </span>
+                            )}
+                          </div>
+
+                          {(ticket.legs || []).length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => removeLeg(leg.key)}
+                              className="w-8 h-8 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                              title="Remove flight segment"
+                              aria-label={`Remove flight segment ${index + 1}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {errors['ticket.legs'] && (
+                      <span className="text-xs text-rose-500 block font-medium">{errors['ticket.legs']}</span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
