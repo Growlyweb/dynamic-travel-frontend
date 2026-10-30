@@ -21,7 +21,13 @@ function nextId() {
 }
 
 export const categoriesApi = {
-  list: (params) => withMockList(categoriesStore, params, { searchKeys: ['name'] }),
+  list: (params) =>
+    withMockList(
+      categoriesStore,
+      params,
+      { searchKeys: ['name'] },
+      () => apiClient.get('/tour-categories', { params })
+    ),
   create: (payload) =>
     withMock(
       () => {

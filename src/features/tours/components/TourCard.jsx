@@ -108,10 +108,12 @@ export default function TourCard({ tour, onDelete }) {
   const flag = getFlag(tour.country || tour.destination)
   const canEdit = can('tours.edit')
 
+  const tourId = tour.id || tour._id;
+
   async function doDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
     setDeleting(true)
-    try { await onDelete?.(tour.id) }
+    try { await onDelete?.(tourId) }
     finally { setDeleting(false); setConfirmDelete(false) }
   }
 
@@ -119,12 +121,12 @@ export default function TourCard({ tour, onDelete }) {
     {
       label: 'View details',
       icon: '👁',
-      onClick: () => navigate(APP_ROUTES.TOUR_DETAILS(tour.id)),
+      onClick: () => navigate(APP_ROUTES.TOUR_DETAILS(tourId)),
     },
     ...(canEdit ? [{
       label: 'Edit',
       icon: '✏️',
-      onClick: () => navigate(APP_ROUTES.TOUR_EDIT(tour.id)),
+      onClick: () => navigate(APP_ROUTES.TOUR_EDIT(tourId)),
     }] : []),
     ...(canEdit && onDelete ? [{
       label: deleting ? 'Deleting…' : confirmDelete ? 'Confirm delete' : 'Delete',
@@ -138,9 +140,9 @@ export default function TourCard({ tour, onDelete }) {
   return (
     <div
       className={`tc${confirmDelete ? ' tc--confirm' : ''}`}
-      id={`tour-card-${tour.id}`}
+      id={`tour-card-${tourId}`}
       style={{ cursor: 'pointer' }}
-      onClick={() => navigate(APP_ROUTES.TOUR_DETAILS(tour.id))}
+      onClick={() => navigate(APP_ROUTES.TOUR_DETAILS(tourId))}
     >
 
       {/* ── LEFT: image thumbnail ── */}
@@ -164,7 +166,7 @@ export default function TourCard({ tour, onDelete }) {
         {/* Row 1 — title + kebab */}
         <div className="tc__top">
           <Link
-            to={APP_ROUTES.TOUR_DETAILS(tour.id)}
+            to={APP_ROUTES.TOUR_DETAILS(tourId)}
             className="tc__title-link"
             onClick={(e) => e.stopPropagation()}
           >

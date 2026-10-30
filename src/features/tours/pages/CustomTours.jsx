@@ -13,6 +13,11 @@ import { downloadPdf, formatDurationNights, padDay } from '../../../utils/itiner
 import { config } from '../../../app/config'
 
 const STATUS_TONES = {
+  NEW: 'warning',
+  IN_REVIEW: 'info',
+  QUOTED: 'info',
+  CONFIRMED: 'success',
+  CANCELLED: 'neutral',
   pending: 'warning',
   quoted: 'info',
   booked: 'success',
@@ -20,10 +25,11 @@ const STATUS_TONES = {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'quoted', label: 'Quoted' },
-  { value: 'booked', label: 'Booked' },
-  { value: 'closed', label: 'Closed' },
+  { value: 'NEW', label: 'Pending' },
+  { value: 'IN_REVIEW', label: 'In Review' },
+  { value: 'QUOTED', label: 'Quoted' },
+  { value: 'CONFIRMED', label: 'Booked' },
+  { value: 'CANCELLED', label: 'Closed' },
 ]
 
 const HOTEL_LABELS = {
@@ -82,7 +88,9 @@ function requestPdf(request) {
 
 /* ── Status Selector Dropdown ───────────────────────────── */
 function StatusDropdown({ value, onChange }) {
-  const tone = STATUS_TONES[value] ?? 'neutral'
+  const norm = (value || 'NEW').toUpperCase()
+  const val = norm === 'PENDING' ? 'NEW' : norm === 'BOOKED' ? 'CONFIRMED' : norm === 'CLOSED' ? 'CANCELLED' : norm
+  const tone = STATUS_TONES[val] ?? 'neutral'
   const toneColors = {
     warning: { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
     info: { bg: '#e0f2fe', text: '#0369a1', border: '#7dd3fc' },
@@ -93,7 +101,7 @@ function StatusDropdown({ value, onChange }) {
 
   return (
     <select
-      value={value}
+      value={val}
       onChange={(e) => onChange(e.target.value)}
       style={{
         background: style.bg,
@@ -179,7 +187,7 @@ function ItineraryModal({ request, onClose, onStatusChange }) {
             <div style={{ marginTop: 4 }}>
               <StatusDropdown
                 value={request.status}
-                onChange={(newStatus) => onStatusChange(request.id, newStatus)}
+                onChange={(newStatus) => onStatusChange(request.id || request._id, newStatus)}
               />
             </div>
           </div>
@@ -306,12 +314,13 @@ export default function CustomTours() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      await toursApi.updateCustom(id, { status: newStatus })
+      const updated = await toursApi.updateCustom(id, { status: newStatus })
+      const statusToSet = updated?.status || newStatus
       setRows((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+        prev.map((r) => ((r.id === id || r._id === id) ? { ...r, status: statusToSet } : r))
       )
-      if (active && active.id === id) {
-        setActive((prev) => ({ ...prev, status: newStatus }))
+      if (active && (active.id === id || active._id === id)) {
+        setActive((prev) => ({ ...prev, status: statusToSet }))
       }
     } catch (err) {
       console.error('Failed to update status', err)
@@ -422,7 +431,7 @@ export default function CustomTours() {
               render: (row) => (
                 <StatusDropdown
                   value={row.status}
-                  onChange={(newStatus) => handleStatusChange(row.id, newStatus)}
+                  onChange={(newStatus) => handleStatusChange(row.id || row._id, newStatus)}
                 />
               ),
             },

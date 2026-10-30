@@ -395,10 +395,51 @@ function nextId(prefix) {
   return `${prefix}_${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`
 }
 
+export const normalizeTour = (tour) => {
+  if (!tour) return tour
+  const id = tour.id || tour._id || tour.legacyId
+  return {
+    ...tour,
+    id,
+    _id: id,
+    categoryId: typeof tour.category === 'object' ? tour.category?._id : tour.category,
+    categoryName: typeof tour.category === 'object' ? tour.category?.name : tour.categoryName,
+  }
+}
+
+export const normalizeCustomTour = (request) => {
+  if (!request) return request
+  const id = request.id || request._id
+  return {
+    ...request,
+    id,
+    _id: id,
+    status: (request.status || 'NEW').toUpperCase(),
+  }
+}
+
 export const toursApi = {
-  list: (params) => withMockList(toursStore, params, { searchKeys: ['name', 'destination', 'country'] }),
+  list: (params) =>
+    withMockList(
+      toursStore,
+      params,
+      { searchKeys: ['name', 'destination', 'country'] },
+      async () => {
+        const res = await apiClient.get('/tours', { params })
+        const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        const items = raw.map(normalizeTour)
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      }
+    ),
   get: (id) =>
-    withMock(toursStore.find((tour) => tour.id === id) ?? toursStore[0], () => apiClient.get(`/tours/${id}`)),
+    withMock(
+      toursStore.find((tour) => tour.id === id) ?? toursStore[0],
+      async () => {
+        const res = await apiClient.get(`/tours/${id}`)
+        const tour = res?.data ?? res
+        return normalizeTour(tour)
+      }
+    ),
   create: (payload) =>
     withMock(
       () => {
@@ -428,7 +469,18 @@ export const toursApi = {
       () => apiClient.del(`/tours/${id}`),
     ),
 
-  listCustom: (params) => withMockList(customStore, params, { searchKeys: ['name', 'customer', 'destination'] }),
+  listCustom: (params) =>
+    withMockList(
+      customStore,
+      params,
+      { searchKeys: ['name', 'customer', 'destination'] },
+      async () => {
+        const res = await apiClient.get('/tours/custom-requests', { params })
+        const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        const items = raw.map(normalizeCustomTour)
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      }
+    ),
   createCustom: (payload) =>
     withMock(
       () => {
@@ -441,7 +493,7 @@ export const toursApi = {
         customStore = [record, ...customStore]
         return JSON.parse(JSON.stringify(record))
       },
-      () => apiClient.post('/tours/custom', payload),
+      () => apiClient.post('/tours/custom-requests', payload),
     ),
   updateCustom: (id, payload) =>
     withMock(
@@ -453,7 +505,27 @@ export const toursApi = {
         }
         return null
       },
-      () => apiClient.patch(`/tours/custom/${id}`, payload),
+      async () => {
+        let status = payload?.status
+        const statusMap = {
+          pending: 'NEW',
+          new: 'NEW',
+          quoted: 'QUOTED',
+          booked: 'CONFIRMED',
+          confirmed: 'CONFIRMED',
+          closed: 'CANCELLED',
+          cancelled: 'CANCELLED',
+          in_review: 'IN_REVIEW',
+        }
+        if (status && statusMap[status.toLowerCase()]) {
+          status = statusMap[status.toLowerCase()]
+        } else if (status) {
+          status = status.toUpperCase()
+        }
+        const body = { ...payload, status }
+        const res = await apiClient.patch(`/tours/custom-requests/${id}/status`, body)
+        return normalizeCustomTour(res?.data ?? res)
+      },
     ),
 }
 
