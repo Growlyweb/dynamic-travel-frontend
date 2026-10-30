@@ -14,6 +14,74 @@ import { postVisaApplicationToAccounts } from './visa.accounting'
 const clone = (value) => JSON.parse(JSON.stringify(value))
 const nextId = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`
 
+export const normalizeCountry = (c) => {
+  if (!c) return c
+  const id = c.id || c._id
+  return {
+    ...c,
+    id,
+    _id: id,
+  }
+}
+
+export const normalizeVisaType = (t) => {
+  if (!t) return t
+  const id = t.id || t._id
+  const countryId = t.countryId || (typeof t.country === 'object' ? t.country?._id : t.country)
+  return {
+    ...t,
+    id,
+    _id: id,
+    countryId,
+    country: countryId,
+  }
+}
+
+export const normalizeApplication = (app) => {
+  if (!app) return app
+  const id = app.id || app._id
+  const countryId = typeof app.country === 'object' ? app.country?._id : (app.countryId || app.country)
+  const countryName = app.countryName || (typeof app.country === 'object' ? app.country?.name : (typeof app.country === 'string' && app.country.length < 24 ? app.country : ''))
+  const visaTypeId = typeof app.visaType === 'object' ? app.visaType?._id : (app.visaTypeId || app.visaType)
+  const visaTypeName = app.visaTypeName || (typeof app.visaType === 'object' ? app.visaType?.name : (typeof app.visaType === 'string' && app.visaType.length < 24 ? app.visaType : ''))
+
+  return {
+    ...app,
+    id,
+    _id: id,
+    countryId,
+    country: countryName || app.country,
+    countryName: countryName || app.country,
+    visaTypeId,
+    visaType: visaTypeName || app.visaType,
+    visaTypeName: visaTypeName || app.visaType,
+    applicant: {
+      fullName: app.applicant?.fullName || app.applicant?.name || '',
+      mobile: app.applicant?.mobile || app.applicant?.phone || '',
+      email: app.applicant?.email || '',
+      applicantType: app.applicant?.applicantType || (app.channel === 'b2b' ? 'business' : 'individual'),
+      ...app.applicant,
+    },
+    passport: {
+      number: app.passport?.number || '',
+      ...app.passport,
+    },
+    price: app.price || { b2c: 0, b2b: 0, currency: 'BDT' },
+    documents: Array.isArray(app.documents) ? app.documents.map((d) => ({
+      ...d,
+      id: d.id || d._id,
+      _id: d._id || d.id,
+      name: d.name || d.originalName || 'Document',
+      size: typeof d.size === 'number' ? (d.size < 1024 ? `${d.size} B` : `${(d.size / 1024).toFixed(1)} KB`) : (d.size || ''),
+      uploadedBy: d.uploadedByName || d.uploadedBy || 'User',
+      url: d.url || `/api/visa/applications/${id}/documents/${d.id || d._id}/file`,
+    })) : [],
+    timeline: Array.isArray(app.timeline) ? app.timeline : [],
+    internalNotes: Array.isArray(app.internalNotes) ? app.internalNotes : [],
+    customerNotes: Array.isArray(app.customerNotes) ? app.customerNotes : [],
+  }
+}
+
 /* ── Countries (spec #1) ─────────────────────────────────── */
 
 const DEMO_COUNTRIES = [
@@ -645,7 +713,12 @@ export const visaApi = {
         }
         return { items: clone(items.sort((a, b) => a.displayOrder - b.displayOrder)), total: items.length }
       },
-      () => apiClient.get('/visa/countries', { params }),
+      async () => {
+        const res = await apiClient.get('/visa/countries', { params })
+        const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        const items = raw.map(normalizeCountry)
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      },
     ),
   saveCountry: (payload) =>
     withMock(
@@ -695,7 +768,12 @@ export const visaApi = {
         if (params.countryId) items = items.filter((type) => type.countryId === params.countryId)
         return { items: clone(items) }
       },
-      () => apiClient.get('/visa/types', { params }),
+      async () => {
+        const res = await apiClient.get('/visa/types', { params })
+        const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        const items = raw.map(normalizeVisaType)
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      },
     ),
   saveVisaType: (payload) =>
     withMock(
@@ -711,7 +789,25 @@ export const visaApi = {
         visaTypesStore = [...visaTypesStore, record]
         return clone(record)
       },
-      () => (payload.id ? apiClient.patch(`/visa/types/${payload.id}`, payload) : apiClient.post('/visa/types', payload)),
+      async () => {
+        const id = payload.id || payload._id
+        const countryId = payload.countryId || (typeof payload.country === 'object' ? payload.country?._id : payload.country)
+        const cleanPayload = { ...payload }
+        delete cleanPayload._id
+        delete cleanPayload.id
+        delete cleanPayload.createdAt
+        delete cleanPayload.updatedAt
+        delete cleanPayload.__v
+        delete cleanPayload.country
+        if (countryId) cleanPayload.countryId = countryId
+        if (!cleanPayload.validFrom) delete cleanPayload.validFrom
+        if (cleanPayload.b2bNetPrice == null) cleanPayload.b2bNetPrice = 0
+        const res = id
+          ? await apiClient.patch(`/visa/types/${id}`, cleanPayload)
+          : await apiClient.post('/visa/types', cleanPayload)
+        const saved = res?.data ?? res
+        return normalizeVisaType(saved)
+      },
     ),
   updateVisaType: (id, patch) =>
     withMock(
@@ -719,7 +815,11 @@ export const visaApi = {
         visaTypesStore = visaTypesStore.map((type) => (type.id === id ? { ...type, ...patch } : type))
         return clone(visaTypesStore.find((type) => type.id === id))
       },
-      () => apiClient.patch(`/visa/types/${id}`, patch),
+      async () => {
+        const res = await apiClient.patch(`/visa/types/${id}`, patch)
+        const saved = res?.data ?? res
+        return normalizeVisaType(saved)
+      },
     ),
   removeVisaType: (id) =>
     withMock(
@@ -803,12 +903,21 @@ export const visaApi = {
         items.sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1))
         return { items: clone(items), total: items.length }
       },
-      () => apiClient.get('/visa/applications', { params }),
+      async () => {
+        const res = await apiClient.get('/visa/applications', { params })
+        const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        const items = raw.map(normalizeApplication)
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      },
     ),
   getApplication: (id) =>
     withMock(
       () => clone(applicationsStore.find((application) => application.id === id) ?? applicationsStore[0]),
-      () => apiClient.get(`/visa/applications/${id}`),
+      async () => {
+        const res = await apiClient.get(`/visa/applications/${id}`)
+        const app = res?.data ?? res
+        return normalizeApplication(app)
+      },
     ),
   createApplication: (payload) =>
     withMock(
@@ -1079,7 +1188,11 @@ export const visaApi = {
   listStatusConfigs: () =>
     withMock(
       () => ({ items: clone([...statusConfigsStore].sort(sortActiveConfig)) }),
-      () => apiClient.get('/visa/statuses'),
+      async () => {
+        const res = await apiClient.get('/visa/statuses')
+        const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : res?.items ?? [])
+        return { items, total: res?.meta?.total ?? res?.total ?? items.length }
+      },
     ),
   saveStatusConfig: (payload) =>
     withMock(
@@ -1309,6 +1422,9 @@ export const visaApi = {
           ),
         })
       },
-      () => apiClient.get('/visa/dashboard'),
+      async () => {
+        const res = await apiClient.get('/visa/dashboard')
+        return res?.data ?? res
+      },
     ),
 }

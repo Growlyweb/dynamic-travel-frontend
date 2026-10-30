@@ -438,7 +438,7 @@ export default function VisaApplications() {
                 countryOptions={countryOptions}
                 onView={(row) =>
                   navigate(
-                    APP_ROUTES.VISA_APPLICATION_DETAILS(row.id)
+                    APP_ROUTES.VISA_APPLICATION_DETAILS(row.id || row._id)
                   )
                 }
                 onStatusChange={handleStatusChange}

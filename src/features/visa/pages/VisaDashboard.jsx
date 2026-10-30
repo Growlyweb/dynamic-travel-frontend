@@ -22,7 +22,28 @@ export default function VisaDashboard() {
     setLoading(true)
     setError(null)
     try {
-      setStats(await visaApi.getDashboardStats())
+      const res = await visaApi.getDashboardStats()
+      const data = res?.data ?? res ?? {}
+      setStats({
+        total: data.total ?? 0,
+        submitted: data.submitted ?? 0,
+        underReview: data.underReview ?? 0,
+        actionRequired: data.actionRequired ?? 0,
+        documentsCompleted: data.documentsCompleted ?? 0,
+        processing: data.processing ?? 0,
+        submittedToEmbassy: data.submittedToEmbassy ?? 0,
+        approved: data.approved ?? 0,
+        passportReady: data.passportReady ?? 0,
+        completed: data.completed ?? 0,
+        rejected: data.rejected ?? 0,
+        cancelled: data.cancelled ?? 0,
+        b2c: data.b2c ?? 0,
+        b2b: data.b2b ?? 0,
+        unassigned: data.unassigned ?? 0,
+        decisionRate: data.decisionRate ?? 0,
+        countries: Array.isArray(data.countries) ? data.countries : [],
+        recent: Array.isArray(data.recent) ? data.recent : [],
+      })
     } catch (loadError) {
       setError(loadError)
     } finally {
@@ -147,23 +168,23 @@ export default function VisaDashboard() {
             <Link className="small" to={APP_ROUTES.VISA_APPLICATIONS}>All applications</Link>
           </div>
           <ul className="stack stack--sm" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {stats.recent
-              .filter((application) => application.status === 'action_required' || !application.assignedStaff)
+            {(stats.recent ?? [])
+              .filter((application) => application && (application.status === 'action_required' || !application.assignedStaff))
               .map((application) => (
-                <li key={application.id} className="row between">
+                <li key={application.id || application._id} className="row between">
                   <div>
-                    <Link to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id)} className="strong">
-                      {application.number}
+                    <Link to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id || application._id)} className="strong">
+                      {application.number || application.trackingNumber}
                     </Link>
                     <p className="muted small" style={{ margin: 0 }}>
-                      {application.applicant.fullName} · {application.country}
+                      {application.applicant?.fullName || application.applicantName || 'Applicant'} · {application.country || application.countryName}
                       {!application.assignedStaff ? ' · unassigned' : ''}
                     </p>
                   </div>
                   <VisaStatusBadge status={application.status} />
                 </li>
               ))}
-            {!stats.recent.some((application) => application.status === 'action_required' || !application.assignedStaff) ? (
+            {!(stats.recent ?? []).some((application) => application && (application.status === 'action_required' || !application.assignedStaff)) ? (
               <p className="muted small">Nothing pending — all clear.</p>
             ) : null}
           </ul>
@@ -176,14 +197,14 @@ export default function VisaDashboard() {
           <Link className="small" to={APP_ROUTES.VISA_APPLICATIONS}>View all</Link>
         </div>
         <DataTable
-          data={stats.recent}
+          data={stats.recent ?? []}
           emptyTitle="No applications yet"
           columns={[
-            { key: 'number', header: 'Application', render: (row) => <Link to={APP_ROUTES.VISA_APPLICATION_DETAILS(row.id)} className="strong">{row.number}</Link> },
-            { key: 'applicant', header: 'Applicant', render: (row) => row.applicant.fullName },
-            { key: 'country', header: 'Country' },
-            { key: 'channel', header: 'Channel', render: (row) => (row.channel === 'b2b' ? `B2B · ${row.partner}` : 'B2C') },
-            { key: 'submittedAt', header: 'Submitted', render: (row) => formatDate(row.submittedAt) },
+            { key: 'number', header: 'Application', render: (row) => <Link to={APP_ROUTES.VISA_APPLICATION_DETAILS(row.id || row._id)} className="strong">{row.number || row.trackingNumber}</Link> },
+            { key: 'applicant', header: 'Applicant', render: (row) => row.applicant?.fullName || row.applicantName || 'Applicant' },
+            { key: 'country', header: 'Country', render: (row) => row.country || row.countryName },
+            { key: 'channel', header: 'Channel', render: (row) => (row.channel === 'b2b' ? `B2B · ${row.partner || ''}` : 'B2C') },
+            { key: 'submittedAt', header: 'Submitted', render: (row) => formatDate(row.submittedAt || row.createdAt) },
             { key: 'status', header: 'Status', render: (row) => <VisaStatusBadge status={row.status} /> },
           ]}
         />

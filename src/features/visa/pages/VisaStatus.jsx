@@ -677,7 +677,7 @@ export default function VisaStatus() {
             statusOptions={statusOptions}
             countryOptions={countryOptions}
             staffOptions={staffOptions}
-            onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id))}
+            onView={(row) => navigate(APP_ROUTES.VISA_APPLICATION_DETAILS(row.id || row._id))}
             onStatusChange={handleStatusChange}
             columns={[
               {
@@ -752,8 +752,8 @@ export default function VisaStatus() {
 
                   {columnItems.map((application) => (
                     <Link
-                      key={application.id}
-                      to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id)}
+                      key={application.id || application._id}
+                      to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id || application._id)}
                       className="kanban__card"
                       style={{
                         display: 'block',
@@ -814,8 +814,8 @@ export default function VisaStatus() {
                   </div>
                   {items.map((application) => (
                     <Link
-                      key={application.id}
-                      to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id)}
+                      key={application.id || application._id}
+                      to={APP_ROUTES.VISA_APPLICATION_DETAILS(application.id || application._id)}
                       className="kanban__card"
                       style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}
                     >

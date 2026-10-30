@@ -160,7 +160,7 @@ export function VisaApplicationsTable({
         width: "170px",
         render: (row) => (
           <TableCountryCell
-            name={row.country}
+            name={row.countryName || row.country}
             code={row.countryCode}
           />
         ),
@@ -169,7 +169,7 @@ export function VisaApplicationsTable({
         key: "visaType",
         header: "Visa Type",
         render: (row) => (
-          <span className="font-medium text-slate-800">{row.visaType || "—"}</span>
+          <span className="font-medium text-slate-800">{row.visaTypeName || row.visaType || "—"}</span>
         ),
       },
       {

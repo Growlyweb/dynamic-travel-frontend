@@ -110,21 +110,27 @@ export default function VisaApplicationDetails() {
     setError(null)
     try {
       const applicationResult = await visaApi.getApplication(id)
+      if (!applicationResult) throw new Error('Application not found')
       setApplication(applicationResult)
+
+      const countryId = applicationResult.countryId || (typeof applicationResult.country === 'object' ? applicationResult.country?._id : applicationResult.country)
+      const visaTypeId = applicationResult.visaTypeId || (typeof applicationResult.visaType === 'object' ? applicationResult.visaType?._id : applicationResult.visaType)
+      const applicantType = applicationResult.applicant?.applicantType || 'individual'
+
       const [checklistResult, statusResult, templateResult, typeResult] = await Promise.all([
-        visaApi.getChecklist({
-          countryId: applicationResult.countryId,
-          visaTypeId: applicationResult.visaTypeId,
-          applicantType: applicationResult.applicant.applicantType,
-        }),
-        visaApi.listStatusConfigs(),
-        visaApi.listSmsTemplates(),
-        visaApi.listVisaTypes({ countryId: applicationResult.countryId }),
+        countryId && visaTypeId
+          ? visaApi.getChecklist({ countryId, visaTypeId, applicantType }).catch(() => null)
+          : Promise.resolve(null),
+        visaApi.listStatusConfigs().catch(() => ({ items: [] })),
+        visaApi.listSmsTemplates().catch(() => ({ items: [] })),
+        countryId
+          ? visaApi.listVisaTypes({ countryId }).catch(() => ({ items: [] }))
+          : Promise.resolve({ items: [] }),
       ])
       setChecklist(checklistResult)
-      setStatusConfigs((statusResult.items ?? []).filter((config) => config.active).sort((a, b) => a.displayOrder - b.displayOrder))
-      setTemplates((templateResult.items ?? []).filter((template) => template.active))
-      setVisaType((typeResult.items ?? []).find((type) => type.id === applicationResult.visaTypeId) ?? null)
+      setStatusConfigs((statusResult?.items ?? []).filter((config) => config.active).sort((a, b) => a.displayOrder - b.displayOrder))
+      setTemplates((templateResult?.items ?? []).filter((template) => template.active))
+      setVisaType((typeResult?.items ?? []).find((type) => (type.id === visaTypeId || type._id === visaTypeId)) ?? null)
     } catch (loadError) {
       setError(loadError)
     } finally {
