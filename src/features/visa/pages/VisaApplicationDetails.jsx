@@ -231,46 +231,48 @@ export default function VisaApplicationDetails() {
       />
 
       {/* Header summary */}
-      <div className="card">
-        <div className="row between row--wrap">
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+      <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
             <VisaStatusBadge status={application.status} />
             <Badge tone={application.channel === 'b2b' ? 'info' : 'primary'}>
               {application.channel === 'b2b' ? `B2B · ${application.partner}` : 'B2C'}
             </Badge>
             {checklist?.isDefault ? <Badge tone="warning">checklist template</Badge> : null}
           </div>
-          <span className="muted small">
+          <span className="text-xs text-slate-500">
             Submitted {formatDate(application.submittedAt)} · Updated {formatDate(application.updatedAt)}
           </span>
         </div>
-        <dl className="detail-list mt-4">
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <div>
-            <dt>Application no.</dt>
-            <dd className="strong">{application.number}</dd>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Application no.</p>
+            <p className="mt-1 text-sm font-bold text-slate-900">{application.number}</p>
           </div>
           <div>
-            <dt>{isVisa ? 'Country / visa type' : 'Service'}</dt>
-            <dd>{isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}</dd>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isVisa ? 'Country / visa type' : 'Service'}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">
+              {isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}
+            </p>
           </div>
           {isVisa || passport.number ? (
             <div>
-              <dt>Passport number</dt>
-              <dd className="strong">{passport.number || '—'}</dd>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport number</p>
+              <p className="mt-1 text-sm font-bold text-slate-900">{passport.number || '—'}</p>
             </div>
           ) : null}
           {isVisa ? (
             <div>
-              <dt>Passport expiry</dt>
-              <dd>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport expiry</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">
                 {formatDate(passport.expiry)}
-                {passportWarning ? <span className="small" style={{ color: 'var(--color-danger, #dc2626)' }}> · under 6 months</span> : null}
-              </dd>
+                {passportWarning ? <span className="ml-1 text-xs font-semibold text-rose-600"> · under 6 months</span> : null}
+              </p>
             </div>
           ) : null}
           <div>
-            <dt>Assigned staff</dt>
-            <dd>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Assigned staff</p>
+            <div className="mt-1">
               <Select
                 value={application.assignedStaffId ?? ''}
                 aria-label="Assigned staff"
@@ -278,17 +280,17 @@ export default function VisaApplicationDetails() {
                 onChange={(event) => runAction(() => visaApi.assignStaff(application.id, event.target.value || null), 'Staff updated.')}
                 options={[{ value: '', label: 'Unassigned' }, ...staff.map((person) => ({ value: person.id ?? person._id, label: person.name }))]}
               />
-            </dd>
+            </div>
           </div>
           {isVisa ? (
             <div>
-              <dt>{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</dt>
-              <dd className="strong">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</dd>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</p>
             </div>
           ) : null}
-        </dl>
+        </div>
         {passportWarning ? (
-          <p className="alert alert--danger mt-3" style={{ padding: '8px 12px' }}>
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800">
             Passport should have at least 6 months validity for this visa application.
           </p>
         ) : null}
@@ -317,45 +319,45 @@ export default function VisaApplicationDetails() {
       <div className="grid grid--2">
         {/* Applicant information */}
         <div className="stack stack--sm">
-          <div className="card">
-            <p className="card__title">Applicant information</p>
-            <dl className="detail-list mt-2">
-              <div><dt>Full name</dt><dd>{applicant.fullName}</dd></div>
-              <div><dt>Date of birth</dt><dd>{formatDate(applicant.dob)}</dd></div>
-              <div><dt>Gender</dt><dd>{applicant.gender}</dd></div>
-              <div><dt>Nationality</dt><dd>{applicant.nationality}</dd></div>
-              <div><dt>Mobile</dt><dd>{applicant.mobile}</dd></div>
-              <div><dt>Email</dt><dd>{applicant.email}</dd></div>
-              <div><dt>Address</dt><dd>{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</dd></div>
-              <div><dt>Applicant type</dt><dd>{applicant.applicantType}</dd></div>
-            </dl>
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Applicant information</h3>
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Full name</p><p className="mt-0.5 font-medium text-slate-800">{applicant.fullName}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date of birth</p><p className="mt-0.5 font-medium text-slate-800">{formatDate(applicant.dob)}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Gender</p><p className="mt-0.5 font-medium text-slate-800">{applicant.gender}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nationality</p><p className="mt-0.5 font-medium text-slate-800">{applicant.nationality}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mobile</p><p className="mt-0.5 font-medium text-slate-800">{applicant.mobile}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</p><p className="mt-0.5 font-medium text-slate-800">{applicant.email}</p></div>
+              <div className="col-span-2"><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</p><p className="mt-0.5 font-medium text-slate-800">{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</p></div>
+              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Applicant type</p><p className="mt-0.5 font-medium text-slate-800">{applicant.applicantType}</p></div>
+            </div>
           </div>
           {!isVisa ? (
-            <div className="card">
-              <p className="card__title">{application.serviceLabel} details</p>
-              <dl className="detail-list mt-2">
+            <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">{application.serviceLabel} details</h3>
+              <dl className="detail-list mt-3">
                 {detailRows.map(([label, value]) => (
                   <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
                 ))}
               </dl>
             </div>
           ) : (
-          <div className="card">
-            <div className="row between">
-              <p className="card__title" style={{ marginBottom: 0 }}>Passport</p>
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <h3 className="text-sm font-bold text-slate-900">Passport</h3>
               {can(PERMISSIONS.PASSPORT_UPDATE) ? <Button size="sm" variant="subtle" onClick={() => setPassportDialogOpen(true)}>Manage</Button> : null}
             </div>
-            <div className="row row--wrap mt-2" style={{ gap: 8 }}>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge tone="info">{PASSPORT_METHOD_LABELS[application.passportSubmissionMethod] ?? '—'}</Badge>
               <Badge tone={PASSPORT_STATUS_TONES[application.passportStatus] ?? 'neutral'}>
                 {PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus}
               </Badge>
-              <span className="muted small">
+              <span className="text-xs text-slate-500">
                 {visaType ? PASSPORT_REQUIREMENT_LABELS[visaType.passportRequirement] ?? visaType.passportRequirement : ''}
               </span>
             </div>
             {application.pickupRequest ? (
-              <p className="muted small mt-2" style={{ marginBottom: 0 }}>
+              <p className="text-xs text-slate-500 mt-2.5">
                 {application.pickupRequest.locationType} pickup · {application.pickupRequest.address}
                 {application.pickupRequest.district ? `, ${application.pickupRequest.district}` : ''}
                 {application.pickupRequest.preferredDate ? ` · preferred ${formatDate(application.pickupRequest.preferredDate)}` : ''}
@@ -363,7 +365,7 @@ export default function VisaApplicationDetails() {
               </p>
             ) : null}
             {application.passportStatus === 'online' || application.passportStatus === 'not_required' ? (
-              <p className="muted small mt-2" style={{ marginBottom: 0 }}>Online processing — no physical passport required.</p>
+              <p className="text-xs text-slate-500 mt-2.5">Online processing — no physical passport required.</p>
             ) : null}
           </div>
           )}
@@ -371,9 +373,11 @@ export default function VisaApplicationDetails() {
 
         {/* Progress + documents */}
         <div className="stack stack--sm">
-          <div className="card">
-            <p className="card__title">Progress</p>
-            <VisaTimeline steps={steps} />
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Progress</h3>
+            <div className="mt-3">
+              <VisaTimeline steps={steps} />
+            </div>
           </div>
           <ApplicationDocuments application={application} checklist={checklist} onChanged={changed} />
         </div>
@@ -382,10 +386,12 @@ export default function VisaApplicationDetails() {
       <div className={isVisa ? 'grid grid--2' : undefined}>
         {/* Checklist */}
         {isVisa ? (
-        <div className="card">
-          <p className="card__title">Checklist — {application.country} / {application.visaType} / {applicant.applicantType}</p>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">
+            Checklist — {application.country} / {application.visaType} / {applicant.applicantType}
+          </h3>
           {checklist ? (
-            <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {checklist.items
                 .filter((item) => item.active)
                 .map((item) => {
@@ -406,15 +412,15 @@ export default function VisaApplicationDetails() {
                 })}
             </ul>
           ) : (
-            <p className="muted small">No checklist configured for this combination.</p>
+            <p className="text-xs text-slate-400 mt-3">No checklist configured for this combination.</p>
           )}
         </div>
         ) : null}
 
         {/* Timeline */}
-        <div className="card">
-          <p className="card__title">Timeline</p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Timeline</h3>
+          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {application.timeline.map((event) => (
               <li key={event.id} className="row between row--wrap" style={{ gap: 8, borderBottom: '1px solid var(--color-border, #e5e7eb)', paddingBottom: 8 }}>
                 <div>
@@ -433,16 +439,19 @@ export default function VisaApplicationDetails() {
 
       {/* Notes */}
       <div className="grid grid--2">
-        <div className="card">
-          <p className="card__title">Internal notes <Badge tone="neutral">staff only</Badge></p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 className="text-sm font-bold text-slate-900">Internal notes</h3>
+            <Badge tone="neutral">staff only</Badge>
+          </div>
+          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {application.internalNotes.map((note) => (
               <li key={note.id}>
                 <p style={{ margin: 0 }}>{note.text}</p>
                 <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
               </li>
             ))}
-            {!application.internalNotes.length ? <p className="muted small">No internal notes.</p> : null}
+            {!application.internalNotes.length ? <p className="text-xs text-slate-400">No internal notes.</p> : null}
           </ul>
           <div className="field mt-3">
             <textarea
@@ -458,16 +467,19 @@ export default function VisaApplicationDetails() {
           </div>
         </div>
 
-        <div className="card">
-          <p className="card__title">Customer notes <Badge tone="info">visible to customer</Badge></p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <h3 className="text-sm font-bold text-slate-900">Customer notes</h3>
+            <Badge tone="info">visible to customer</Badge>
+          </div>
+          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {application.customerNotes.map((note) => (
               <li key={note.id}>
                 <p style={{ margin: 0 }}>{note.text}</p>
                 <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
               </li>
             ))}
-            {!application.customerNotes.length ? <p className="muted small">No customer notes.</p> : null}
+            {!application.customerNotes.length ? <p className="text-xs text-slate-400">No customer notes.</p> : null}
           </ul>
           <div className="field mt-3">
             <textarea

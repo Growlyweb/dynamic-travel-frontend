@@ -13,6 +13,7 @@ import SaleModal from '../components/SaleModal'
 import { simpleApi } from '../simple.api'
 import { formatMoney, formatPct } from '@/features/reports/lib/format'
 import { formatDateShort } from '@/features/reports/lib/dates'
+import { FEATURE_CATEGORIES_ENABLED } from '@/utils/constants'
 
 export default function MonthlyReport() {
   const now = new Date()
@@ -281,20 +282,22 @@ export default function MonthlyReport() {
             </section>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {data.categories.map((category) => (
-              <div key={category.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className="size-3 rounded-full" style={{ backgroundColor: category.color }} />
-                  <p className="text-base font-semibold text-slate-800">{category.label}</p>
+          {FEATURE_CATEGORIES_ENABLED && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {data.categories.map((category) => (
+                <div key={category.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="size-3 rounded-full" style={{ backgroundColor: category.color }} />
+                    <p className="text-base font-semibold text-slate-800">{category.label}</p>
+                  </div>
+                  <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoney(category.sale)}</p>
+                  <p className="text-sm text-slate-500">
+                    {category.count} sales · cost {formatMoney(category.cost)}
+                  </p>
                 </div>
-                <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoney(category.sale)}</p>
-                <p className="text-sm text-slate-500">
-                  {category.count} sales · cost {formatMoney(category.cost)}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">

@@ -10,6 +10,7 @@ import ExpenseModal from '../components/ExpenseModal'
 import { simpleApi } from '../simple.api'
 import { formatMoney, formatPct } from '@/features/reports/lib/format'
 import { formatDateShort } from '@/features/reports/lib/dates'
+import { FEATURE_CATEGORIES_ENABLED } from '@/utils/constants'
 
 export default function ProfitExpenses() {
   const now = new Date()
@@ -92,60 +93,62 @@ export default function ProfitExpenses() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
-              <div className="border-b border-slate-100 px-5 py-4">
-                <h2 className="text-lg font-bold text-slate-900">Profit by Category</h2>
-                <p className="text-sm text-slate-500">Selling Price minus Cost Price for each service.</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#2F80ED] text-white">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Category</th>
-                      <th className="px-4 py-3 text-right font-semibold">Sales</th>
-                      <th className="px-4 py-3 text-right font-semibold">Selling Price</th>
-                      <th className="px-4 py-3 text-right font-semibold">Cost Price</th>
-                      <th className="px-4 py-3 text-right font-semibold">Profit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {data.categories.map((category) => (
-                      <tr key={category.label}>
-                        <td className="px-4 py-3 font-semibold text-slate-800">
-                          <span className="mr-2 inline-block size-2.5 rounded-full" style={{ backgroundColor: category.color }} />
-                          {category.label}
-                        </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">{category.count}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-800">{formatMoney(category.sale)}</td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600">{formatMoney(category.cost)}</td>
-                        <td className={`px-4 py-3 text-right font-semibold tabular-nums ${category.profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
-                          {formatMoney(category.profit)}
-                        </td>
+            {FEATURE_CATEGORIES_ENABLED && (
+              <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+                <div className="border-b border-slate-100 px-5 py-4">
+                  <h2 className="text-lg font-bold text-slate-900">Profit by Category</h2>
+                  <p className="text-sm text-slate-500">Selling Price minus Cost Price for each service.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#2F80ED] text-white">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold">Category</th>
+                        <th className="px-4 py-3 text-right font-semibold">Sales</th>
+                        <th className="px-4 py-3 text-right font-semibold">Selling Price</th>
+                        <th className="px-4 py-3 text-right font-semibold">Cost Price</th>
+                        <th className="px-4 py-3 text-right font-semibold">Profit</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-slate-900 font-bold text-white">
-                      <td className="px-4 py-3">Total</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{data.counts.sales}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.sale)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.cost)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.sale - data.cost)}</td>
-                    </tr>
-                    <tr className="bg-slate-700 font-semibold text-white">
-                      <td colSpan={4} className="px-4 py-2.5 text-right">Less: Office Expenses</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">−{formatMoney(data.officeExpenses)}</td>
-                    </tr>
-                    <tr className="bg-[#0F172A] font-bold text-white">
-                      <td colSpan={4} className="px-4 py-3 text-right">Net Profit</td>
-                      <td className="px-4 py-3 text-right text-base tabular-nums text-emerald-300">{formatMoney(data.profit)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </section>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.categories.map((category) => (
+                        <tr key={category.label}>
+                          <td className="px-4 py-3 font-semibold text-slate-800">
+                            <span className="mr-2 inline-block size-2.5 rounded-full" style={{ backgroundColor: category.color }} />
+                            {category.label}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums text-slate-500">{category.count}</td>
+                          <td className="px-4 py-3 text-right tabular-nums text-slate-800">{formatMoney(category.sale)}</td>
+                          <td className="px-4 py-3 text-right tabular-nums text-slate-600">{formatMoney(category.cost)}</td>
+                          <td className={`px-4 py-3 text-right font-semibold tabular-nums ${category.profit >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                            {formatMoney(category.profit)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-slate-900 font-bold text-white">
+                        <td className="px-4 py-3">Total</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{data.counts.sales}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.sale)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.cost)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{formatMoney(data.sale - data.cost)}</td>
+                      </tr>
+                      <tr className="bg-slate-700 font-semibold text-white">
+                        <td colSpan={4} className="px-4 py-2.5 text-right">Less: Office Expenses</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">−{formatMoney(data.officeExpenses)}</td>
+                      </tr>
+                      <tr className="bg-[#0F172A] font-bold text-white">
+                        <td colSpan={4} className="px-4 py-3 text-right">Net Profit</td>
+                        <td className="px-4 py-3 text-right text-base tabular-nums text-emerald-300">{formatMoney(data.profit)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </section>
+            )}
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <section className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${FEATURE_CATEGORIES_ENABLED ? '' : 'lg:col-span-3'}`}>
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Office Expenses</h2>

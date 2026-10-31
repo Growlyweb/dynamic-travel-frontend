@@ -19,6 +19,7 @@ import { errorMessage } from '@/utils/errors'
 import { formatMoney } from '@/features/reports/lib/format'
 import { formatDateShort, firstOfMonth, todayISO } from '@/features/reports/lib/dates'
 import { Table, TableBadge, TablePagination } from '@/components/re-table'
+import { FEATURE_CATEGORIES_ENABLED } from '@/utils/constants'
 
 const now = new Date()
 
@@ -274,18 +275,20 @@ export default function Sales() {
             onChange={setFilter('to')}
             className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-base outline-none focus:border-[#2F80ED]"
           />
-          <select
-            value={filters.category}
-            onChange={setFilter('category')}
-            className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-base outline-none focus:border-[#2F80ED]"
-          >
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.label} value={category.label}>
-                {category.label}
-              </option>
-            ))}
-          </select>
+          {FEATURE_CATEGORIES_ENABLED && (
+            <select
+              value={filters.category}
+              onChange={setFilter('category')}
+              className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-base outline-none focus:border-[#2F80ED]"
+            >
+              <option value="">All categories</option>
+              {categories.map((category) => (
+                <option key={category.label} value={category.label}>
+                  {category.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-600">
           <span>{Number(summary.count ?? 0).toLocaleString()} sales</span>
