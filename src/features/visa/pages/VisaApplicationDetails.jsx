@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookUser,
+  ClipboardCheck,
+  History,
+  Lock,
+  Plus,
+  RefreshCw,
+  Send,
+  Settings2,
+  UserRound,
+  Users,
+} from 'lucide-react'
 import PageHeader from '../../../components/layout/PageHeader'
 import Loader from '../../../components/common/Loader'
 import ErrorState from '../../../components/common/ErrorState'
@@ -223,10 +237,25 @@ export default function VisaApplicationDetails() {
           { label: application.number },
         ]}
         actions={
-          <>
-            <Button variant="ghost" onClick={() => navigate(APP_ROUTES.VISA_APPLICATIONS)}>Back</Button>
-            {canChangeStatus ? <Button onClick={() => setStatusDialogOpen(true)}>Change status</Button> : null}
-          </>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(APP_ROUTES.VISA_APPLICATIONS)}
+              className="h-9 px-3.5 border border-slate-200 text-slate-700 hover:bg-slate-50 gap-1.5"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+            {canChangeStatus ? (
+              <Button
+                onClick={() => setStatusDialogOpen(true)}
+                className="h-9 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs gap-1.5"
+              >
+                <RefreshCw className="size-3.5" />
+                Change status
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
@@ -244,33 +273,33 @@ export default function VisaApplicationDetails() {
             Submitted {formatDate(application.submittedAt)} · Updated {formatDate(application.updatedAt)}
           </span>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <div>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Application no.</p>
-            <p className="mt-1 text-sm font-bold text-slate-900">{application.number}</p>
+            <p className="mt-1 text-sm font-bold text-slate-900 truncate">{application.number}</p>
           </div>
-          <div>
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isVisa ? 'Country / visa type' : 'Service'}</p>
-            <p className="mt-1 text-sm font-semibold text-slate-900">
+            <p className="mt-1 text-sm font-semibold text-slate-900 truncate">
               {isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}
             </p>
           </div>
           {isVisa || passport.number ? (
-            <div>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport number</p>
-              <p className="mt-1 text-sm font-bold text-slate-900">{passport.number || '—'}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 truncate">{passport.number || '—'}</p>
             </div>
           ) : null}
           {isVisa ? (
-            <div>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport expiry</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">
+              <p className="mt-1 text-sm font-semibold text-slate-900 truncate">
                 {formatDate(passport.expiry)}
-                {passportWarning ? <span className="ml-1 text-xs font-semibold text-rose-600"> · under 6 months</span> : null}
+                {passportWarning ? <span className="ml-1 text-xs font-semibold text-rose-600"> · under 6m</span> : null}
               </p>
             </div>
           ) : null}
-          <div>
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Assigned staff</p>
             <div className="mt-1">
               <Select
@@ -283,9 +312,9 @@ export default function VisaApplicationDetails() {
             </div>
           </div>
           {isVisa ? (
-            <div>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</p>
-              <p className="mt-1 text-sm font-bold text-slate-900">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 truncate">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</p>
             </div>
           ) : null}
         </div>
@@ -298,40 +327,78 @@ export default function VisaApplicationDetails() {
 
       {/* Action required / rejection banners */}
       {application.actionRequired ? (
-        <div className="alert alert--danger">
-          <strong>Action required:</strong> {application.actionRequired.message}
-          <span className="muted small" style={{ display: 'block' }}>
-            Requested by {application.actionRequired.requestedBy} · {formatDate(application.actionRequired.requestedAt)}
-          </span>
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4 flex items-start gap-3">
+          <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-sm font-bold text-rose-900">Action required:</strong>
+            <p className="text-xs text-rose-800 mt-0.5">{application.actionRequired.message}</p>
+            <span className="text-[11px] text-rose-500 mt-1 block">
+              Requested by {application.actionRequired.requestedBy} · {formatDate(application.actionRequired.requestedAt)}
+            </span>
+          </div>
         </div>
       ) : null}
       {isRejected && application.rejection ? (
-        <div className="alert alert--danger">
-          <strong>Rejected:</strong> {application.rejection.customerReason || 'No customer-facing reason recorded.'}
-          {application.rejection.internalReason ? (
-            <span className="muted small" style={{ display: 'block' }}>Internal: {application.rejection.internalReason}</span>
-          ) : null}
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4 flex items-start gap-3">
+          <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-sm font-bold text-rose-900">Rejected:</strong>
+            <p className="text-xs text-rose-800 mt-0.5">{application.rejection.customerReason || 'No customer-facing reason recorded.'}</p>
+            {application.rejection.internalReason ? (
+              <span className="text-[11px] text-rose-500 mt-1 block">Internal: {application.rejection.internalReason}</span>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
       <ApplicationPayments application={application} onChanged={changed} onOpenAccounts={() => navigate('/accounts/sales')} />
 
-      <div className="grid grid--2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Applicant information */}
-        <div className="stack stack--sm">
-          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
-            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Applicant information</h3>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Full name</p><p className="mt-0.5 font-medium text-slate-800">{applicant.fullName}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date of birth</p><p className="mt-0.5 font-medium text-slate-800">{formatDate(applicant.dob)}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Gender</p><p className="mt-0.5 font-medium text-slate-800">{applicant.gender}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nationality</p><p className="mt-0.5 font-medium text-slate-800">{applicant.nationality}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mobile</p><p className="mt-0.5 font-medium text-slate-800">{applicant.mobile}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</p><p className="mt-0.5 font-medium text-slate-800">{applicant.email}</p></div>
-              <div className="col-span-2"><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</p><p className="mt-0.5 font-medium text-slate-800">{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</p></div>
-              <div><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Applicant type</p><p className="mt-0.5 font-medium text-slate-800">{applicant.applicantType}</p></div>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <UserRound className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Applicant Information</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 text-sm">
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Full name</p>
+                <p className="mt-0.5 font-semibold text-slate-900 truncate">{applicant.fullName}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date of birth</p>
+                <p className="mt-0.5 font-medium text-slate-800">{formatDate(applicant.dob)}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Gender</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.gender}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nationality</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.nationality}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mobile</p>
+                <p className="mt-0.5 font-semibold text-slate-900 truncate">{applicant.mobile}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</p>
+                <p className="mt-0.5 font-medium text-slate-800 truncate">{applicant.email}</p>
+              </div>
+              <div className="col-span-2 rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</p>
+                <p className="mt-0.5 font-medium text-slate-800">{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</p>
+              </div>
+              <div className="col-span-2 rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Applicant type</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.applicantType}</p>
+              </div>
             </div>
           </div>
+
           {!isVisa ? (
             <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
               <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">{application.serviceLabel} details</h3>
@@ -342,12 +409,27 @@ export default function VisaApplicationDetails() {
               </dl>
             </div>
           ) : (
-          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <h3 className="text-sm font-bold text-slate-900">Passport</h3>
-              {can(PERMISSIONS.PASSPORT_UPDATE) ? <Button size="sm" variant="subtle" onClick={() => setPassportDialogOpen(true)}>Manage</Button> : null}
+              <div className="flex items-center gap-2">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                  <BookUser className="size-4" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Passport & Submission</h3>
+              </div>
+              {can(PERMISSIONS.PASSPORT_UPDATE) ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPassportDialogOpen(true)}
+                  className="h-8 gap-1.5 px-3 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium"
+                >
+                  <Settings2 className="size-3.5" />
+                  Manage
+                </Button>
+              ) : null}
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge tone="info">{PASSPORT_METHOD_LABELS[application.passportSubmissionMethod] ?? '—'}</Badge>
               <Badge tone={PASSPORT_STATUS_TONES[application.passportStatus] ?? 'neutral'}>
                 {PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus}
@@ -372,125 +454,180 @@ export default function VisaApplicationDetails() {
         </div>
 
         {/* Progress + documents */}
-        <div className="stack stack--sm">
-          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
-            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Progress</h3>
-            <div className="mt-3">
-              <VisaTimeline steps={steps} />
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <RefreshCw className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Application Progress</h3>
             </div>
+            <VisaTimeline steps={steps} />
           </div>
           <ApplicationDocuments application={application} checklist={checklist} onChanged={changed} />
         </div>
       </div>
 
-      <div className={isVisa ? 'grid grid--2' : undefined}>
+      <div className={`grid grid-cols-1 ${isVisa ? 'lg:grid-cols-2' : ''} gap-5`}>
         {/* Checklist */}
         {isVisa ? (
-        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">
-            Checklist — {application.country} / {application.visaType} / {applicant.applicantType}
-          </h3>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+              <ClipboardCheck className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Required Document Checklist</h3>
+              <p className="text-xs text-slate-500">{application.country} · {application.visaType} · {applicant.applicantType}</p>
+            </div>
+          </div>
           {checklist ? (
-            <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden">
               {checklist.items
                 .filter((item) => item.active)
                 .map((item) => {
                   const document = application.documents.find((entry) => entry.checklistItem && String(entry.checklistItem) === String(item.id)) ?? matchDocumentForItem(item, application.documents)
                   const status = document?.status ?? 'missing'
                   return (
-                    <li key={item.id} className="row between" style={{ gap: 8 }}>
-                      <span className="row" style={{ gap: 8 }}>
-                        <span aria-hidden className={cn('strong', status === 'missing' && 'muted')}>{DOC_ICONS[status]}</span>
-                        <span>
-                          {item.label}
-                          {item.requirement !== 'required' ? <span className="muted small"> ({item.requirement})</span> : null}
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 transition-colors hover:bg-white text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          status === 'verified'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : status === 'pending'
+                            ? 'bg-amber-100 text-amber-700'
+                            : status === 'rejected'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {DOC_ICONS[status]}
                         </span>
-                      </span>
+                        <span className="font-medium text-slate-800 truncate">
+                          {item.label}
+                          {item.requirement !== 'required' ? <span className="text-xs text-slate-400 ml-1.5 font-normal">({item.requirement})</span> : null}
+                        </span>
+                      </div>
                       <Badge tone={DOC_TONES[status]}>{status === 'missing' ? 'not uploaded' : status}</Badge>
-                    </li>
+                    </div>
                   )
                 })}
-            </ul>
+            </div>
           ) : (
-            <p className="text-xs text-slate-400 mt-3">No checklist configured for this combination.</p>
+            <p className="text-xs text-slate-400">No checklist configured for this combination.</p>
           )}
         </div>
         ) : null}
 
         {/* Timeline */}
-        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">Timeline</h3>
-          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <History className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Activity Timeline</h3>
+            </div>
+            <span className="text-xs text-slate-400">{application.timeline.length} events</span>
+          </div>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden max-h-[380px] overflow-y-auto">
             {application.timeline.map((event) => (
-              <li key={event.id} className="row between row--wrap" style={{ gap: 8, borderBottom: '1px solid var(--color-border, #e5e7eb)', paddingBottom: 8 }}>
+              <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-xs transition-colors hover:bg-white">
                 <div>
-                  <p className="strong" style={{ margin: 0 }}>{event.event}</p>
-                  <p className="muted small" style={{ margin: 0 }}>{event.message}</p>
-                  <p className="muted small" style={{ margin: 0 }}>
+                  <p className="font-semibold text-slate-800 text-sm">{event.event}</p>
+                  <p className="text-slate-500 mt-0.5">{event.message}</p>
+                  <p className="text-slate-400 mt-0.5">
                     {formatDateTime(event.at)} · by {event.by}
                   </p>
                 </div>
                 <Badge tone={VISIBILITY_TONES[event.visibility] ?? 'neutral'}>{event.visibility}</Badge>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
 
       {/* Notes */}
-      <div className="grid grid--2">
-        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <h3 className="text-sm font-bold text-slate-900">Internal notes</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                <Lock className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Internal Notes</h3>
+            </div>
             <Badge tone="neutral">staff only</Badge>
           </div>
-          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
             {application.internalNotes.map((note) => (
-              <li key={note.id}>
-                <p style={{ margin: 0 }}>{note.text}</p>
-                <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
-              </li>
+              <div key={note.id} className="py-2.5 first:pt-0">
+                <p className="text-xs text-slate-700 leading-relaxed">{note.text}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(note.at)} · {note.by}</p>
+              </div>
             ))}
-            {!application.internalNotes.length ? <p className="text-xs text-slate-400">No internal notes.</p> : null}
-          </ul>
-          <div className="field mt-3">
+            {!application.internalNotes.length ? <p className="text-xs text-slate-400 py-3">No internal notes.</p> : null}
+          </div>
+          <div className="pt-2">
             <textarea
-              className="field__control"
+              className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 outline-none transition-colors hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
               rows={2}
-              placeholder="Add an internal note…"
+              placeholder="Add an internal note (staff only)…"
               value={noteDrafts.internal}
               onChange={(event) => setNoteDrafts((current) => ({ ...current, internal: event.target.value }))}
             />
-            <div className="mt-2">
-              <Button size="sm" variant="subtle" loading={savingAction} onClick={() => addNote('internal')}>Add internal note</Button>
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                onClick={() => addNote('internal')}
+                loading={savingAction}
+                disabled={!noteDrafts.internal.trim()}
+                className="h-8 gap-1.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                Add internal note
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <h3 className="text-sm font-bold text-slate-900">Customer notes</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Users className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Customer Notes</h3>
+            </div>
             <Badge tone="info">visible to customer</Badge>
           </div>
-          <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
             {application.customerNotes.map((note) => (
-              <li key={note.id}>
-                <p style={{ margin: 0 }}>{note.text}</p>
-                <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
-              </li>
+              <div key={note.id} className="py-2.5 first:pt-0">
+                <p className="text-xs text-slate-700 leading-relaxed">{note.text}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(note.at)} · {note.by}</p>
+              </div>
             ))}
-            {!application.customerNotes.length ? <p className="text-xs text-slate-400">No customer notes.</p> : null}
-          </ul>
-          <div className="field mt-3">
+            {!application.customerNotes.length ? <p className="text-xs text-slate-400 py-3">No customer notes.</p> : null}
+          </div>
+          <div className="pt-2">
             <textarea
-              className="field__control"
+              className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 outline-none transition-colors hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
               rows={2}
               placeholder="Add a note visible to the customer / B2B partner…"
               value={noteDrafts.customer}
               onChange={(event) => setNoteDrafts((current) => ({ ...current, customer: event.target.value }))}
             />
-            <div className="mt-2">
-              <Button size="sm" variant="subtle" loading={savingAction} onClick={() => addNote('customer')}>Add customer note</Button>
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                onClick={() => addNote('customer')}
+                loading={savingAction}
+                disabled={!noteDrafts.customer.trim()}
+                className="h-8 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-xs"
+              >
+                <Send className="size-3.5" />
+                Add customer note
+              </Button>
             </div>
           </div>
         </div>

@@ -244,7 +244,7 @@ export default function ApplicationPayments({ application, onChanged, onOpenAcco
                     size="sm"
                     variant="ghost"
                     onClick={() => { setVoiding(payment); setReason(''); setError(null) }}
-                    className="self-end sm:self-center text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 border border-transparent hover:border-rose-200"
+                    className="self-end sm:self-center h-7.5 px-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 border border-rose-200/60 hover:border-rose-300"
                   >
                     Void
                   </Button>
