@@ -14,7 +14,7 @@ export const SERVICE_OPTIONS = [
 ]
 export const SERVICE_LABELS = Object.fromEntries(SERVICE_OPTIONS.map((option) => [option.value, option.label]))
 export const TEMPLATE_SERVICE_OPTIONS = [{ value: 'all', label: 'All services' }, ...SERVICE_OPTIONS]
-export const TRIP_TYPES = ['One Way', 'Round Way']
+export const TRIP_TYPES = ['One Way', 'Round Way', 'Multi City']
 export const TICKET_CLASSES = ['Economy', 'Premium Economy', 'Business', 'First Class']
 export const ENTRY_TYPES = [
   { value: 'single', label: 'Single entry' },
