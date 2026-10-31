@@ -667,11 +667,22 @@ export function NewApplicationModal({ open, onClose, onCreated }) {
                 htmlFor="application-email"
                 optional
                 error={errors.email}
-                hint={values.email || !visa ? undefined : 'Without an email the applicant cannot use the status check on the website, and gets no automatic emails.'}
+                hint={
+                  values.email
+                    ? 'A confirmation email with tracking details will be sent automatically upon submission.'
+                    : 'Without an email the applicant cannot use status tracking on the website and will not receive automatic confirmation emails.'
+                }
               >
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
-                  <input id="application-email" type="email" value={values.email} onChange={(event) => set('email', event.target.value)} className={`${inputClass(errors.email)} pl-10`} />
+                  <input
+                    id="application-email"
+                    type="email"
+                    value={values.email}
+                    onChange={(event) => set('email', event.target.value)}
+                    placeholder="applicant@example.com"
+                    className={`${inputClass(errors.email)} pl-10`}
+                  />
                 </div>
               </Field>
 

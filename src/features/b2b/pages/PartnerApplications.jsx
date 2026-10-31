@@ -7,6 +7,7 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog'
 import Badge from '../../../components/common/Badge'
 import PartnerDocumentsModal from '../components/PartnerDocumentsModal'
 import { b2bApi } from '../b2b.api'
+import { config } from '../../../app/config'
 import { formatDate } from '../../../utils/formatters'
 import { CheckCircle2, ArrowRight } from 'lucide-react'
 
@@ -111,17 +112,19 @@ export default function PartnerApplications() {
             >
               Go to Partners Directory <ArrowRight className="size-3.5" />
             </Link>
-            <button
-              type="button"
-              onClick={async () => {
-                await b2bApi.resetToSeedData()
-                setApprovedNotice(null)
-                await load()
-              }}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition"
-            >
-              Reset demo data
-            </button>
+            {config.enableMocks && (
+              <button
+                type="button"
+                onClick={async () => {
+                  await b2bApi.resetToSeedData()
+                  setApprovedNotice(null)
+                  await load()
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition"
+              >
+                Reset demo data
+              </button>
+            )}
           </div>
         }
       />

@@ -302,6 +302,7 @@ const DEMO_DOCUMENTS = [
 ]
 
 function read(key, fallback) {
+  if (!config.enableMocks) return clone(fallback)
   try {
     const raw = localStorage.getItem(key)
     if (!raw) {
@@ -346,6 +347,7 @@ function readDocuments(key, fallback) {
 }
 
 function write(key, value) {
+  if (!config.enableMocks) return
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
@@ -556,6 +558,19 @@ export const b2bApi = {
   },
 
   async setPartnerStatus(id, status) {
+    if (!config.enableMocks) {
+      const decisionMap = {
+        approved: 'APPROVED',
+        rejected: 'REJECTED',
+        pending: 'UNDER_REVIEW',
+        documents_verified: 'UNDER_REVIEW',
+        under_review: 'UNDER_REVIEW',
+        suspended: 'SUSPENDED',
+      }
+      const decision = decisionMap[String(status).toLowerCase()] || String(status).toUpperCase()
+      const res = await apiClient.patch(`/admin/b2b/${id}/approval`, { decision })
+      return res?.data ?? res
+    }
     const partner = partnersStore.find((item) => item.id === id)
     if (!partner) return null
     partner.status = status
@@ -892,9 +907,24 @@ export const b2bApi = {
     return { success: true }
   },
 
-  async updatePartnerProfile(id, patch) {
+  async updatePartnerProfile(id, patch = {}) {
     if (!config.enableMocks) {
-      const res = await apiClient.patch(`/admin/b2b/${id}`, patch)
+      const payload = {}
+      if (patch.companyName !== undefined || patch.company !== undefined) {
+        payload.companyName = String(patch.companyName || patch.company).trim()
+      }
+      if (patch.licenseNo !== undefined || patch.licenseNumber !== undefined) {
+        payload.licenseNo = String(patch.licenseNo || patch.licenseNumber).trim()
+      }
+      if (patch.businessType !== undefined) {
+        payload.businessType = String(patch.businessType).trim()
+      }
+      if (patch.address !== undefined) {
+        payload.address = typeof patch.address === 'object'
+          ? [patch.address.street, patch.address.city, patch.address.country].filter(Boolean).join(', ')
+          : String(patch.address).trim()
+      }
+      const res = await apiClient.patch(`/admin/b2b/${id}`, payload)
       return res?.data ?? res
     }
     const partner = partnersStore.find((item) => item.id === id)
