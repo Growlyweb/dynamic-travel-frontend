@@ -12,6 +12,7 @@ import {
   UserRound,
   Wallet,
 } from 'lucide-react'
+import { FEATURE_CATEGORIES_ENABLED } from '@/utils/constants'
 
 const TABS = [
   { to: '/accounts', label: 'Home', icon: Home, end: true },
@@ -20,7 +21,7 @@ const TABS = [
   { to: '/accounts/receipts', label: 'Money Receipts', icon: HandCoins },
   { to: '/accounts/monthly', label: 'Monthly Report', icon: ChartColumnBig },
   { to: '/accounts/profit', label: 'Profit & Expenses', icon: ChartLine },
-  { to: '/accounts/categories', label: 'Categories', icon: Tags },
+  ...(FEATURE_CATEGORIES_ENABLED ? [{ to: '/accounts/categories', label: 'Categories', icon: Tags }] : []),
   { to: '/accounts/price-list', label: 'Price List', icon: ListTree },
   { to: '/accounts/agents', label: 'B2B Agents', icon: Building2 },
   { to: '/accounts/clients', label: 'B2C Clients', icon: UserRound },

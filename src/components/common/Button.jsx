@@ -19,7 +19,7 @@ export default function Button({
       {...rest}
     >
       {loading ? <span className="btn__spinner" aria-hidden /> : null}
-      <span>{children}</span>
+      <span className="inline-flex items-center justify-center gap-1.5 leading-none">{children}</span>
     </button>
   )
 }

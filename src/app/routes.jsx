@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Loader from "../components/common/Loader";
-import { APP_ROUTES } from "../utils/constants";
+import { APP_ROUTES, FEATURE_CATEGORIES_ENABLED } from "../utils/constants";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import NewVisaCountries from "@/features/visa/pages/NewVisaCountries";
@@ -256,9 +256,13 @@ export function AppRoutes() {
           <Route
             path="accounts/categories"
             element={
-              <RequirePermission permission="REPORTS_VIEW">
-                <SimpleCategories />
-              </RequirePermission>
+              FEATURE_CATEGORIES_ENABLED ? (
+                <RequirePermission permission="REPORTS_VIEW">
+                  <SimpleCategories />
+                </RequirePermission>
+              ) : (
+                <Navigate to="/accounts" replace />
+              )
             }
           />
           <Route

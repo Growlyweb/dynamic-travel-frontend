@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Check, Eye, FileText, Plus, Trash2, X } from 'lucide-react'
 import Modal from '../../../components/common/Modal'
 import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
@@ -84,33 +85,121 @@ export default function ApplicationDocuments({ application, checklist, onChanged
   }
 
   return (
-    <div className="card">
-      <div className="row between">
-        <p className="card__title" style={{ marginBottom: 0 }}>Documents</p>
-        {canEdit ? <Button size="sm" variant="subtle" onClick={openUpload}>+ Add file</Button> : null}
+    <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <FileText className="size-4" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-900">Application Documents</h3>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+            {application.documents.length}
+          </span>
+        </div>
+        {canEdit ? (
+          <Button
+            size="sm"
+            onClick={openUpload}
+            className="h-8 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs text-xs"
+          >
+            <Plus className="size-3.5" />
+            Add file
+          </Button>
+        ) : null}
       </div>
+
       {error && !uploadOpen && !review ? <div className="alert alert--danger mt-2">{error}</div> : null}
-      <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {application.documents.map((document) => (
-          <li key={document.id} className="row between row--wrap" style={{ gap: 8 }}>
-            <div>
-              <p className="strong" style={{ margin: 0 }}>{document.type}</p>
-              <p className="muted small" style={{ margin: 0 }}>
-                {document.name} · {fileSize(document.size)} · {formatDate(document.uploadedAt)} · by {document.uploadedBy || 'applicant'}
-              </p>
-              {document.reviewNote ? <p className="small" style={{ margin: 0, color: 'var(--color-danger, #dc2626)' }}>Note: {document.reviewNote}</p> : null}
+
+      {application.documents.length > 0 ? (
+        <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden">
+          {application.documents.map((document) => (
+            <div
+              key={document.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 transition-colors hover:bg-white"
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                  <FileText className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{document.type}</p>
+                    <Badge tone={DOC_TONES[document.status] ?? 'neutral'}>{document.status}</Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    <span className="font-medium text-slate-700">{document.name}</span>
+                    <span className="mx-1 text-slate-300">·</span>
+                    <span>{fileSize(document.size)}</span>
+                    <span className="mx-1 text-slate-300">·</span>
+                    <span>{formatDate(document.uploadedAt)}</span>
+                    <span className="mx-1 text-slate-300">·</span>
+                    <span>{document.uploadedBy || 'applicant'}</span>
+                  </p>
+                  {document.reviewNote ? (
+                    <p className="mt-1 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-100 rounded-md px-2 py-0.5 inline-block">
+                      Note: {document.reviewNote}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Action buttons toolbar */}
+              <div className="flex items-center flex-wrap gap-1.5 shrink-0 self-end sm:self-center">
+                {canView ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => openPreview(document)}
+                    disabled={busy}
+                    className="h-7.5 px-2.5 text-xs text-slate-700 hover:bg-slate-100 border border-slate-200/80 gap-1"
+                  >
+                    <Eye className="size-3.5" />
+                    View
+                  </Button>
+                ) : null}
+                {canReview && document.status !== 'verified' ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setReview({ document, status: 'verified' }); setNote(''); setError(null) }}
+                    className="h-7.5 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 border border-emerald-200 gap-1"
+                  >
+                    <Check className="size-3.5" />
+                    Verify
+                  </Button>
+                ) : null}
+                {canReview && document.status !== 'rejected' ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setReview({ document, status: 'rejected' }); setNote(''); setError(null) }}
+                    className="h-7.5 px-2.5 text-xs text-amber-700 hover:bg-amber-50 border border-amber-200 gap-1"
+                  >
+                    <X className="size-3.5" />
+                    Reject
+                  </Button>
+                ) : null}
+                {canEdit ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => run(() => visaApi.removeDocument(application.id, document.id), 'File deleted.')}
+                    disabled={busy}
+                    className="h-7.5 px-2 text-xs text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
+                    title="Delete document"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                ) : null}
+              </div>
             </div>
-            <div className="row" style={{ gap: 6 }}>
-              <Badge tone={DOC_TONES[document.status] ?? 'neutral'}>{document.status}</Badge>
-              {canView ? <Button size="sm" variant="ghost" onClick={() => openPreview(document)} disabled={busy}>View</Button> : null}
-              {canReview && document.status !== 'verified' ? <Button size="sm" variant="ghost" onClick={() => { setReview({ document, status: 'verified' }); setNote(''); setError(null) }}>Verify</Button> : null}
-              {canReview && document.status !== 'rejected' ? <Button size="sm" variant="ghost" onClick={() => { setReview({ document, status: 'rejected' }); setNote(''); setError(null) }}>Reject</Button> : null}
-              {canEdit ? <Button size="sm" variant="ghost" onClick={() => run(() => visaApi.removeDocument(application.id, document.id), 'File deleted.')} disabled={busy}>Delete</Button> : null}
-            </div>
-          </li>
-        ))}
-        {!application.documents.length ? <p className="muted small">No documents uploaded.</p> : null}
-      </ul>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+          No documents uploaded yet.
+        </div>
+      )}
 
       <Modal
         open={uploadOpen}

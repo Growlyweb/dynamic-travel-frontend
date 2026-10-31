@@ -11,7 +11,11 @@ const DEMO_NOTIFICATIONS = [
 ]
 
 export const notificationsApi = {
-  list: (params) => withMockList(DEMO_NOTIFICATIONS, params, { searchKeys: ['title'] }),
+  list: (params = {}) =>
+    withMockList(DEMO_NOTIFICATIONS, params, { searchKeys: ['title'] }, () =>
+      apiClient.get('/notifications', { params })
+    ),
   markAsRead: (id) => withMock({ ok: true }, () => apiClient.patch(`/notifications/${id}`, { read: true })),
   markAllRead: () => withMock({ ok: true }, () => apiClient.post('/notifications/mark-all-read')),
+  delete: (id) => withMock({ ok: true }, () => apiClient.del(`/notifications/${id}`)),
 }

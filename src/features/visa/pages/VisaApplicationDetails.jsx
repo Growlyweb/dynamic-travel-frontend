@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookUser,
+  ClipboardCheck,
+  History,
+  Lock,
+  Plus,
+  RefreshCw,
+  Send,
+  Settings2,
+  UserRound,
+  Users,
+} from 'lucide-react'
 import PageHeader from '../../../components/layout/PageHeader'
 import Loader from '../../../components/common/Loader'
 import ErrorState from '../../../components/common/ErrorState'
@@ -71,7 +85,19 @@ function matchDocumentForItem(item, documents) {
 function serviceRows(application) {
   const { ticket, hotel, tour } = application
   if (application.serviceType === 'ticket' && ticket) {
-    return [['Trip type', ticket.tripType], ['Travel class', ticket.travelClass], ['Departure', ticket.departure], ['Arrive', ticket.arrival]]
+    const base = [
+      ['Trip type', ticket.tripType],
+      ['Travel class', ticket.travelClass],
+    ]
+    if (ticket.tripType === 'Multi City' && Array.isArray(ticket.legs) && ticket.legs.length > 0) {
+      ticket.legs.forEach((leg, index) => {
+        base.push([`Flight ${index + 1}`, `${leg.departure} → ${leg.arrival}`])
+      })
+    } else {
+      base.push(['Departure', ticket.departure])
+      base.push(['Arrive', ticket.arrival])
+    }
+    return base
   }
   if (application.serviceType === 'hotel' && hotel) {
     return [['Hotel', hotel.name], ['Country', hotel.country], ['City / location', hotel.city], ['Stay duration', hotel.stay]]
@@ -211,54 +237,71 @@ export default function VisaApplicationDetails() {
           { label: application.number },
         ]}
         actions={
-          <>
-            <Button variant="ghost" onClick={() => navigate(APP_ROUTES.VISA_APPLICATIONS)}>Back</Button>
-            {canChangeStatus ? <Button onClick={() => setStatusDialogOpen(true)}>Change status</Button> : null}
-          </>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(APP_ROUTES.VISA_APPLICATIONS)}
+              className="h-9 px-3.5 border border-slate-200 text-slate-700 hover:bg-slate-50 gap-1.5"
+            >
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+            {canChangeStatus ? (
+              <Button
+                onClick={() => setStatusDialogOpen(true)}
+                className="h-9 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs gap-1.5"
+              >
+                <RefreshCw className="size-3.5" />
+                Change status
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
       {/* Header summary */}
-      <div className="card">
-        <div className="row between row--wrap">
-          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+      <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
             <VisaStatusBadge status={application.status} />
             <Badge tone={application.channel === 'b2b' ? 'info' : 'primary'}>
               {application.channel === 'b2b' ? `B2B · ${application.partner}` : 'B2C'}
             </Badge>
             {checklist?.isDefault ? <Badge tone="warning">checklist template</Badge> : null}
           </div>
-          <span className="muted small">
+          <span className="text-xs text-slate-500">
             Submitted {formatDate(application.submittedAt)} · Updated {formatDate(application.updatedAt)}
           </span>
         </div>
-        <dl className="detail-list mt-4">
-          <div>
-            <dt>Application no.</dt>
-            <dd className="strong">{application.number}</dd>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Application no.</p>
+            <p className="mt-1 text-sm font-bold text-slate-900 truncate">{application.number}</p>
           </div>
-          <div>
-            <dt>{isVisa ? 'Country / visa type' : 'Service'}</dt>
-            <dd>{isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}</dd>
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{isVisa ? 'Country / visa type' : 'Service'}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 truncate">
+              {isVisa ? `${application.country} — ${application.visaType}` : `${application.serviceLabel}${application.country ? ` — ${application.country}` : ''}`}
+            </p>
           </div>
           {isVisa || passport.number ? (
-            <div>
-              <dt>Passport number</dt>
-              <dd className="strong">{passport.number || '—'}</dd>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport number</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 truncate">{passport.number || '—'}</p>
             </div>
           ) : null}
           {isVisa ? (
-            <div>
-              <dt>Passport expiry</dt>
-              <dd>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Passport expiry</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900 truncate">
                 {formatDate(passport.expiry)}
-                {passportWarning ? <span className="small" style={{ color: 'var(--color-danger, #dc2626)' }}> · under 6 months</span> : null}
-              </dd>
+                {passportWarning ? <span className="ml-1 text-xs font-semibold text-rose-600"> · under 6m</span> : null}
+              </p>
             </div>
           ) : null}
-          <div>
-            <dt>Assigned staff</dt>
-            <dd>
+          <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Assigned staff</p>
+            <div className="mt-1">
               <Select
                 value={application.assignedStaffId ?? ''}
                 aria-label="Assigned staff"
@@ -266,17 +309,17 @@ export default function VisaApplicationDetails() {
                 onChange={(event) => runAction(() => visaApi.assignStaff(application.id, event.target.value || null), 'Staff updated.')}
                 options={[{ value: '', label: 'Unassigned' }, ...staff.map((person) => ({ value: person.id ?? person._id, label: person.name }))]}
               />
-            </dd>
+            </div>
           </div>
           {isVisa ? (
-            <div>
-              <dt>{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</dt>
-              <dd className="strong">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</dd>
+            <div className="rounded-lg bg-slate-50/70 border border-slate-200/60 p-3 min-w-0 flex flex-col justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{application.channel === 'b2b' ? 'B2B net price' : 'B2C price'}</p>
+              <p className="mt-1 text-sm font-bold text-slate-900 truncate">{formatCurrency(application.channel === 'b2b' ? price.b2b : price.b2c, price.currency)}</p>
             </div>
           ) : null}
-        </dl>
+        </div>
         {passportWarning ? (
-          <p className="alert alert--danger mt-3" style={{ padding: '8px 12px' }}>
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800">
             Passport should have at least 6 months validity for this visa application.
           </p>
         ) : null}
@@ -284,66 +327,119 @@ export default function VisaApplicationDetails() {
 
       {/* Action required / rejection banners */}
       {application.actionRequired ? (
-        <div className="alert alert--danger">
-          <strong>Action required:</strong> {application.actionRequired.message}
-          <span className="muted small" style={{ display: 'block' }}>
-            Requested by {application.actionRequired.requestedBy} · {formatDate(application.actionRequired.requestedAt)}
-          </span>
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4 flex items-start gap-3">
+          <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-sm font-bold text-rose-900">Action required:</strong>
+            <p className="text-xs text-rose-800 mt-0.5">{application.actionRequired.message}</p>
+            <span className="text-[11px] text-rose-500 mt-1 block">
+              Requested by {application.actionRequired.requestedBy} · {formatDate(application.actionRequired.requestedAt)}
+            </span>
+          </div>
         </div>
       ) : null}
       {isRejected && application.rejection ? (
-        <div className="alert alert--danger">
-          <strong>Rejected:</strong> {application.rejection.customerReason || 'No customer-facing reason recorded.'}
-          {application.rejection.internalReason ? (
-            <span className="muted small" style={{ display: 'block' }}>Internal: {application.rejection.internalReason}</span>
-          ) : null}
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-4 flex items-start gap-3">
+          <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-sm font-bold text-rose-900">Rejected:</strong>
+            <p className="text-xs text-rose-800 mt-0.5">{application.rejection.customerReason || 'No customer-facing reason recorded.'}</p>
+            {application.rejection.internalReason ? (
+              <span className="text-[11px] text-rose-500 mt-1 block">Internal: {application.rejection.internalReason}</span>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
       <ApplicationPayments application={application} onChanged={changed} onOpenAccounts={() => navigate('/accounts/sales')} />
 
-      <div className="grid grid--2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Applicant information */}
-        <div className="stack stack--sm">
-          <div className="card">
-            <p className="card__title">Applicant information</p>
-            <dl className="detail-list mt-2">
-              <div><dt>Full name</dt><dd>{applicant.fullName}</dd></div>
-              <div><dt>Date of birth</dt><dd>{formatDate(applicant.dob)}</dd></div>
-              <div><dt>Gender</dt><dd>{applicant.gender}</dd></div>
-              <div><dt>Nationality</dt><dd>{applicant.nationality}</dd></div>
-              <div><dt>Mobile</dt><dd>{applicant.mobile}</dd></div>
-              <div><dt>Email</dt><dd>{applicant.email}</dd></div>
-              <div><dt>Address</dt><dd>{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</dd></div>
-              <div><dt>Applicant type</dt><dd>{applicant.applicantType}</dd></div>
-            </dl>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <UserRound className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Applicant Information</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 text-sm">
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Full name</p>
+                <p className="mt-0.5 font-semibold text-slate-900 truncate">{applicant.fullName}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Date of birth</p>
+                <p className="mt-0.5 font-medium text-slate-800">{formatDate(applicant.dob)}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Gender</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.gender}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Nationality</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.nationality}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Mobile</p>
+                <p className="mt-0.5 font-semibold text-slate-900 truncate">{applicant.mobile}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Email</p>
+                <p className="mt-0.5 font-medium text-slate-800 truncate">{applicant.email}</p>
+              </div>
+              <div className="col-span-2 rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Address</p>
+                <p className="mt-0.5 font-medium text-slate-800">{[applicant.address, applicant.city].filter(Boolean).join(', ') || '—'}</p>
+              </div>
+              <div className="col-span-2 rounded-lg bg-slate-50/60 border border-slate-100 p-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Applicant type</p>
+                <p className="mt-0.5 font-medium text-slate-800">{applicant.applicantType}</p>
+              </div>
+            </div>
           </div>
+
           {!isVisa ? (
-            <div className="card">
-              <p className="card__title">{application.serviceLabel} details</p>
-              <dl className="detail-list mt-2">
+            <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2.5">{application.serviceLabel} details</h3>
+              <dl className="detail-list mt-3">
                 {detailRows.map(([label, value]) => (
                   <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
                 ))}
               </dl>
             </div>
           ) : (
-          <div className="card">
-            <div className="row between">
-              <p className="card__title" style={{ marginBottom: 0 }}>Passport</p>
-              {can(PERMISSIONS.PASSPORT_UPDATE) ? <Button size="sm" variant="subtle" onClick={() => setPassportDialogOpen(true)}>Manage</Button> : null}
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                  <BookUser className="size-4" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Passport & Submission</h3>
+              </div>
+              {can(PERMISSIONS.PASSPORT_UPDATE) ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPassportDialogOpen(true)}
+                  className="h-8 gap-1.5 px-3 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium"
+                >
+                  <Settings2 className="size-3.5" />
+                  Manage
+                </Button>
+              ) : null}
             </div>
-            <div className="row row--wrap mt-2" style={{ gap: 8 }}>
+            <div className="flex flex-wrap items-center gap-2">
               <Badge tone="info">{PASSPORT_METHOD_LABELS[application.passportSubmissionMethod] ?? '—'}</Badge>
               <Badge tone={PASSPORT_STATUS_TONES[application.passportStatus] ?? 'neutral'}>
                 {PASSPORT_STATUS_LABELS[application.passportStatus] ?? application.passportStatus}
               </Badge>
-              <span className="muted small">
+              <span className="text-xs text-slate-500">
                 {visaType ? PASSPORT_REQUIREMENT_LABELS[visaType.passportRequirement] ?? visaType.passportRequirement : ''}
               </span>
             </div>
             {application.pickupRequest ? (
-              <p className="muted small mt-2" style={{ marginBottom: 0 }}>
+              <p className="text-xs text-slate-500 mt-2.5">
                 {application.pickupRequest.locationType} pickup · {application.pickupRequest.address}
                 {application.pickupRequest.district ? `, ${application.pickupRequest.district}` : ''}
                 {application.pickupRequest.preferredDate ? ` · preferred ${formatDate(application.pickupRequest.preferredDate)}` : ''}
@@ -351,122 +447,187 @@ export default function VisaApplicationDetails() {
               </p>
             ) : null}
             {application.passportStatus === 'online' || application.passportStatus === 'not_required' ? (
-              <p className="muted small mt-2" style={{ marginBottom: 0 }}>Online processing — no physical passport required.</p>
+              <p className="text-xs text-slate-500 mt-2.5">Online processing — no physical passport required.</p>
             ) : null}
           </div>
           )}
         </div>
 
         {/* Progress + documents */}
-        <div className="stack stack--sm">
-          <div className="card">
-            <p className="card__title">Progress</p>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <RefreshCw className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Application Progress</h3>
+            </div>
             <VisaTimeline steps={steps} />
           </div>
           <ApplicationDocuments application={application} checklist={checklist} onChanged={changed} />
         </div>
       </div>
 
-      <div className={isVisa ? 'grid grid--2' : undefined}>
+      <div className={`grid grid-cols-1 ${isVisa ? 'lg:grid-cols-2' : ''} gap-5`}>
         {/* Checklist */}
         {isVisa ? (
-        <div className="card">
-          <p className="card__title">Checklist — {application.country} / {application.visaType} / {applicant.applicantType}</p>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+              <ClipboardCheck className="size-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Required Document Checklist</h3>
+              <p className="text-xs text-slate-500">{application.country} · {application.visaType} · {applicant.applicantType}</p>
+            </div>
+          </div>
           {checklist ? (
-            <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden">
               {checklist.items
                 .filter((item) => item.active)
                 .map((item) => {
                   const document = application.documents.find((entry) => entry.checklistItem && String(entry.checklistItem) === String(item.id)) ?? matchDocumentForItem(item, application.documents)
                   const status = document?.status ?? 'missing'
                   return (
-                    <li key={item.id} className="row between" style={{ gap: 8 }}>
-                      <span className="row" style={{ gap: 8 }}>
-                        <span aria-hidden className={cn('strong', status === 'missing' && 'muted')}>{DOC_ICONS[status]}</span>
-                        <span>
-                          {item.label}
-                          {item.requirement !== 'required' ? <span className="muted small"> ({item.requirement})</span> : null}
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 transition-colors hover:bg-white text-sm">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          status === 'verified'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : status === 'pending'
+                            ? 'bg-amber-100 text-amber-700'
+                            : status === 'rejected'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {DOC_ICONS[status]}
                         </span>
-                      </span>
+                        <span className="font-medium text-slate-800 truncate">
+                          {item.label}
+                          {item.requirement !== 'required' ? <span className="text-xs text-slate-400 ml-1.5 font-normal">({item.requirement})</span> : null}
+                        </span>
+                      </div>
                       <Badge tone={DOC_TONES[status]}>{status === 'missing' ? 'not uploaded' : status}</Badge>
-                    </li>
+                    </div>
                   )
                 })}
-            </ul>
+            </div>
           ) : (
-            <p className="muted small">No checklist configured for this combination.</p>
+            <p className="text-xs text-slate-400">No checklist configured for this combination.</p>
           )}
         </div>
         ) : null}
 
         {/* Timeline */}
-        <div className="card">
-          <p className="card__title">Timeline</p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <History className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Activity Timeline</h3>
+            </div>
+            <span className="text-xs text-slate-400">{application.timeline.length} events</span>
+          </div>
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden max-h-[380px] overflow-y-auto">
             {application.timeline.map((event) => (
-              <li key={event.id} className="row between row--wrap" style={{ gap: 8, borderBottom: '1px solid var(--color-border, #e5e7eb)', paddingBottom: 8 }}>
+              <div key={event.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-xs transition-colors hover:bg-white">
                 <div>
-                  <p className="strong" style={{ margin: 0 }}>{event.event}</p>
-                  <p className="muted small" style={{ margin: 0 }}>{event.message}</p>
-                  <p className="muted small" style={{ margin: 0 }}>
+                  <p className="font-semibold text-slate-800 text-sm">{event.event}</p>
+                  <p className="text-slate-500 mt-0.5">{event.message}</p>
+                  <p className="text-slate-400 mt-0.5">
                     {formatDateTime(event.at)} · by {event.by}
                   </p>
                 </div>
                 <Badge tone={VISIBILITY_TONES[event.visibility] ?? 'neutral'}>{event.visibility}</Badge>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
 
       {/* Notes */}
-      <div className="grid grid--2">
-        <div className="card">
-          <p className="card__title">Internal notes <Badge tone="neutral">staff only</Badge></p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
+                <Lock className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Internal Notes</h3>
+            </div>
+            <Badge tone="neutral">staff only</Badge>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
             {application.internalNotes.map((note) => (
-              <li key={note.id}>
-                <p style={{ margin: 0 }}>{note.text}</p>
-                <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
-              </li>
+              <div key={note.id} className="py-2.5 first:pt-0">
+                <p className="text-xs text-slate-700 leading-relaxed">{note.text}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(note.at)} · {note.by}</p>
+              </div>
             ))}
-            {!application.internalNotes.length ? <p className="muted small">No internal notes.</p> : null}
-          </ul>
-          <div className="field mt-3">
+            {!application.internalNotes.length ? <p className="text-xs text-slate-400 py-3">No internal notes.</p> : null}
+          </div>
+          <div className="pt-2">
             <textarea
-              className="field__control"
+              className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 outline-none transition-colors hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
               rows={2}
-              placeholder="Add an internal note…"
+              placeholder="Add an internal note (staff only)…"
               value={noteDrafts.internal}
               onChange={(event) => setNoteDrafts((current) => ({ ...current, internal: event.target.value }))}
             />
-            <div className="mt-2">
-              <Button size="sm" variant="subtle" loading={savingAction} onClick={() => addNote('internal')}>Add internal note</Button>
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                onClick={() => addNote('internal')}
+                loading={savingAction}
+                disabled={!noteDrafts.internal.trim()}
+                className="h-8 gap-1.5 px-3 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium shadow-xs"
+              >
+                <Plus className="size-3.5" />
+                Add internal note
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <p className="card__title">Customer notes <Badge tone="info">visible to customer</Badge></p>
-          <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Users className="size-4" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Customer Notes</h3>
+            </div>
+            <Badge tone="info">visible to customer</Badge>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-48 overflow-y-auto">
             {application.customerNotes.map((note) => (
-              <li key={note.id}>
-                <p style={{ margin: 0 }}>{note.text}</p>
-                <p className="muted small" style={{ margin: 0 }}>{formatDateTime(note.at)} · {note.by}</p>
-              </li>
+              <div key={note.id} className="py-2.5 first:pt-0">
+                <p className="text-xs text-slate-700 leading-relaxed">{note.text}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{formatDateTime(note.at)} · {note.by}</p>
+              </div>
             ))}
-            {!application.customerNotes.length ? <p className="muted small">No customer notes.</p> : null}
-          </ul>
-          <div className="field mt-3">
+            {!application.customerNotes.length ? <p className="text-xs text-slate-400 py-3">No customer notes.</p> : null}
+          </div>
+          <div className="pt-2">
             <textarea
-              className="field__control"
+              className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-700 outline-none transition-colors hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
               rows={2}
               placeholder="Add a note visible to the customer / B2B partner…"
               value={noteDrafts.customer}
               onChange={(event) => setNoteDrafts((current) => ({ ...current, customer: event.target.value }))}
             />
-            <div className="mt-2">
-              <Button size="sm" variant="subtle" loading={savingAction} onClick={() => addNote('customer')}>Add customer note</Button>
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                onClick={() => addNote('customer')}
+                loading={savingAction}
+                disabled={!noteDrafts.customer.trim()}
+                className="h-8 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-xs"
+              >
+                <Send className="size-3.5" />
+                Add customer note
+              </Button>
             </div>
           </div>
         </div>

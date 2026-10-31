@@ -26,6 +26,7 @@ import SaleModal from '../components/SaleModal'
 import MoneyReceiptModal from '../components/MoneyReceiptModal'
 import { simpleApi } from '../simple.api'
 import { formatMoney, formatPct } from '@/features/reports/lib/format'
+import { FEATURE_CATEGORIES_ENABLED } from '@/utils/constants'
 
 export default function AccountsHome() {
   const now = new Date()
@@ -241,31 +242,37 @@ export default function AccountsHome() {
       </SectionCard>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <SectionCard title="Money by Category" subtitle="Selling Price this month" className="lg:col-span-2">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {data.categories.map((category) => (
-              <div key={category.label} className="rounded-xl border border-slate-200 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="size-3 rounded-full" style={{ backgroundColor: category.color }} />
-                    <p className="text-base font-semibold text-slate-800">{category.label}</p>
+        {FEATURE_CATEGORIES_ENABLED && (
+          <SectionCard title="Money by Category" subtitle="Selling Price this month" className="lg:col-span-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {data.categories.map((category) => (
+                <div key={category.label} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="size-3 rounded-full" style={{ backgroundColor: category.color }} />
+                      <p className="text-base font-semibold text-slate-800">{category.label}</p>
+                    </div>
+                    <span className="text-sm text-slate-500">{category.count} sales</span>
                   </div>
-                  <span className="text-sm text-slate-500">{category.count} sales</span>
+                  <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoney(category.sale)}</p>
+                  <div className="mt-1 flex justify-between text-sm">
+                    <span className="text-slate-500">Cost {formatMoney(category.cost)}</span>
+                    <span className="font-semibold text-emerald-700">Profit {formatMoney(category.profit)}</span>
+                  </div>
                 </div>
-                <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{formatMoney(category.sale)}</p>
-                <div className="mt-1 flex justify-between text-sm">
-                  <span className="text-slate-500">Cost {formatMoney(category.cost)}</span>
-                  <span className="font-semibold text-emerald-700">Profit {formatMoney(category.profit)}</span>
-                </div>
-              </div>
-            ))}
-            {!data.categories.length ? (
-              <p className="py-6 text-center text-sm text-slate-400">No sales this month yet.</p>
-            ) : null}
-          </div>
-        </SectionCard>
+              ))}
+              {!data.categories.length ? (
+                <p className="py-6 text-center text-sm text-slate-400">No sales this month yet.</p>
+              ) : null}
+            </div>
+          </SectionCard>
+        )}
 
-        <SectionCard title="Top 10 Clients Who Owe Us" subtitle="Highest due first">
+        <SectionCard
+          title="Top 10 Clients Who Owe Us"
+          subtitle="Highest due first"
+          className={FEATURE_CATEGORIES_ENABLED ? '' : 'lg:col-span-3'}
+        >
           <div className="space-y-2">
             {data.topClients.map((client, index) => (
               <div key={`${client.name}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-2">

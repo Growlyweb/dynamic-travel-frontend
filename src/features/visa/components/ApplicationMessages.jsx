@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Check, Mail, MessageSquare, RotateCcw, Send, Smartphone } from 'lucide-react'
 import Modal from '../../../components/common/Modal'
 import Button from '../../../components/common/Button'
 import Badge from '../../../components/common/Badge'
@@ -52,48 +53,125 @@ export default function ApplicationMessages({ application, onChanged }) {
   }
 
   return (
-    <div className="card">
-      <div className="row between row--wrap">
-        <p className="card__title" style={{ marginBottom: 0 }}>Messages</p>
+    <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <MessageSquare className="size-4" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-900">Applicant Messages</h3>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+            {messages.length}
+          </span>
+        </div>
         {canSend ? (
-          <div className="row" style={{ gap: 8 }}>
-            <Button size="sm" variant="subtle" onClick={() => setDialog('email')} disabled={!application.applicant.email}>Send email</Button>
-            <Button size="sm" variant="subtle" onClick={() => setDialog('sms')}>Prepare SMS</Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setDialog('email')}
+              disabled={!application.applicant.email}
+              className="h-8 gap-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs text-xs"
+            >
+              <Mail className="size-3.5" />
+              Send email
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDialog('sms')}
+              className="h-8 gap-1.5 px-3 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium"
+            >
+              <Smartphone className="size-3.5" />
+              Prepare SMS
+            </Button>
           </div>
         ) : null}
       </div>
-      {!application.applicant.email ? <p className="muted small mt-2">There is no email on this application, so no email can be sent.</p> : null}
-      {error ? <div className="alert alert--danger mt-2">{error}</div> : null}
 
-      <ul className="stack stack--sm mt-2" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {messages.map((message) => (
-          <li key={message.id} style={{ borderBottom: '1px solid var(--color-border, #e5e7eb)', paddingBottom: 8 }}>
-            <div className="row between row--wrap" style={{ gap: 8 }}>
-              <span className="strong">
-                {message.channel === 'email' ? 'Email' : 'SMS'} · {message.templateName}
-                {message.source === 'auto' ? <span className="muted small"> (automatic)</span> : null}
-              </span>
-              <Badge tone={MESSAGE_TONES[message.status] ?? 'neutral'}>{message.status}</Badge>
-            </div>
-            {message.subject ? <p className="small" style={{ margin: 0 }}><strong>{message.subject}</strong></p> : null}
-            <p className="muted small" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{message.body}</p>
-            <p className="muted small" style={{ margin: 0 }}>
-              To {message.to || '—'} · {formatDateTime(message.sentAt ?? message.createdAt)}
-              {message.error ? ` · ${message.error}` : ''}
-            </p>
-            {canSend && message.channel === 'sms' && message.status === 'pending' ? (
-              <div className="row" style={{ gap: 6, marginTop: 4 }}>
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => act(() => visaApi.markMessage(message.id, { status: 'sent' }), 'Marked as sent.')}>Mark as sent</Button>
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => act(() => visaApi.markMessage(message.id, { status: 'failed', error: 'Not delivered' }), 'Marked as failed.')}>Mark as failed</Button>
+      {!application.applicant.email ? (
+        <p className="text-xs text-slate-400">There is no email on this application, so emails cannot be dispatched.</p>
+      ) : null}
+      {error ? <div className="alert alert--danger">{error}</div> : null}
+
+      {messages.length > 0 ? (
+        <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden">
+          {messages.map((message) => (
+            <div key={message.id} className="p-3.5 space-y-2 transition-colors hover:bg-white">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold uppercase text-slate-700">
+                    {message.channel === 'email' ? 'Email' : 'SMS'}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-900">
+                    {message.templateName}
+                  </span>
+                  {message.source === 'auto' ? (
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                      automatic
+                    </span>
+                  ) : null}
+                </div>
+                <Badge tone={MESSAGE_TONES[message.status] ?? 'neutral'}>{message.status}</Badge>
               </div>
-            ) : null}
-            {canSend && message.channel === 'email' && message.status === 'failed' ? (
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => act(() => visaApi.resendMessage(message.id), 'Email sent again.')}>Send again</Button>
-            ) : null}
-          </li>
-        ))}
-        {!messages.length ? <p className="muted small">No messages yet.</p> : null}
-      </ul>
+
+              {message.subject ? (
+                <p className="text-xs font-bold text-slate-800">{message.subject}</p>
+              ) : null}
+              <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed bg-white/70 rounded-lg p-2.5 border border-slate-200/60">
+                {message.body}
+              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs text-slate-400">
+                <p>
+                  To <span className="font-medium text-slate-600">{message.to || '—'}</span> · {formatDateTime(message.sentAt ?? message.createdAt)}
+                  {message.error ? <span className="text-rose-600 font-medium"> · Error: {message.error}</span> : null}
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  {canSend && message.channel === 'sms' && message.status === 'pending' ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => act(() => visaApi.markMessage(message.id, { status: 'sent' }), 'Marked as sent.')}
+                        className="h-7 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 border border-emerald-200 gap-1"
+                      >
+                        <Check className="size-3.5" />
+                        Mark as sent
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => act(() => visaApi.markMessage(message.id, { status: 'failed', error: 'Not delivered' }), 'Marked as failed.')}
+                        className="h-7 px-2.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 gap-1"
+                      >
+                        Mark as failed
+                      </Button>
+                    </>
+                  ) : null}
+                  {canSend && message.channel === 'email' && message.status === 'failed' ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => act(() => visaApi.resendMessage(message.id), 'Email sent again.')}
+                      className="h-7 px-2.5 text-xs text-blue-600 hover:bg-blue-50 border border-blue-200 gap-1"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Send again
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+          No communication messages recorded yet.
+        </div>
+      )}
 
       <ComposeDialog
         channel={dialog}

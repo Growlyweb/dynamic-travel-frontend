@@ -33,6 +33,12 @@ import {
   Wallet,
 } from 'lucide-react'
 
+/**
+ * Feature flag for Accounts / Setup Categories.
+ * Set to true to re-enable Categories across navigation, tabs, and reports.
+ */
+export const FEATURE_CATEGORIES_ENABLED = false
+
 export const APP_ROUTES = {
   LOGIN: '/login',
   LOGIN_ADMIN: '/dashboard/login/admin',
@@ -209,7 +215,9 @@ export const NAV_SECTIONS = [
   {
     label: 'Setup',
     items: [
-      { to: APP_ROUTES.ACCOUNTS_CATEGORIES, label: 'Categories', icon: Tags, permission: 'REPORTS_VIEW' },
+      ...(FEATURE_CATEGORIES_ENABLED
+        ? [{ to: APP_ROUTES.ACCOUNTS_CATEGORIES, label: 'Categories', icon: Tags, permission: 'REPORTS_VIEW' }]
+        : []),
       { to: APP_ROUTES.ACCOUNTS_PRICE_LIST, label: 'Price List', icon: ListTree, permission: 'REPORTS_VIEW' },
     ],
   },

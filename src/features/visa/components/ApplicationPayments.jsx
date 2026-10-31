@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ArrowUpRight, Ban, PlusCircle, Receipt, Wallet } from 'lucide-react'
 import Modal from '../../../components/common/Modal'
 import Button from '../../../components/common/Button'
 import Input from '../../../components/common/Input'
@@ -16,7 +17,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 // it is voided with a reason, so the history stays.
 export default function ApplicationPayments({ application, onChanged, onOpenAccounts }) {
   const { can } = usePermission()
-  const account = application.account
+  const account = application.account || {}
   const currency = application.price?.currency ?? 'BDT'
   const payments = [...(application.payments ?? [])].sort((a, b) => new Date(b.date) - new Date(a.date))
 
@@ -74,50 +75,189 @@ export default function ApplicationPayments({ application, onChanged, onOpenAcco
     }
   }
 
+  const activePayments = payments.filter((p) => !p.voided)
+
   return (
-    <div className="card">
-      <div className="row between row--wrap">
-        <p className="card__title" style={{ marginBottom: 0 }}>
-          Money <Badge tone={PAYMENT_STATUS_TONES[account.paymentStatus] ?? 'neutral'}>{account.paymentStatus}</Badge>
-        </p>
-        <div className="row" style={{ gap: 8 }}>
-          {can(PERMISSIONS.VISA_EDIT) && account.dueAmount > 0 ? <Button size="sm" onClick={openReceive}>Receive payment</Button> : null}
-          {can(PERMISSIONS.REPORTS_VIEW) ? <Button size="sm" variant="subtle" onClick={onOpenAccounts}>Open in Accounts</Button> : null}
+    <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-5">
+      {/* Top Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <Wallet className="size-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900">Payment & Invoicing</h3>
+              <Badge tone={PAYMENT_STATUS_TONES[account.paymentStatus] ?? 'neutral'}>
+                {account.paymentStatus}
+              </Badge>
+            </div>
+            <p className="text-xs text-slate-500">Track total charges, advance received, and dues</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {can(PERMISSIONS.VISA_EDIT) && account.dueAmount > 0 ? (
+            <Button size="sm" onClick={openReceive} className="h-9 gap-1.5 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-xs">
+              <PlusCircle className="size-4" />
+              Receive payment
+            </Button>
+          ) : null}
+          {can(PERMISSIONS.REPORTS_VIEW) ? (
+            <Button size="sm" variant="ghost" onClick={onOpenAccounts} className="h-9 gap-1.5 px-3 border border-slate-200 text-slate-700 hover:bg-slate-50">
+              <ArrowUpRight className="size-4" />
+              Open in Accounts
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <dl className="detail-list mt-2">
-        <div><dt>{application.serviceType === 'visa' ? 'Price list' : 'Total'}</dt><dd>{formatCurrency(account.totalAmount, currency)}</dd></div>
-        <div><dt>Discount</dt><dd>{formatCurrency(account.discountAmount, currency)}</dd></div>
-        <div><dt>To pay</dt><dd className="strong">{formatCurrency(account.netAmount, currency)}</dd></div>
-        <div><dt>Received</dt><dd>{formatCurrency(account.advancePaid, currency)}</dd></div>
-        <div>
-          <dt>Due</dt>
-          <dd className="strong" style={{ color: account.dueAmount > 0 ? '#c62828' : '#0f8a4f' }}>{formatCurrency(account.dueAmount, currency)}</dd>
+      {/* Financial KPI Summary Cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            {application.serviceType === 'visa' ? 'Price list' : 'Total'}
+          </p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-slate-900">
+            {formatCurrency(account.totalAmount, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-400">Agreed price</p>
         </div>
-        {account.totalOverrideReason ? <div><dt>Why the total differs</dt><dd>{account.totalOverrideReason}</dd></div> : null}
-      </dl>
 
-      <ul className="stack stack--sm mt-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {payments.map((payment) => (
-          <li key={payment.id} className="row between row--wrap" style={{ gap: 8, opacity: payment.voided ? 0.6 : 1 }}>
-            <div>
-              <p className="strong" style={{ margin: 0, textDecoration: payment.voided ? 'line-through' : 'none' }}>
-                {formatCurrency(payment.amount, currency)} · {payment.method}
-              </p>
-              <p className="muted small" style={{ margin: 0 }}>
-                {formatDate(payment.date)} · {payment.enteredByName || 'System'}
-                {payment.note ? ` · ${payment.note}` : ''}
-                {payment.voided ? ` · voided by ${payment.voidedByName}: ${payment.voidReason}` : ''}
-              </p>
-            </div>
-            {!payment.voided && can(PERMISSIONS.VISA_PAYMENT_VOID) ? (
-              <Button size="sm" variant="ghost" onClick={() => { setVoiding(payment); setReason(''); setError(null) }}>Void</Button>
-            ) : null}
-          </li>
-        ))}
-        {!payments.length ? <p className="muted small">No payments yet.</p> : null}
-      </ul>
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Discount</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-slate-700">
+            {formatCurrency(account.discountAmount, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-400">
+            {account.discountAmount > 0 ? 'Applied rebate' : 'No discount'}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-700">To pay (Net)</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-blue-950">
+            {formatCurrency(account.netAmount, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-blue-600/80">Total payable</p>
+        </div>
+
+        <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Received</p>
+          <p className="mt-1 text-lg font-bold tabular-nums text-emerald-800">
+            {formatCurrency(account.advancePaid, currency)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-emerald-600/80">
+            {activePayments.length} payment{activePayments.length === 1 ? '' : 's'}
+          </p>
+        </div>
+
+        <div className={`rounded-xl border p-3.5 ${
+          account.dueAmount > 0
+            ? 'border-rose-200/90 bg-rose-50/50'
+            : 'border-emerald-200/80 bg-emerald-50/40'
+        }`}>
+          <p className={`text-[11px] font-semibold uppercase tracking-wider ${
+            account.dueAmount > 0 ? 'text-rose-700' : 'text-emerald-700'
+          }`}>
+            {account.dueAmount > 0 ? 'Due' : 'Due'}
+          </p>
+          <p className={`mt-1 text-lg font-bold tabular-nums ${
+            account.dueAmount > 0 ? 'text-rose-700' : 'text-emerald-800'
+          }`}>
+            {formatCurrency(account.dueAmount, currency)}
+          </p>
+          <p className={`mt-0.5 text-[11px] font-medium ${
+            account.dueAmount > 0 ? 'text-rose-600' : 'text-emerald-600'
+          }`}>
+            {account.dueAmount > 0 ? 'Outstanding balance' : 'Cleared in full'}
+          </p>
+        </div>
+      </div>
+
+      {account.totalOverrideReason ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-2 text-xs text-amber-900">
+          <strong>Why the total differs:</strong> {account.totalOverrideReason}
+        </div>
+      ) : null}
+
+      {/* Payment Transactions List */}
+      <div className="pt-1">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+          <div className="flex items-center gap-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Payment Transactions</h4>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+              {payments.length}
+            </span>
+          </div>
+        </div>
+
+        {payments.length > 0 ? (
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/30 overflow-hidden">
+            {payments.map((payment) => (
+              <div
+                key={payment.id}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 transition-colors ${
+                  payment.voided ? 'bg-slate-50/70 opacity-60' : 'hover:bg-white'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                    payment.voided ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {payment.voided ? <Ban className="size-4" /> : <Receipt className="size-4" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-base font-bold tabular-nums ${payment.voided ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+                        {formatCurrency(payment.amount, currency)}
+                      </span>
+                      <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium uppercase text-slate-600">
+                        {payment.method}
+                      </span>
+                      {payment.voided && (
+                        <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                          Voided
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      <span>{formatDate(payment.date)}</span>
+                      <span className="mx-1.5 text-slate-300">·</span>
+                      <span>Collected by {payment.enteredByName || 'System'}</span>
+                      {payment.note && (
+                        <>
+                          <span className="mx-1.5 text-slate-300">·</span>
+                          <span className="italic text-slate-600">"{payment.note}"</span>
+                        </>
+                      )}
+                    </p>
+                    {payment.voided && (
+                      <p className="mt-1 text-xs text-rose-600">
+                        Voided by {payment.voidedByName}: "{payment.voidReason}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {!payment.voided && can(PERMISSIONS.VISA_PAYMENT_VOID) ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setVoiding(payment); setReason(''); setError(null) }}
+                    className="self-end sm:self-center h-7.5 px-2.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 border border-rose-200/60 hover:border-rose-300"
+                  >
+                    Void
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+            No payments recorded yet.
+          </div>
+        )}
+      </div>
 
       <Modal
         open={receiving}

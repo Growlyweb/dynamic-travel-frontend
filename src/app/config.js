@@ -15,6 +15,7 @@ export const config = {
   appName: import.meta.env.VITE_APP_NAME ?? 'Travel Dashboard',
   mockModules,
   mockAll,
+  enableMocks: import.meta.env.VITE_ENABLE_MOCKS === 'true',
   defaultPageSize: 50,
 }
 

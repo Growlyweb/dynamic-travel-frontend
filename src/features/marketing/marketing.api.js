@@ -225,6 +225,7 @@ function getInitialState() {
 }
 
 function loadMarketingState() {
+  if (!config.enableMocks) return getInitialState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -266,6 +267,7 @@ function loadMarketingState() {
 }
 
 function saveMarketingState(state) {
+  if (!config.enableMocks) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (err) {
